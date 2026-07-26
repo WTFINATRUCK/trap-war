@@ -19,7 +19,7 @@ npm run dev
 Step-by-step: **[DEPLOY.md](./DEPLOY.md)**
 
 - Correct repo: **https://github.com/WTFINATRUCK/trap-war**
-- Mini App → Vercel + optional **trappywar.com**
+- Mini App → Vercel + **trapwar.com**
 - Bot still needs a 24/7 host (Railway/Render) — not only your PC
 
 ### Telegram channel + Mini App access
