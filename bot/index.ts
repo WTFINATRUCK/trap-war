@@ -24,10 +24,17 @@ import {
   howToPlayShort,
 } from "./messages.js";
 import {
+  banUser,
+  findUser,
+  formatAdminDashboardHtml,
+  formatPlayerCardHtml,
+  formatPlayersListHtml,
   formatStatsHtml,
   getRecentUsers,
   getUserStats,
+  isBanned,
   touchUser,
+  unbanUser,
 } from "./users.js";
 import { pushActivity } from "./activity.js";
 import {
@@ -74,10 +81,17 @@ export const bot = new Telegraf(token || "0:missing");
 
 // Track every interaction → total users + online (last 5 min)
 // New / returning players land on the street activity wire
+// Banned players get a hard stop (admins always pass)
 bot.use(async (ctx, next) => {
   try {
     const from = ctx.from;
     if (from?.id) {
+      if (isBanned(from.id) && !isHumanAdmin(from.id)) {
+        await ctx.reply(
+          "You're banned from Trap War. Contact support if you think this is a mistake."
+        ).catch(() => undefined);
+        return;
+      }
       const hit = touchUser({
         id: from.id,
         username: from.username,
@@ -93,12 +107,16 @@ bot.use(async (ctx, next) => {
             kind: "new_player",
             text: `${label} just linked up · new blood on the block`,
             playerId: String(from.id),
+            username: from.username,
+            firstSeen: hit.user.firstSeen,
           });
         } else if (hit.isReturning) {
           pushActivity({
             kind: "return",
             text: `${label} back on the set · returning player`,
             playerId: String(from.id),
+            username: from.username,
+            firstSeen: hit.user.firstSeen,
           });
         }
       }
@@ -512,11 +530,152 @@ bot.command("stats", async (ctx) => {
 });
 
 bot.command("users", async (ctx) => {
-  // Alias of /stats
+  // Alias of /stats (public counts); admins get recent list
   const userId = ctx.from?.id;
   const stats = getUserStats();
   const recent = isAdmin(userId) ? getRecentUsers(12) : undefined;
   await safeReply(ctx, formatStatsHtml(stats, recent));
+});
+
+/** Admin panel + player ops (ADMIN_IDS only) */
+async function requireAdmin(ctx: Context): Promise<boolean> {
+  if (isAdmin(ctx.from?.id)) return true;
+  await safeReply(ctx, "Admin only.");
+  return false;
+}
+
+bot.command("admin", async (ctx) => {
+  if (!(await requireAdmin(ctx))) return;
+  await safeReply(ctx, formatAdminDashboardHtml());
+});
+
+bot.command("players", async (ctx) => {
+  if (!(await requireAdmin(ctx))) return;
+  await safeReply(ctx, formatPlayersListHtml(30));
+});
+
+bot.command("player", async (ctx) => {
+  if (!(await requireAdmin(ctx))) return;
+  const arg = (ctx.message && "text" in ctx.message ? ctx.message.text : "")
+    .replace(/^\/player(@\w+)?\s*/i, "")
+    .trim();
+  if (!arg) {
+    await safeReply(ctx, "Usage: /player &lt;telegram_id|@username&gt;");
+    return;
+  }
+  const u = findUser(arg);
+  if (!u) {
+    await safeReply(ctx, `No player found for <code>${arg.replace(/[<>&]/g, "")}</code>.`);
+    return;
+  }
+  await safeReply(ctx, formatPlayerCardHtml(u));
+});
+
+bot.command("ban", async (ctx) => {
+  if (!(await requireAdmin(ctx))) return;
+  const raw = (ctx.message && "text" in ctx.message ? ctx.message.text : "")
+    .replace(/^\/ban(@\w+)?\s*/i, "")
+    .trim();
+  const [idPart, ...reasonParts] = raw.split(/\s+/);
+  if (!idPart) {
+    await safeReply(ctx, "Usage: /ban &lt;id|@user&gt; [reason]");
+    return;
+  }
+  const u = findUser(idPart);
+  if (!u) {
+    await safeReply(ctx, "Player not found.");
+    return;
+  }
+  if (isAdmin(parseInt(u.id, 10))) {
+    await safeReply(ctx, "Can't ban an admin id.");
+    return;
+  }
+  const reason = reasonParts.join(" ").trim() || "banned by admin";
+  banUser(u.id, reason);
+  await safeReply(ctx, `🚫 Banned <code>${u.id}</code> — ${reason.replace(/[<>&]/g, "")}`);
+});
+
+bot.command("unban", async (ctx) => {
+  if (!(await requireAdmin(ctx))) return;
+  const arg = (ctx.message && "text" in ctx.message ? ctx.message.text : "")
+    .replace(/^\/unban(@\w+)?\s*/i, "")
+    .trim();
+  if (!arg) {
+    await safeReply(ctx, "Usage: /unban &lt;id|@user&gt;");
+    return;
+  }
+  const u = findUser(arg);
+  if (!u) {
+    await safeReply(ctx, "Player not found.");
+    return;
+  }
+  unbanUser(u.id);
+  await safeReply(ctx, `✅ Unbanned <code>${u.id}</code>`);
+});
+
+bot.command("dm", async (ctx) => {
+  if (!(await requireAdmin(ctx))) return;
+  const raw = (ctx.message && "text" in ctx.message ? ctx.message.text : "")
+    .replace(/^\/dm(@\w+)?\s*/i, "")
+    .trim();
+  const sp = raw.indexOf(" ");
+  if (sp < 1) {
+    await safeReply(ctx, "Usage: /dm &lt;id|@user&gt; &lt;message&gt;");
+    return;
+  }
+  const who = raw.slice(0, sp).trim();
+  const message = raw.slice(sp + 1).trim().slice(0, 1500);
+  if (!message) {
+    await safeReply(ctx, "Message empty.");
+    return;
+  }
+  const u = findUser(who);
+  if (!u) {
+    await safeReply(ctx, "Player not found.");
+    return;
+  }
+  try {
+    await bot.telegram.sendMessage(
+      u.id,
+      `📣 <b>Trap War</b>\n\n${message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}`,
+      { parse_mode: "HTML" }
+    );
+    await safeReply(ctx, `✅ Sent to <code>${u.id}</code>`);
+  } catch (e) {
+    await safeReply(
+      ctx,
+      `Couldn't DM <code>${u.id}</code> — they may need to /start the bot first.\n${String(e).slice(0, 120)}`
+    );
+  }
+});
+
+bot.command("thanks", async (ctx) => {
+  if (!(await requireAdmin(ctx))) return;
+  const arg = (ctx.message && "text" in ctx.message ? ctx.message.text : "")
+    .replace(/^\/thanks(@\w+)?\s*/i, "")
+    .trim();
+  if (!arg) {
+    await safeReply(ctx, "Usage: /thanks &lt;id|@user&gt;");
+    return;
+  }
+  const u = findUser(arg);
+  if (!u) {
+    await safeReply(ctx, "Player not found.");
+    return;
+  }
+  const name = u.firstName || u.username || "hustler";
+  const text =
+    `Thanks for playing Trap War, ${name} 🙌\n\n` +
+    `You're early on the block. Keep hustling — more drops coming. Everybody Eats.`;
+  try {
+    await bot.telegram.sendMessage(u.id, text);
+    await safeReply(ctx, `✅ Thanks sent to <code>${u.id}</code>`);
+  } catch (e) {
+    await safeReply(
+      ctx,
+      `Couldn't DM <code>${u.id}</code> — they may need to open the bot once.\n${String(e).slice(0, 120)}`
+    );
+  }
 });
 
 bot.action("help_info", async (ctx) => {
@@ -683,6 +842,8 @@ export async function configureBotPresentation(): Promise<void> {
       { command: "community", description: "Community chat" },
       { command: "vault", description: "Vault info" },
       { command: "soon", description: "Roadmap" },
+      { command: "admin", description: "Admin panel (owner)" },
+      { command: "players", description: "Admin: list players" },
     ]);
     console.log("  Commands list registered (type / in chat)");
   } catch {

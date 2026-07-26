@@ -153,6 +153,7 @@ export default function App() {
               onSave={saveGame}
               onGameOver={setScore}
               runsCompleted={runsCompleted}
+              telegramUsername={user.username}
             />
           )}
           {tab === "crew" && (

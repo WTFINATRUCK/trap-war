@@ -122,6 +122,7 @@ export function helpMenuText(): string {
     "/community — Player chat / hangout\n" +
     "/chat — Same as /community\n" +
     "/adminbots — 2–3 admin bot stack status\n" +
+    "/admin — Owner: players, ban, DM (ADMIN_IDS)\n" +
     "/vault — Protected reserves\n" +
     "/help — This menu\n\n" +
     "<b>Quick tips</b>\n" +

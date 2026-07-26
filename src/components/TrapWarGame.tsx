@@ -64,6 +64,7 @@ interface TrapWarGameProps {
   onGameOver: (score: number) => void;
   /** Full 30-day runs completed (career) */
   runsCompleted?: number;
+  telegramUsername?: string;
 }
 
 type Sheet = "market" | "travel" | "stash" | null;
@@ -79,12 +80,29 @@ function displayName(name: string): string {
   return name;
 }
 
+function selfFirstSeenMs(telegramId: number): number {
+  const key = `trapwar_first_seen_${telegramId}`;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const n = parseInt(raw, 10);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+    const now = Date.now();
+    localStorage.setItem(key, String(now));
+    return now;
+  } catch {
+    return Date.now();
+  }
+}
+
 export default function TrapWarGame({
   telegramId,
   initialGame,
   onSave,
   onGameOver,
   runsCompleted = 0,
+  telegramUsername,
 }: TrapWarGameProps) {
   const [gameState, setGameState] = useState<GameState | null>(initialGame);
   const [messages, setMessages] = useState<GameMessage[]>([]);
@@ -104,6 +122,7 @@ export default function TrapWarGame({
   /** Career 30-day finishes — synced from cloud, bumped instantly on full clear */
   const [careerRuns, setCareerRuns] = useState(runsCompleted);
   const streetWho = useMemo(() => streetNameFromId(String(telegramId)), [telegramId]);
+  const myFirstSeen = useMemo(() => selfFirstSeenMs(telegramId), [telegramId]);
 
   useEffect(() => {
     setCareerRuns(runsCompleted);
@@ -141,10 +160,16 @@ export default function TrapWarGame({
   const emitStreet = useCallback(
     (kind: ActivityKind, text: string) => {
       pushLocalActivity({ kind, text });
-      void postRemoteActivity(API_BASE, { kind, text, playerId: String(telegramId) });
+      void postRemoteActivity(API_BASE, {
+        kind,
+        text,
+        playerId: String(telegramId),
+        actorName: streetWho,
+        username: telegramUsername,
+      });
       void refreshStreetFeed();
     },
-    [telegramId, refreshStreetFeed]
+    [telegramId, refreshStreetFeed, streetWho, telegramUsername]
   );
 
   const saveGame = useCallback(
@@ -334,9 +359,6 @@ export default function TrapWarGame({
     return cityPulseEvents();
   }, [streetFeed]);
 
-  // Seamless vertical loop: render list twice
-  const scrollItems = useMemo(() => [...notifFeed, ...notifFeed], [notifFeed]);
-
   /** Trap Phone contact rail expects { from, text } */
   const phoneStreet = useMemo(
     () =>
@@ -496,6 +518,8 @@ export default function TrapWarGame({
           game={g}
           feed={notifFeed}
           selfStreetName={streetWho}
+          selfUsername={telegramUsername}
+          selfFirstSeen={myFirstSeen}
           focusId={activityFocusId}
           onClose={() => {
             setActivityOpen(false);
@@ -675,7 +699,7 @@ export default function TrapWarGame({
           </div>
         </div>
 
-        {/* Live street wire — tap opens messages + player/NPC profiles */}
+        {/* Live street wire (right rail) — scroll + tap entry for profile */}
         <div className="notif-rail" aria-label="Live street activity">
           <button
             type="button"
@@ -684,15 +708,15 @@ export default function TrapWarGame({
           >
             STREET WIRE
           </button>
-          <div className="notif-tap-hint">Tap for messages</div>
+          <div className="notif-tap-hint">Scroll · tap a hustler</div>
           <div className="notif-viewport">
-            <div
-              className="notif-scroll"
-              style={{ animationDuration: `${Math.max(18, notifFeed.length * 2.2)}s` }}
-            >
-              {scrollItems.map((n, i) => (
+            <div className="notif-scroll">
+              {notifFeed.length === 0 && (
+                <div className="notif-bubble">Wire quiet — make a move.</div>
+              )}
+              {notifFeed.map((n) => (
                 <button
-                  key={`${n.id}_${i}`}
+                  key={n.id}
                   type="button"
                   className={`notif-bubble kind-${n.kind}${n.local ? " local" : ""}`}
                   onClick={(e) => {

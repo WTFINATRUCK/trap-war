@@ -10563,6 +10563,111 @@ function getRecentUsers(limit = 15) {
   const store = loadUsers();
   return Object.values(store.users).sort((a, b) => b.lastSeen - a.lastSeen).slice(0, Math.min(50, Math.max(1, limit)));
 }
+function getUserById(id) {
+  const key = String(id).trim();
+  if (!key) return null;
+  const store = loadUsers();
+  return store.users[key] || null;
+}
+function findUser(query) {
+  const q = query.trim().replace(/^@/, "");
+  if (!q) return null;
+  const byId = getUserById(q);
+  if (byId) return byId;
+  const store = loadUsers();
+  const lower = q.toLowerCase();
+  return Object.values(store.users).find((u) => (u.username || "").toLowerCase() === lower) || null;
+}
+function listPlayersAdmin(limit = 40) {
+  const store = loadUsers();
+  return Object.values(store.users).sort((a, b) => b.lastSeen - a.lastSeen).slice(0, Math.min(100, Math.max(1, limit)));
+}
+function isBanned(id) {
+  const u = getUserById(id);
+  return Boolean(u?.banned);
+}
+function banUser(id, reason) {
+  const store = loadUsers();
+  const key = String(id).trim();
+  const u = store.users[key];
+  if (!u) return null;
+  u.banned = true;
+  u.banReason = (reason || "banned").slice(0, 120);
+  u.bannedAt = Date.now();
+  store.users[key] = u;
+  saveUsers(store);
+  return u;
+}
+function unbanUser(id) {
+  const store = loadUsers();
+  const key = String(id).trim();
+  const u = store.users[key];
+  if (!u) return null;
+  u.banned = false;
+  u.banReason = void 0;
+  u.bannedAt = void 0;
+  store.users[key] = u;
+  saveUsers(store);
+  return u;
+}
+function countBanned() {
+  return Object.values(loadUsers().users).filter((u) => u.banned).length;
+}
+function getPublicPlayerCard(id) {
+  const u = getUserById(id);
+  if (!u) return null;
+  if (u.banned) {
+    return {
+      id: u.id,
+      streetName: streetNameFromId(u.id),
+      firstSeen: u.firstSeen,
+      lastSeen: u.lastSeen,
+      hits: u.hits,
+      banned: true
+    };
+  }
+  const allow = u.allowTelegramContact !== false;
+  return {
+    id: u.id,
+    streetName: streetNameFromId(u.id),
+    firstName: u.firstName,
+    username: allow && u.username ? u.username : void 0,
+    firstSeen: u.firstSeen,
+    lastSeen: u.lastSeen,
+    hits: u.hits,
+    banned: false
+  };
+}
+function streetNameFromId(id) {
+  const FIRST = [
+    "Big Lou",
+    "Lil Kev",
+    "Ghost",
+    "Stacks",
+    "Rook",
+    "Trina",
+    "Dez",
+    "Ice",
+    "Mando",
+    "Kilo",
+    "Sosa",
+    "Rico",
+    "Blaze",
+    "Nino",
+    "Asha",
+    "Flex",
+    "Juke",
+    "Pepe",
+    "Viper",
+    "Cali"
+  ];
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = h * 31 + id.charCodeAt(i) >>> 0;
+  return FIRST[h % FIRST.length];
+}
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
 function formatStatsHtml(stats, recent) {
   let text = `\u{1F4CA} <b>TRAP WAR \u2014 LIVE STATS</b>
 
@@ -10571,19 +10676,79 @@ function formatStatsHtml(stats, recent) {
 \u26A1 <b>Active 24h:</b> ${stats.active24h}
 \u{1F4C5} <b>Active 7d:</b> ${stats.active7d}
 \u2728 <b>New today:</b> ${stats.newToday}
+\u{1F6AB} <b>Banned:</b> ${countBanned()}
 `;
   if (recent && recent.length > 0) {
     const now = Date.now();
     text += "\n<b>Recent activity</b>\n";
     text += recent.slice(0, 12).map((u, i) => {
-      const name = (u.firstName || u.username || u.id).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const name = esc(u.firstName || (u.username ? `@${u.username}` : u.id));
       const ago = formatAgo(now - u.lastSeen);
       const online = now - u.lastSeen <= ONLINE_WINDOW_MS ? " \u{1F7E2}" : "";
-      return `${i + 1}. ${name}${online} \xB7 ${ago}`;
+      const ban = u.banned ? " \u{1F6AB}" : "";
+      return `${i + 1}. ${name}${online}${ban} \xB7 <code>${u.id}</code> \xB7 ${ago}`;
     }).join("\n");
   }
   text += "\n\n<i>Online = messaged the bot in the last few minutes.</i>";
   return text;
+}
+function formatAdminDashboardHtml() {
+  const stats = getUserStats();
+  const banned = countBanned();
+  return `\u{1F6E0} <b>TRAP WAR \u2014 ADMIN</b>
+
+\u{1F465} Total real players: <b>${stats.totalUsers}</b>
+\u{1F7E2} Online now: <b>${stats.onlineNow}</b>
+\u26A1 Active 24h: <b>${stats.active24h}</b>
+\u{1F6AB} Banned: <b>${banned}</b>
+
+<b>Commands</b>
+/players \u2014 list players + ban flag
+/player &lt;id|@user&gt; \u2014 one player card
+/ban &lt;id&gt; [reason]
+/unban &lt;id&gt;
+/dm &lt;id&gt; &lt;message&gt; \u2014 bot DMs them
+/thanks &lt;id&gt; \u2014 quick thanks message
+/stats \u2014 live counts
+`;
+}
+function formatPlayersListHtml(limit = 25) {
+  const list = listPlayersAdmin(limit);
+  const now = Date.now();
+  if (list.length === 0) {
+    return "\u{1F465} <b>No players registered yet.</b>\nThey show up when they /start or open the Mini App.";
+  }
+  const lines = list.map((u, i) => {
+    const name = esc(u.firstName || (u.username ? `@${u.username}` : "anon"));
+    const un = u.username ? ` @${esc(u.username)}` : "";
+    const ban = u.banned ? " \u{1F6AB}BANNED" : "";
+    const online = now - u.lastSeen <= ONLINE_WINDOW_MS ? " \u{1F7E2}" : "";
+    const days = Math.max(0, Math.floor((now - u.firstSeen) / 864e5));
+    return `${i + 1}. <b>${name}</b>${un}${online}${ban}
+   id <code>${u.id}</code> \xB7 ${days}d \xB7 hits ${u.hits} \xB7 last ${formatAgo(now - u.lastSeen)}`;
+  });
+  return `\u{1F465} <b>Players</b> (latest ${list.length})
+
+` + lines.join("\n\n") + "\n\nTap /player &lt;id&gt; \xB7 /dm &lt;id&gt; hi \xB7 /ban &lt;id&gt;";
+}
+function formatPlayerCardHtml(u) {
+  const now = Date.now();
+  const days = Math.max(0, Math.floor((now - u.firstSeen) / 864e5));
+  const name = esc(u.firstName || "\u2014");
+  const un = u.username ? `@${esc(u.username)}` : "(no @)";
+  return `\u{1FAAA} <b>Player card</b>
+
+Name: <b>${name}</b>
+Username: ${un}
+ID: <code>${u.id}</code>
+Street: ${streetNameFromId(u.id)}
+In game: <b>${days}</b> day(s) \xB7 first ${formatAgo(now - u.firstSeen)} ago
+Last seen: ${formatAgo(now - u.lastSeen)}
+Hits: ${u.hits}
+Banned: <b>${u.banned ? "YES" : "no"}</b>` + (u.banned && u.banReason ? ` (${esc(u.banReason)})` : "") + `
+
+/dm ${u.id} Thanks for playing Trap War \u{1F64C}
+` + (u.banned ? `/unban ${u.id}` : `/ban ${u.id} spam`);
 }
 function formatAgo(ms) {
   if (ms < 6e4) return "just now";
@@ -10635,7 +10800,10 @@ function pushActivity(input) {
     kind: input.kind,
     text: input.text.slice(0, 200),
     at: Date.now(),
-    playerId: input.playerId
+    playerId: input.playerId,
+    actorName: input.actorName?.slice(0, 32),
+    username: input.username?.replace(/^@/, "").slice(0, 32),
+    firstSeen: input.firstSeen
   };
   const next = [item, ...readAll()].slice(0, MAX);
   writeAll(next);
@@ -10651,6 +10819,168 @@ var init_activity = __esm({
     DATA_DIR3 = dataDir();
     FILE3 = import_node_path2.default.join(DATA_DIR3, "activity.json");
     MAX = 80;
+  }
+});
+
+// bot/publicApi.ts
+function ipFrom(headers) {
+  const xf = headers["x-forwarded-for"];
+  if (typeof xf === "string" && xf) return xf.split(",")[0].trim();
+  if (Array.isArray(xf) && xf[0]) return xf[0].split(",")[0].trim();
+  return "x";
+}
+function handlePublicApi(input) {
+  const method = input.method.toUpperCase();
+  const path5 = input.pathname.replace(/\/$/, "") || "/";
+  const ip = ipFrom(input.headers);
+  if (method === "GET" && (path5 === "/health" || path5 === "/api/health")) {
+    return { status: 200, body: { ok: true, service: "trapwar-api" } };
+  }
+  if (method === "GET" && path5 === "/api/stats") {
+    if (!rateLimit(`api-stats:${ip}`, 30, 6e4)) {
+      return { status: 429, body: { ok: false, error: "rate_limited" } };
+    }
+    const s = getUserStats();
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        totalUsers: s.totalUsers,
+        onlineNow: s.onlineNow,
+        active24h: s.active24h,
+        active7d: s.active7d,
+        newToday: s.newToday,
+        onlineWindowMin: s.onlineWindowMin
+      }
+    };
+  }
+  if (method === "GET" && path5 === "/api/activity") {
+    if (!rateLimit(`api-activity-r:${ip}`, 90, 6e4)) {
+      return { status: 429, body: { ok: false, error: "rate_limited" } };
+    }
+    const limit = parseInt(input.searchParams.get("limit") || "30", 10);
+    return {
+      status: 200,
+      body: { ok: true, items: listActivity(Number.isFinite(limit) ? limit : 30) }
+    };
+  }
+  if (method === "POST" && path5 === "/api/activity") {
+    if (!rateLimit(`api-activity-w:${ip}`, 40, 6e4)) {
+      return { status: 429, body: { ok: false, error: "rate_limited" } };
+    }
+    const body = input.body || {};
+    const kind = typeof body.kind === "string" ? body.kind : "";
+    const text = typeof body.text === "string" ? body.text.trim() : "";
+    const playerId = typeof body.playerId === "string" ? body.playerId.slice(0, 32) : void 0;
+    const actorName = typeof body.actorName === "string" ? body.actorName.slice(0, 32) : void 0;
+    const username = typeof body.username === "string" ? body.username.replace(/^@/, "").slice(0, 32) : void 0;
+    if (!ALLOWED_KINDS.includes(kind) || text.length < 4 || text.length > 200) {
+      return { status: 400, body: { ok: false, error: "invalid_activity" } };
+    }
+    const item = pushActivity({
+      kind,
+      text: text.replace(/[<>]/g, ""),
+      playerId,
+      actorName,
+      username
+    });
+    return { status: 200, body: { ok: true, item } };
+  }
+  if (method === "GET" && path5 === "/api/player") {
+    if (!rateLimit(`api-player:${ip}`, 90, 6e4)) {
+      return { status: 429, body: { ok: false, error: "rate_limited" } };
+    }
+    const id = (input.searchParams.get("id") || "").trim();
+    if (!id || id.length > 32) {
+      return { status: 400, body: { ok: false, error: "bad_id" } };
+    }
+    const player = getPublicPlayerCard(id);
+    if (!player) {
+      return { status: 404, body: { ok: false, error: "not_found" } };
+    }
+    return { status: 200, body: { ok: true, player } };
+  }
+  if (method === "POST" && path5 === "/api/me" && input.botToken) {
+    if (!rateLimit(`api:${ip}`, 60, 6e4)) {
+      return { status: 429, body: { ok: false, error: "rate_limited" } };
+    }
+    const initData = typeof input.body?.initData === "string" ? input.body.initData : "";
+    const validated = validateWebAppInitData(initData, input.botToken);
+    if (!validated.ok) {
+      return { status: 401, body: { ok: false, error: validated.reason } };
+    }
+    touchUser({
+      id: validated.userId,
+      username: validated.username,
+      firstName: validated.firstName
+    });
+    const stats = crewStats(validated.userId);
+    const platform = getUserStats();
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        userId: validated.userId,
+        username: validated.username,
+        firstName: validated.firstName,
+        inviteCount: stats.total,
+        referralCode: stats.code,
+        invites: stats.invites.map((i) => ({
+          userId: i.userId,
+          firstName: i.firstName,
+          at: i.at
+        })),
+        platform: {
+          totalUsers: platform.totalUsers,
+          onlineNow: platform.onlineNow,
+          active24h: platform.active24h
+        }
+      }
+    };
+  }
+  if (method === "GET" && path5 === "/api/invites/count" && input.botToken) {
+    if (!rateLimit(`api:${ip}`, 60, 6e4)) {
+      return { status: 429, body: { ok: false, error: "rate_limited" } };
+    }
+    const initData = input.searchParams.get("initData") || "";
+    const validated = validateWebAppInitData(initData, input.botToken);
+    if (!validated.ok) {
+      return { status: 401, body: { ok: false, error: validated.reason } };
+    }
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        inviteCount: getInviteCountForUser(validated.userId),
+        referralCode: crewStats(validated.userId).code
+      }
+    };
+  }
+  return { status: 404, body: { ok: false, error: "not_found" } };
+}
+var ALLOWED_KINDS;
+var init_publicApi = __esm({
+  "bot/publicApi.ts"() {
+    "use strict";
+    init_activity();
+    init_users();
+    init_security();
+    init_referrals();
+    ALLOWED_KINDS = [
+      "buy",
+      "sell",
+      "travel",
+      "raid",
+      "rob",
+      "plant",
+      "stash",
+      "new_player",
+      "return",
+      "rank",
+      "vault",
+      "heat",
+      "day"
+    ];
   }
 });
 
@@ -10675,130 +11005,16 @@ function startSecureApi(botToken, port) {
     }
     const url = new URL(req.url || "/", `http://127.0.0.1`);
     try {
-      if (req.method === "GET" && url.pathname === "/health") {
-        json(res, 200, { ok: true, service: "trapwar-api" });
-        return;
-      }
-      if (req.method === "GET" && url.pathname === "/api/stats") {
-        if (!rateLimit(`api-stats:${req.socket.remoteAddress || "x"}`, 30, 6e4)) {
-          json(res, 429, { ok: false, error: "rate_limited" });
-          return;
-        }
-        const s = getUserStats();
-        json(res, 200, {
-          ok: true,
-          totalUsers: s.totalUsers,
-          onlineNow: s.onlineNow,
-          active24h: s.active24h,
-          active7d: s.active7d,
-          newToday: s.newToday,
-          onlineWindowMin: s.onlineWindowMin
-        });
-        return;
-      }
-      if (req.method === "POST" && url.pathname === "/api/me") {
-        if (!rateLimit(`api:${req.socket.remoteAddress || "x"}`, 60, 6e4)) {
-          json(res, 429, { ok: false, error: "rate_limited" });
-          return;
-        }
-        const body = await readJson(req);
-        const initData = typeof body.initData === "string" ? body.initData : "";
-        const validated = validateWebAppInitData(initData, botToken);
-        if (!validated.ok) {
-          json(res, 401, { ok: false, error: validated.reason });
-          return;
-        }
-        touchUser({
-          id: validated.userId,
-          username: validated.username,
-          firstName: validated.firstName
-        });
-        const stats = crewStats(validated.userId);
-        const platform = getUserStats();
-        json(res, 200, {
-          ok: true,
-          userId: validated.userId,
-          username: validated.username,
-          firstName: validated.firstName,
-          inviteCount: stats.total,
-          referralCode: stats.code,
-          invites: stats.invites.map((i) => ({
-            userId: i.userId,
-            firstName: i.firstName,
-            at: i.at
-          })),
-          platform: {
-            totalUsers: platform.totalUsers,
-            onlineNow: platform.onlineNow,
-            active24h: platform.active24h
-          }
-        });
-        return;
-      }
-      if (req.method === "GET" && url.pathname === "/api/invites/count") {
-        if (!rateLimit(`api:${req.socket.remoteAddress || "x"}`, 60, 6e4)) {
-          json(res, 429, { ok: false, error: "rate_limited" });
-          return;
-        }
-        const initData = url.searchParams.get("initData") || "";
-        const validated = validateWebAppInitData(initData, botToken);
-        if (!validated.ok) {
-          json(res, 401, { ok: false, error: validated.reason });
-          return;
-        }
-        json(res, 200, {
-          ok: true,
-          inviteCount: getInviteCountForUser(validated.userId),
-          referralCode: crewStats(validated.userId).code
-        });
-        return;
-      }
-      if (req.method === "GET" && url.pathname === "/api/activity") {
-        if (!rateLimit(`api-activity-r:${req.socket.remoteAddress || "x"}`, 90, 6e4)) {
-          json(res, 429, { ok: false, error: "rate_limited" });
-          return;
-        }
-        const limit = parseInt(url.searchParams.get("limit") || "30", 10);
-        json(res, 200, { ok: true, items: listActivity(Number.isFinite(limit) ? limit : 30) });
-        return;
-      }
-      if (req.method === "POST" && url.pathname === "/api/activity") {
-        if (!rateLimit(`api-activity-w:${req.socket.remoteAddress || "x"}`, 40, 6e4)) {
-          json(res, 429, { ok: false, error: "rate_limited" });
-          return;
-        }
-        const body = await readJson(req);
-        const kind = typeof body.kind === "string" ? body.kind : "";
-        const text = typeof body.text === "string" ? body.text.trim() : "";
-        const playerId = typeof body.playerId === "string" ? body.playerId.slice(0, 32) : void 0;
-        const allowed = [
-          "buy",
-          "sell",
-          "travel",
-          "raid",
-          "rob",
-          "plant",
-          "stash",
-          "new_player",
-          "return",
-          "rank",
-          "vault",
-          "heat",
-          "day"
-        ];
-        if (!allowed.includes(kind) || text.length < 4 || text.length > 200) {
-          json(res, 400, { ok: false, error: "invalid_activity" });
-          return;
-        }
-        const item = pushActivity({
-          kind,
-          text: text.replace(/[<>]/g, ""),
-          playerId
-        });
-        json(res, 200, { ok: true, item });
-        return;
-      }
-      json(res, 404, { ok: false, error: "not_found" });
+      const body = req.method === "POST" || req.method === "PUT" ? await readJson(req) : void 0;
+      const result = handlePublicApi({
+        method: req.method || "GET",
+        pathname: url.pathname,
+        searchParams: url.searchParams,
+        headers: req.headers,
+        body,
+        botToken
+      });
+      json(res, result.status, result.body);
     } catch (e) {
       console.error("API error:", redactSecrets(String(e)));
       json(res, 500, { ok: false, error: "server_error" });
@@ -10844,9 +11060,7 @@ var init_api = __esm({
     "use strict";
     import_http = __toESM(require("http"), 1);
     init_security();
-    init_referrals();
-    init_users();
-    init_activity();
+    init_publicApi();
   }
 });
 
@@ -10892,7 +11106,7 @@ function comingSoonText() {
   return "\u{1F680} <b>COMING SOON</b>\n\n<b>Week 2 \u2014 Money on-chain</b>\n\u2022 TON Connect wallet\n\u2022 Real Pay-to-Earn ($10+ TON / USDT)\n\u2022 1.5\xD7 yield + longer raid shield\n\u2022 Referral payouts on-chain\n\n<b>Founder NFT</b>\n\u2022 One-tap mint (gas sponsored)\n\u2022 Dynamic PFP \u2014 evolves with rank\n\n<b>Channel and culture</b>\n\u2022 Official Word on the Street channel\n\u2022 Community chat \u2014 talk with other hustlers\n\u2022 Drops, leaderboards, NFT rush\n\n<b>Season 2+</b>\n\u2022 Base + Aerodrome real LP\n\u2022 More cities, events, crew wars\n\n<b>Live now</b>\nFull 30-day hustle \xB7 stash \xB7 clients \xB7 invites\n\nPlay \u2192 /play\nRules \u2192 /guide\nInvite \u2192 /invite";
 }
 function helpMenuText() {
-  return "\u2753 <b>TRAP WAR \u2014 MENU</b>\n\n<b>Commands</b>\n/start \u2014 Welcome + Play\n/play \u2014 Open Mini App\n/guide \u2014 How to play\n/soon \u2014 Coming soon / roadmap\n/invite \u2014 Your invite link\n/crew \u2014 Crew stats + invite\n/stats \u2014 Total users & online now\n/channel \u2014 Official channel (news)\n/community \u2014 Player chat / hangout\n/chat \u2014 Same as /community\n/adminbots \u2014 2\u20133 admin bot stack status\n/vault \u2014 Protected reserves\n/help \u2014 This menu\n\n<b>Quick tips</b>\n\u2022 3 actions/day\n\u2022 Prices differ by city \u2014 travel to flip\n\u2022 Plant stash for yield + shield\n\u2022 Share /invite \u2014 Everybody Eats\n\u2022 Invites only count via your personal invite link\n\nFull guide \u2192 /guide \xB7 Roadmap \u2192 /soon";
+  return "\u2753 <b>TRAP WAR \u2014 MENU</b>\n\n<b>Commands</b>\n/start \u2014 Welcome + Play\n/play \u2014 Open Mini App\n/guide \u2014 How to play\n/soon \u2014 Coming soon / roadmap\n/invite \u2014 Your invite link\n/crew \u2014 Crew stats + invite\n/stats \u2014 Total users & online now\n/channel \u2014 Official channel (news)\n/community \u2014 Player chat / hangout\n/chat \u2014 Same as /community\n/adminbots \u2014 2\u20133 admin bot stack status\n/admin \u2014 Owner: players, ban, DM (ADMIN_IDS)\n/vault \u2014 Protected reserves\n/help \u2014 This menu\n\n<b>Quick tips</b>\n\u2022 3 actions/day\n\u2022 Prices differ by city \u2014 travel to flip\n\u2022 Plant stash for yield + shield\n\u2022 Share /invite \u2014 Everybody Eats\n\u2022 Invites only count via your personal invite link\n\nFull guide \u2192 /guide \xB7 Roadmap \u2192 /soon";
 }
 function howToPlayShort() {
   return "\u{1F4D6} <b>QUICK GUIDE</b>\n\n1. <b>Play Trap War</b> \u2192 New Run\n2. <b>Buy</b> product when cheap\n3. <b>Travel</b> to a better price city\n4. <b>Sell</b> high\n5. <b>Plant</b> stash for yield + shield\n6. Use <b>Phone</b> for Market + Clients\n7. 3 actions/day \xB7 30 days total\n8. <b>CREW</b> tab \u2192 share invite\n9. <b>VAULT</b> = 8% locked forever\n\nRank: Corner Boy \u2192 Trap God\n\nFull rules \u2192 /guide\nComing soon \u2192 /soon";
@@ -11033,6 +11247,12 @@ bot.use(async (ctx, next) => {
   try {
     const from = ctx.from;
     if (from?.id) {
+      if (isBanned(from.id) && !isHumanAdmin(from.id)) {
+        await ctx.reply(
+          "You're banned from Trap War. Contact support if you think this is a mistake."
+        ).catch(() => void 0);
+        return;
+      }
       const hit = touchUser({
         id: from.id,
         username: from.username,
@@ -11044,13 +11264,17 @@ bot.use(async (ctx, next) => {
           pushActivity({
             kind: "new_player",
             text: `${label} just linked up \xB7 new blood on the block`,
-            playerId: String(from.id)
+            playerId: String(from.id),
+            username: from.username,
+            firstSeen: hit.user.firstSeen
           });
         } else if (hit.isReturning) {
           pushActivity({
             kind: "return",
             text: `${label} back on the set \xB7 returning player`,
-            playerId: String(from.id)
+            playerId: String(from.id),
+            username: from.username,
+            firstSeen: hit.user.firstSeen
           });
         }
       }
@@ -11373,6 +11597,132 @@ bot.command("users", async (ctx) => {
   const recent = isAdmin(userId) ? getRecentUsers(12) : void 0;
   await safeReply(ctx, formatStatsHtml(stats, recent));
 });
+async function requireAdmin(ctx) {
+  if (isAdmin(ctx.from?.id)) return true;
+  await safeReply(ctx, "Admin only.");
+  return false;
+}
+bot.command("admin", async (ctx) => {
+  if (!await requireAdmin(ctx)) return;
+  await safeReply(ctx, formatAdminDashboardHtml());
+});
+bot.command("players", async (ctx) => {
+  if (!await requireAdmin(ctx)) return;
+  await safeReply(ctx, formatPlayersListHtml(30));
+});
+bot.command("player", async (ctx) => {
+  if (!await requireAdmin(ctx)) return;
+  const arg = (ctx.message && "text" in ctx.message ? ctx.message.text : "").replace(/^\/player(@\w+)?\s*/i, "").trim();
+  if (!arg) {
+    await safeReply(ctx, "Usage: /player &lt;telegram_id|@username&gt;");
+    return;
+  }
+  const u = findUser(arg);
+  if (!u) {
+    await safeReply(ctx, `No player found for <code>${arg.replace(/[<>&]/g, "")}</code>.`);
+    return;
+  }
+  await safeReply(ctx, formatPlayerCardHtml(u));
+});
+bot.command("ban", async (ctx) => {
+  if (!await requireAdmin(ctx)) return;
+  const raw = (ctx.message && "text" in ctx.message ? ctx.message.text : "").replace(/^\/ban(@\w+)?\s*/i, "").trim();
+  const [idPart, ...reasonParts] = raw.split(/\s+/);
+  if (!idPart) {
+    await safeReply(ctx, "Usage: /ban &lt;id|@user&gt; [reason]");
+    return;
+  }
+  const u = findUser(idPart);
+  if (!u) {
+    await safeReply(ctx, "Player not found.");
+    return;
+  }
+  if (isAdmin(parseInt(u.id, 10))) {
+    await safeReply(ctx, "Can't ban an admin id.");
+    return;
+  }
+  const reason = reasonParts.join(" ").trim() || "banned by admin";
+  banUser(u.id, reason);
+  await safeReply(ctx, `\u{1F6AB} Banned <code>${u.id}</code> \u2014 ${reason.replace(/[<>&]/g, "")}`);
+});
+bot.command("unban", async (ctx) => {
+  if (!await requireAdmin(ctx)) return;
+  const arg = (ctx.message && "text" in ctx.message ? ctx.message.text : "").replace(/^\/unban(@\w+)?\s*/i, "").trim();
+  if (!arg) {
+    await safeReply(ctx, "Usage: /unban &lt;id|@user&gt;");
+    return;
+  }
+  const u = findUser(arg);
+  if (!u) {
+    await safeReply(ctx, "Player not found.");
+    return;
+  }
+  unbanUser(u.id);
+  await safeReply(ctx, `\u2705 Unbanned <code>${u.id}</code>`);
+});
+bot.command("dm", async (ctx) => {
+  if (!await requireAdmin(ctx)) return;
+  const raw = (ctx.message && "text" in ctx.message ? ctx.message.text : "").replace(/^\/dm(@\w+)?\s*/i, "").trim();
+  const sp = raw.indexOf(" ");
+  if (sp < 1) {
+    await safeReply(ctx, "Usage: /dm &lt;id|@user&gt; &lt;message&gt;");
+    return;
+  }
+  const who = raw.slice(0, sp).trim();
+  const message = raw.slice(sp + 1).trim().slice(0, 1500);
+  if (!message) {
+    await safeReply(ctx, "Message empty.");
+    return;
+  }
+  const u = findUser(who);
+  if (!u) {
+    await safeReply(ctx, "Player not found.");
+    return;
+  }
+  try {
+    await bot.telegram.sendMessage(
+      u.id,
+      `\u{1F4E3} <b>Trap War</b>
+
+${message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}`,
+      { parse_mode: "HTML" }
+    );
+    await safeReply(ctx, `\u2705 Sent to <code>${u.id}</code>`);
+  } catch (e) {
+    await safeReply(
+      ctx,
+      `Couldn't DM <code>${u.id}</code> \u2014 they may need to /start the bot first.
+${String(e).slice(0, 120)}`
+    );
+  }
+});
+bot.command("thanks", async (ctx) => {
+  if (!await requireAdmin(ctx)) return;
+  const arg = (ctx.message && "text" in ctx.message ? ctx.message.text : "").replace(/^\/thanks(@\w+)?\s*/i, "").trim();
+  if (!arg) {
+    await safeReply(ctx, "Usage: /thanks &lt;id|@user&gt;");
+    return;
+  }
+  const u = findUser(arg);
+  if (!u) {
+    await safeReply(ctx, "Player not found.");
+    return;
+  }
+  const name = u.firstName || u.username || "hustler";
+  const text = `Thanks for playing Trap War, ${name} \u{1F64C}
+
+You're early on the block. Keep hustling \u2014 more drops coming. Everybody Eats.`;
+  try {
+    await bot.telegram.sendMessage(u.id, text);
+    await safeReply(ctx, `\u2705 Thanks sent to <code>${u.id}</code>`);
+  } catch (e) {
+    await safeReply(
+      ctx,
+      `Couldn't DM <code>${u.id}</code> \u2014 they may need to open the bot once.
+${String(e).slice(0, 120)}`
+    );
+  }
+});
 bot.action("help_info", async (ctx) => {
   await ctx.answerCbQuery().catch(() => void 0);
   await safeReply(ctx, helpMenuText(), mainKeyboard(void 0, ctx.from?.id));
@@ -11519,7 +11869,9 @@ async function configureBotPresentation() {
       { command: "channel", description: "Official channel" },
       { command: "community", description: "Community chat" },
       { command: "vault", description: "Vault info" },
-      { command: "soon", description: "Roadmap" }
+      { command: "soon", description: "Roadmap" },
+      { command: "admin", description: "Admin panel (owner)" },
+      { command: "players", description: "Admin: list players" }
     ]);
     console.log("  Commands list registered (type / in chat)");
   } catch {

@@ -30,7 +30,12 @@ export function isLiveTelegramUrl(url: string | undefined): boolean {
   );
 }
 
-/** Bot secure API (local: http://127.0.0.1:8787). Empty on static hosts without a public API. */
+/**
+ * Bot / street API base.
+ * - Dev: local secure API (npm run bot → :8787)
+ * - Prod: empty = same-origin `/api/*` on Vercel (www.trap-war.com)
+ * Override with VITE_API_URL when API lives on another host.
+ */
 export const API_BASE =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
   (import.meta.env.DEV ? "http://127.0.0.1:8787" : "");

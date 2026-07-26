@@ -1,16 +1,10 @@
 /**
- * Minimal secure HTTP API next to the bot.
- * - Validates Telegram WebApp initData (HMAC)
- * - Users can only read THEIR own invite stats
- * - No public write of invites (attribution only via bot /start link)
- *
+ * Minimal secure HTTP API next to the bot (local polling mode).
  * Env: API_PORT (default 8787), API_CORS_ORIGIN (optional, comma-separated)
  */
 import http from "http";
-import { validateWebAppInitData, rateLimit, redactSecrets } from "./security";
-import { crewStats, getInviteCountForUser } from "./referrals";
-import { getUserStats, touchUser } from "./users";
-import { listActivity, pushActivity, type ActivityKind } from "./activity";
+import { redactSecrets } from "./security";
+import { handlePublicApi } from "./publicApi";
 
 export function startSecureApi(botToken: string, port: number): http.Server {
   const corsOrigins = (process.env.API_CORS_ORIGIN || "*")
@@ -37,147 +31,17 @@ export function startSecureApi(botToken: string, port: number): http.Server {
     const url = new URL(req.url || "/", `http://127.0.0.1`);
 
     try {
-      // Health (no secrets)
-      if (req.method === "GET" && url.pathname === "/health") {
-        json(res, 200, { ok: true, service: "trapwar-api" });
-        return;
-      }
-
-      // Public aggregate counts only (no PII)
-      if (req.method === "GET" && url.pathname === "/api/stats") {
-        if (!rateLimit(`api-stats:${req.socket.remoteAddress || "x"}`, 30, 60_000)) {
-          json(res, 429, { ok: false, error: "rate_limited" });
-          return;
-        }
-        const s = getUserStats();
-        json(res, 200, {
-          ok: true,
-          totalUsers: s.totalUsers,
-          onlineNow: s.onlineNow,
-          active24h: s.active24h,
-          active7d: s.active7d,
-          newToday: s.newToday,
-          onlineWindowMin: s.onlineWindowMin,
-        });
-        return;
-      }
-
-      // POST /api/me  { initData: string }
-      // Returns authenticated user + own invite counter only
-      if (req.method === "POST" && url.pathname === "/api/me") {
-        if (!rateLimit(`api:${req.socket.remoteAddress || "x"}`, 60, 60_000)) {
-          json(res, 429, { ok: false, error: "rate_limited" });
-          return;
-        }
-
-        const body = await readJson(req);
-        const initData = typeof body.initData === "string" ? body.initData : "";
-        const validated = validateWebAppInitData(initData, botToken);
-        if (!validated.ok) {
-          json(res, 401, { ok: false, error: validated.reason });
-          return;
-        }
-
-        // Heartbeat: Mini App open counts as online activity
-        touchUser({
-          id: validated.userId,
-          username: validated.username,
-          firstName: validated.firstName,
-        });
-
-        const stats = crewStats(validated.userId);
-        const platform = getUserStats();
-        json(res, 200, {
-          ok: true,
-          userId: validated.userId,
-          username: validated.username,
-          firstName: validated.firstName,
-          inviteCount: stats.total,
-          referralCode: stats.code,
-          invites: stats.invites.map((i) => ({
-            userId: i.userId,
-            firstName: i.firstName,
-            at: i.at,
-          })),
-          platform: {
-            totalUsers: platform.totalUsers,
-            onlineNow: platform.onlineNow,
-            active24h: platform.active24h,
-          },
-        });
-        return;
-      }
-
-      // GET /api/invites/count?initData=...  (same auth, count only)
-      if (req.method === "GET" && url.pathname === "/api/invites/count") {
-        if (!rateLimit(`api:${req.socket.remoteAddress || "x"}`, 60, 60_000)) {
-          json(res, 429, { ok: false, error: "rate_limited" });
-          return;
-        }
-        const initData = url.searchParams.get("initData") || "";
-        const validated = validateWebAppInitData(initData, botToken);
-        if (!validated.ok) {
-          json(res, 401, { ok: false, error: validated.reason });
-          return;
-        }
-        json(res, 200, {
-          ok: true,
-          inviteCount: getInviteCountForUser(validated.userId),
-          referralCode: crewStats(validated.userId).code,
-        });
-        return;
-      }
-
-      // Public street wire (no PII beyond street-style text players post)
-      if (req.method === "GET" && url.pathname === "/api/activity") {
-        if (!rateLimit(`api-activity-r:${req.socket.remoteAddress || "x"}`, 90, 60_000)) {
-          json(res, 429, { ok: false, error: "rate_limited" });
-          return;
-        }
-        const limit = parseInt(url.searchParams.get("limit") || "30", 10);
-        json(res, 200, { ok: true, items: listActivity(Number.isFinite(limit) ? limit : 30) });
-        return;
-      }
-
-      // POST /api/activity  { kind, text, playerId? } — rate limited, sanitised
-      if (req.method === "POST" && url.pathname === "/api/activity") {
-        if (!rateLimit(`api-activity-w:${req.socket.remoteAddress || "x"}`, 40, 60_000)) {
-          json(res, 429, { ok: false, error: "rate_limited" });
-          return;
-        }
-        const body = await readJson(req);
-        const kind = typeof body.kind === "string" ? body.kind : "";
-        const text = typeof body.text === "string" ? body.text.trim() : "";
-        const playerId = typeof body.playerId === "string" ? body.playerId.slice(0, 32) : undefined;
-        const allowed: ActivityKind[] = [
-          "buy",
-          "sell",
-          "travel",
-          "raid",
-          "rob",
-          "plant",
-          "stash",
-          "new_player",
-          "return",
-          "rank",
-          "vault",
-          "heat",
-          "day",
-        ];
-        if (!allowed.includes(kind as ActivityKind) || text.length < 4 || text.length > 200) {
-          json(res, 400, { ok: false, error: "invalid_activity" });
-          return;
-        }
-        const item = pushActivity({
-          kind: kind as ActivityKind,
-          text: text.replace(/[<>]/g, ""),
-          playerId,
-        });
-        json(res, 200, { ok: true, item });
-        return;
-      }
-
-      json(res, 404, { ok: false, error: "not_found" });
+      const body =
+        req.method === "POST" || req.method === "PUT" ? await readJson(req) : undefined;
+      const result = handlePublicApi({
+        method: req.method || "GET",
+        pathname: url.pathname,
+        searchParams: url.searchParams,
+        headers: req.headers as Record<string, string | string[] | undefined>,
+        body,
+        botToken,
+      });
+      json(res, result.status, result.body);
     } catch (e) {
       console.error("API error:", redactSecrets(String(e)));
       json(res, 500, { ok: false, error: "server_error" });

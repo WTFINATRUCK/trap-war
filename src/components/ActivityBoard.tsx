@@ -1,11 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GameState } from "@/lib/game/types";
 import { RANKS } from "@/lib/game/constants";
+import { API_BASE } from "@/config/telegram";
 import {
   type ActivityItem,
+  fetchPublicPlayer,
   kindLabel,
   profileStatsFor,
   resolveActor,
+  sendInGameMessage,
+  type StreetProfileStats,
 } from "@/lib/game/activityFeed";
 
 type BoardView = "messages" | "detail" | "profile";
@@ -14,6 +18,8 @@ interface ActivityBoardProps {
   game: GameState;
   feed: ActivityItem[];
   selfStreetName: string;
+  selfUsername?: string;
+  selfFirstSeen?: number;
   /** Optional activity to focus when opened from a bubble */
   focusId?: string | null;
   onClose: () => void;
@@ -32,13 +38,23 @@ export default function ActivityBoard({
   game,
   feed,
   selfStreetName,
+  selfUsername,
+  selfFirstSeen,
   focusId,
   onClose,
   onOpenPhoneMessages,
 }: ActivityBoardProps) {
   const initial = (focusId ? feed.find((f) => f.id === focusId) : null) ?? null;
-  const [view, setView] = useState<BoardView>(initial ? "detail" : "messages");
+  /** From rail bubble → land on profile so player info is immediate */
+  const [view, setView] = useState<BoardView>(initial ? "profile" : "messages");
   const [selected, setSelected] = useState<ActivityItem | null>(initial);
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeText, setComposeText] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
+  const [remoteBoost, setRemoteBoost] = useState<{
+    username?: string;
+    firstSeen?: number;
+  } | null>(null);
 
   const youStats = useMemo(() => {
     const bagHeat = Math.min(
@@ -53,11 +69,50 @@ export default function ActivityBoard({
       day: game.day,
       heat: bagHeat,
       cash: game.cash,
+      firstSeen: selfFirstSeen,
+      username: selfUsername,
     };
-  }, [game]);
+  }, [game, selfFirstSeen, selfUsername]);
 
   const actor = selected ? resolveActor(selected, selfStreetName) : null;
-  const profile = actor ? profileStatsFor(actor, youStats) : null;
+  const baseProfile = actor ? profileStatsFor(actor, youStats) : null;
+
+  const profile: StreetProfileStats | null = useMemo(() => {
+    if (!baseProfile || !actor) return null;
+    if (actor.kind === "you") return baseProfile;
+    if (!remoteBoost) return baseProfile;
+    return {
+      ...baseProfile,
+      memberFor:
+        remoteBoost.firstSeen != null
+          ? profileStatsFor(
+              { ...actor, firstSeen: remoteBoost.firstSeen },
+              youStats,
+            ).memberFor
+          : baseProfile.memberFor,
+      telegramUsername: remoteBoost.username || baseProfile.telegramUsername,
+      allowTelegram: Boolean(remoteBoost.username || baseProfile.telegramUsername),
+    };
+  }, [baseProfile, actor, remoteBoost, youStats]);
+
+  useEffect(() => {
+    setRemoteBoost(null);
+    setComposeOpen(false);
+    setComposeText("");
+    setToast(null);
+    if (!actor?.playerId || actor.kind === "you" || actor.kind === "npc") return;
+    let cancelled = false;
+    void fetchPublicPlayer(API_BASE, actor.playerId).then((p) => {
+      if (cancelled || !p) return;
+      setRemoteBoost({
+        username: p.username,
+        firstSeen: p.firstSeen,
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [actor?.playerId, actor?.kind, selected?.id]);
 
   const openDetail = (item: ActivityItem) => {
     setSelected(item);
@@ -71,6 +126,24 @@ export default function ActivityBoard({
 
   const title =
     view === "messages" ? "Street Wire" : view === "detail" ? "Activity" : "Profile";
+
+  const onSendInGame = () => {
+    if (!actor || !composeText.trim()) return;
+    sendInGameMessage({
+      toName: actor.name,
+      toPlayerId: actor.playerId,
+      fromName: selfStreetName,
+      text: composeText.trim(),
+    });
+    setToast(`Street note left for ${actor.name}. They’ll see it when phone DMs go live.`);
+    setComposeText("");
+    setComposeOpen(false);
+  };
+
+  const tgHref =
+    profile?.telegramUsername
+      ? `https://t.me/${profile.telegramUsername.replace(/^@/, "")}`
+      : null;
 
   return (
     <div className="activity-board" role="dialog" aria-label="Street activity board">
@@ -117,7 +190,7 @@ export default function ActivityBoard({
           {view === "messages" && (
             <>
               <p className="ab-hint">
-                Live buys, sells, raids, moves & ranks. Tap a line for details or open their profile.
+                Live buys, sells, raids, moves & ranks. Tap any line for their street card.
               </p>
               <div className="ab-list">
                 {feed.length === 0 && (
@@ -130,7 +203,7 @@ export default function ActivityBoard({
                       key={item.id}
                       type="button"
                       className={`ab-row kind-${item.kind}${item.local ? " local" : ""}`}
-                      onClick={() => openDetail(item)}
+                      onClick={() => openProfile(item)}
                     >
                       <div className="ab-row-top">
                         <span className={`ab-badge kind-${a.kind}`}>{a.badge}</span>
@@ -199,6 +272,7 @@ export default function ActivityBoard({
                 <div>
                   <h3>{actor.name}</h3>
                   <span className={`ab-badge kind-${actor.kind}`}>{actor.badge}</span>
+                  <p className="ab-member-since">{profile.memberFor}</p>
                   <p className="ab-profile-sub">{actor.subtitle}</p>
                 </div>
               </div>
@@ -224,7 +298,7 @@ export default function ActivityBoard({
                   </div>
                   <div className="ab-stat">
                     <span className="ab-stat-label">Heat</span>
-                    <span className="ab-stat-value">{actor.kind === "you" ? profile.heat : profile.heat}</span>
+                    <span className="ab-stat-value">{profile.heat}</span>
                   </div>
                   <div className="ab-stat">
                     <span className="ab-stat-label">Hustles</span>
@@ -234,12 +308,16 @@ export default function ActivityBoard({
                     <span className="ab-stat-label">Rep</span>
                     <span className="ab-stat-value">{profile.rep}</span>
                   </div>
-                  {actor.kind === "you" && (
-                    <div className="ab-stat wide">
-                      <span className="ab-stat-label">Cash on hand</span>
-                      <span className="ab-stat-value cash">${youStats.cash.toLocaleString()}</span>
-                    </div>
-                  )}
+                  <div className="ab-stat wide">
+                    <span className="ab-stat-label">
+                      {actor.kind === "you" ? "Cash on hand" : "Cash (public est.)"}
+                    </span>
+                    <span className="ab-stat-value cash">
+                      {actor.kind === "you"
+                        ? `$${youStats.cash.toLocaleString()}`
+                        : `~$${(Math.round(profile.cash / 100) * 100).toLocaleString()}`}
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -262,6 +340,69 @@ export default function ActivityBoard({
                 <div className="ab-last-move">
                   <div className="ab-stat-label">Last wire line</div>
                   <div className="ab-row-text">{selected.text}</div>
+                </div>
+              )}
+
+              {actor.kind !== "you" && (
+                <div className="ab-profile-actions">
+                  {tgHref ? (
+                    <a
+                      className="action-button"
+                      href={tgHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ textDecoration: "none", textAlign: "center" }}
+                    >
+                      Message on Telegram
+                    </a>
+                  ) : (
+                    <button type="button" className="action-button secondary" disabled>
+                      Telegram DMs locked (no public @)
+                    </button>
+                  )}
+
+                  {profile.allowInGameMsg && (
+                    <button
+                      type="button"
+                      className="action-button secondary"
+                      onClick={() => {
+                        setComposeOpen((v) => !v);
+                        setToast(null);
+                      }}
+                    >
+                      {composeOpen ? "Cancel note" : "Send in-game message"}
+                    </button>
+                  )}
+
+                  {composeOpen && (
+                    <div className="ab-compose">
+                      <label htmlFor="ab-msg">Street note to {actor.name}</label>
+                      <textarea
+                        id="ab-msg"
+                        maxLength={280}
+                        value={composeText}
+                        onChange={(e) => setComposeText(e.target.value)}
+                        placeholder="Keep it short — tips, flex, or peace…"
+                      />
+                      <div className="ab-compose-row">
+                        <button
+                          type="button"
+                          className="action-button"
+                          disabled={!composeText.trim()}
+                          onClick={onSendInGame}
+                        >
+                          Send note
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {toast && <div className="ab-msg-toast">{toast}</div>}
+
+                  <p className="ab-trade-soon">
+                    Soon: buy / sell product with other hustlers from this card. Not live yet —
+                    cash & bags stay on your run.
+                  </p>
                 </div>
               )}
             </div>

@@ -27,6 +27,9 @@ export interface ActivityItem {
   text: string;
   at: number;
   playerId?: string;
+  actorName?: string;
+  username?: string;
+  firstSeen?: number;
 }
 
 function ensure() {
@@ -58,6 +61,9 @@ export function pushActivity(input: {
   kind: ActivityKind;
   text: string;
   playerId?: string;
+  actorName?: string;
+  username?: string;
+  firstSeen?: number;
 }): ActivityItem {
   const item: ActivityItem = {
     id: `act_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -65,6 +71,9 @@ export function pushActivity(input: {
     text: input.text.slice(0, 200),
     at: Date.now(),
     playerId: input.playerId,
+    actorName: input.actorName?.slice(0, 32),
+    username: input.username?.replace(/^@/, "").slice(0, 32),
+    firstSeen: input.firstSeen,
   };
   const next = [item, ...readAll()].slice(0, MAX);
   writeAll(next);
