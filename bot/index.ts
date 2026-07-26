@@ -591,10 +591,22 @@ async function boot() {
 
   // Menu button opens the /commands list (not the Mini App)
   try {
-    await bot.telegram.setChatMenuButton({
-      menuButton: { type: "commands" },
-    });
-    console.log("  Menu button set → Commands list");
+    // Mini App menu opens the live HTTPS game (Vercel / trapwar.com) — not laptop-local
+    if (webAppUrl.startsWith("https://")) {
+      await bot.telegram.setChatMenuButton({
+        menuButton: {
+          type: "web_app",
+          text: "Play Trap War",
+          web_app: { url: playUrl() },
+        },
+      });
+      console.log(`  Menu button set → Play Mini App (${webAppUrl})`);
+    } else {
+      await bot.telegram.setChatMenuButton({
+        menuButton: { type: "commands" },
+      });
+      console.log("  Menu button set → Commands list (no HTTPS WEBAPP_URL)");
+    }
   } catch (e) {
     console.warn("  Could not set menu button:", e);
   }

@@ -17,10 +17,22 @@ const bot = new Telegraf(token);
 async function main() {
   const me = await bot.telegram.getMe();
 
-  // Open slash-command menu (not Mini App)
-  await bot.telegram.setChatMenuButton({
-    menuButton: { type: "commands" },
-  });
+  const webAppUrl = (process.env.WEBAPP_URL || "").replace(/\/$/, "");
+  if (webAppUrl.startsWith("https://")) {
+    await bot.telegram.setChatMenuButton({
+      menuButton: {
+        type: "web_app",
+        text: "Play Trap War",
+        web_app: { url: webAppUrl },
+      },
+    });
+    console.log(`Menu button → Play Mini App (${webAppUrl})`);
+  } else {
+    await bot.telegram.setChatMenuButton({
+      menuButton: { type: "commands" },
+    });
+    console.log("Menu button → Commands list (set HTTPS WEBAPP_URL for Play)");
+  }
 
   await bot.telegram.setMyCommands([
     { command: "start", description: "Play Trap War" },
