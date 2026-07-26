@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { getReferralStats } from "@/lib/referral";
-import { BOT_USERNAME, CHANNEL_URL, telegramShareLink } from "@/config/telegram";
+import {
+  BOT_USERNAME,
+  CHANNEL_URL,
+  COMMUNITY_URL,
+  isLiveTelegramUrl,
+  telegramShareLink,
+} from "@/config/telegram";
 import type { CloudSave } from "@/types/cloudSave";
 
 interface CrewPanelProps {
@@ -123,6 +129,25 @@ export default function CrewPanel({ telegramId, cloudSave, onInviteCountChange }
       >
         Share via Telegram
       </a>
+
+      {isLiveTelegramUrl(COMMUNITY_URL) && (
+        <a
+          className="action-button"
+          href={COMMUNITY_URL}
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            width: "100%",
+            marginTop: "0.5rem",
+            display: "block",
+            textAlign: "center",
+            textDecoration: "none",
+            boxSizing: "border-box",
+          }}
+        >
+          💬 Join Community Chat
+        </a>
+      )}
 
       <a
         className="action-button ghost"

@@ -94,6 +94,7 @@ export function comingSoonText(): string {
     "• Dynamic PFP — evolves with rank\n\n" +
     "<b>Channel and culture</b>\n" +
     "• Official Word on the Street channel\n" +
+    "• Community chat — talk with other hustlers\n" +
     "• Drops, leaderboards, NFT rush\n\n" +
     "<b>Season 2+</b>\n" +
     "• Base + Aerodrome real LP\n" +
@@ -117,7 +118,10 @@ export function helpMenuText(): string {
     "/invite — Your invite link\n" +
     "/crew — Crew stats + invite\n" +
     "/stats — Total users & online now\n" +
-    "/channel — Official channel\n" +
+    "/channel — Official channel (news)\n" +
+    "/community — Player chat / hangout\n" +
+    "/chat — Same as /community\n" +
+    "/adminbots — 2–3 admin bot stack status\n" +
     "/vault — Protected reserves\n" +
     "/help — This menu\n\n" +
     "<b>Quick tips</b>\n" +

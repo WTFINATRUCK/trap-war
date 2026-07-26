@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ASSETS, CLIENTS } from "@/lib/game/constants";
 import type { GameState } from "@/lib/game/types";
 import { getSellPrice } from "@/lib/game/engine";
+import { CHANNEL_URL, COMMUNITY_URL, isLiveTelegramUrl } from "@/config/telegram";
 
 export type PhoneView =
   | "home"
@@ -22,6 +23,8 @@ interface TrapPhoneProps {
   onClose: () => void;
   onOpenTravel: () => void;
   onAcceptClient?: (id: string) => void;
+  /** Open straight to Messages when coming from Street Wire */
+  initialView?: PhoneView;
 }
 
 const CONTACTS = [
@@ -52,8 +55,14 @@ function displayName(name: string): string {
   return name;
 }
 
-export default function TrapPhone({ game, streetMessages, onClose, onOpenTravel }: TrapPhoneProps) {
-  const [view, setView] = useState<PhoneView>("home");
+export default function TrapPhone({
+  game,
+  streetMessages,
+  onClose,
+  onOpenTravel,
+  initialView = "home",
+}: TrapPhoneProps) {
+  const [view, setView] = useState<PhoneView>(initialView);
   const [chatId, setChatId] = useState<string | null>(null);
 
   const title =
@@ -235,9 +244,31 @@ export default function TrapPhone({ game, streetMessages, onClose, onOpenTravel 
               </>
             )}
             {view === "gang" && (
-              <div className="client-row">
-                Everybody Eats referral — 0.3% daily drip on crew yield. Open CREW tab to share your link.
-              </div>
+              <>
+                <div className="client-row">
+                  Everybody Eats referral — 0.3% daily drip on crew yield. Open CREW tab to share your link.
+                </div>
+                {isLiveTelegramUrl(COMMUNITY_URL) && (
+                  <a
+                    className="client-row"
+                    href={COMMUNITY_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ display: "block", textDecoration: "none", color: "inherit" }}
+                  >
+                    💬 <strong>Community chat</strong> — talk with real players on Telegram
+                  </a>
+                )}
+                <a
+                  className="client-row"
+                  href={CHANNEL_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ display: "block", textDecoration: "none", color: "inherit" }}
+                >
+                  📢 <strong>Channel</strong> — Word on the Street & drops
+                </a>
+              </>
             )}
             {view === "settings" && (
               <div className="client-row">

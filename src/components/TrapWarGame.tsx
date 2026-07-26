@@ -27,16 +27,43 @@ import {
   calculateTotalValue,
   totalStashUnits,
   stashSpaceLeft,
+  listAllStashes,
+  cityShieldDays,
 } from "@/lib/game/engine";
 import type { GameMessage, GameState } from "@/lib/game/types";
 import { processCompletionBonus, processDailyReferralDrip } from "@/lib/game/referralDrip";
+import {
+  type ActivityItem,
+  type ActivityKind,
+  cityPulseEvents,
+  fetchRemoteActivity,
+  formatLocalBuy,
+  formatLocalDay,
+  formatLocalPlant,
+  formatLocalRaid,
+  formatLocalRank,
+  formatLocalRob,
+  formatLocalSell,
+  formatLocalStash,
+  formatLocalTravel,
+  kindLabel,
+  loadLocalActivity,
+  mergeFeed,
+  postRemoteActivity,
+  pushLocalActivity,
+  streetNameFromId,
+} from "@/lib/game/activityFeed";
+import { API_BASE } from "@/config/telegram";
 import TrapPhone from "./TrapPhone";
+import ActivityBoard from "./ActivityBoard";
 
 interface TrapWarGameProps {
   telegramId: number;
   initialGame: GameState | null;
   onSave: (game: GameState) => Promise<void>;
   onGameOver: (score: number) => void;
+  /** Full 30-day runs completed (career) */
+  runsCompleted?: number;
 }
 
 type Sheet = "market" | "travel" | "stash" | null;
@@ -52,9 +79,13 @@ function displayName(name: string): string {
   return name;
 }
 
-const STREET_NAMES = ["P-Nut", "Big Lou", "Kayla", "Uncle Ray", "Ms. Pearl", "Dispatcher"];
-
-export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOver }: TrapWarGameProps) {
+export default function TrapWarGame({
+  telegramId,
+  initialGame,
+  onSave,
+  onGameOver,
+  runsCompleted = 0,
+}: TrapWarGameProps) {
   const [gameState, setGameState] = useState<GameState | null>(initialGame);
   const [messages, setMessages] = useState<GameMessage[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -63,10 +94,58 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
   const [sheet, setSheet] = useState<Sheet>(null);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [marketMode, setMarketMode] = useState<"buy" | "sell">("buy");
+  /** Selected destination in Travel sheet (confirm with bottom button) */
+  const [travelTarget, setTravelTarget] = useState<CityId | null>(null);
+  const [travelMode, setTravelMode] = useState<"walk" | "chopper" | "whip">("walk");
+  const [streetFeed, setStreetFeed] = useState<ActivityItem[]>([]);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [activityFocusId, setActivityFocusId] = useState<string | null>(null);
+  const [phoneInitialView, setPhoneInitialView] = useState<"home" | "messages">("home");
+  /** Career 30-day finishes — synced from cloud, bumped instantly on full clear */
+  const [careerRuns, setCareerRuns] = useState(runsCompleted);
+  const streetWho = useMemo(() => streetNameFromId(String(telegramId)), [telegramId]);
+
+  useEffect(() => {
+    setCareerRuns(runsCompleted);
+  }, [runsCompleted]);
+
+  const openActivityBoard = (focusId?: string) => {
+    setActivityFocusId(focusId ?? null);
+    setActivityOpen(true);
+  };
+
+  const openTravelSheet = () => {
+    setTravelTarget(null);
+    setTravelMode("walk");
+    setOverlay(null);
+    setSheet("travel");
+  };
 
   useEffect(() => {
     setGameState(initialGame);
   }, [initialGame]);
+
+  const refreshStreetFeed = useCallback(async () => {
+    const local = loadLocalActivity();
+    const remote = await fetchRemoteActivity(API_BASE);
+    const pulse = cityPulseEvents();
+    setStreetFeed(mergeFeed(local, remote, pulse));
+  }, []);
+
+  useEffect(() => {
+    void refreshStreetFeed();
+    const id = window.setInterval(() => void refreshStreetFeed(), 12_000);
+    return () => window.clearInterval(id);
+  }, [refreshStreetFeed]);
+
+  const emitStreet = useCallback(
+    (kind: ActivityKind, text: string) => {
+      pushLocalActivity({ kind, text });
+      void postRemoteActivity(API_BASE, { kind, text, playerId: String(telegramId) });
+      void refreshStreetFeed();
+    },
+    [telegramId, refreshStreetFeed]
+  );
 
   const saveGame = useCallback(
     async (state: GameState) => {
@@ -86,10 +165,38 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
     if (important) setShowModal(important);
   };
 
+  /** Log raids / robs / rank-ups from engine message side-effects */
+  const logSideEffects = (prev: GameState | null, next: GameState, msgs: GameMessage[]) => {
+    for (const m of msgs) {
+      const title = (m.title || "").toLowerCase();
+      const text = m.text || "";
+      if (title.includes("robbery") || text.includes("Mugged for") || text.includes("Yield skimmed")) {
+        const lost = Number((text.match(/\$([0-9,]+)/) || [])[1]?.replace(/,/g, "")) || 0;
+        emitStreet("rob", formatLocalRob(streetWho, lost || 500));
+      } else if (
+        title.includes("raid") ||
+        text.toLowerCase().includes("police raid") ||
+        text.includes("🚔") ||
+        text.toLowerCase().includes("raid shield")
+      ) {
+        emitStreet("raid", formatLocalRaid(streetWho, text.slice(0, 80)));
+      }
+    }
+    if (prev && next.rank !== prev.rank) {
+      const rankName = RANKS.find((r) => r.id === next.rank)?.name ?? next.rank;
+      emitStreet("rank", formatLocalRank(streetWho, rankName));
+    }
+    if (prev && next.day > prev.day) {
+      emitStreet("day", formatLocalDay(streetWho, next.day));
+    }
+  };
+
   const applyResult = async (state: GameState, msgs: GameMessage[]) => {
-    const prevYield = gameState?.grossYieldLastDay ?? 0;
+    const prev = gameState;
+    const prevYield = prev?.grossYieldLastDay ?? 0;
     await saveGame(state);
     pushMessages(msgs);
+    logSideEffects(prev, state, msgs);
 
     if (state.grossYieldLastDay > 0 && state.grossYieldLastDay !== prevYield) {
       processDailyReferralDrip(telegramId, state.grossYieldLastDay);
@@ -98,6 +205,9 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
       setDispatcherGiftPending(true);
     }
     if (state.gameOver) {
+      if (!prev?.gameOver && state.day >= MAX_DAYS) {
+        setCareerRuns((n) => n + 1);
+      }
       processCompletionBonus(telegramId, state.totalProtectedAtCompletion);
       onGameOver(state.finalScore);
     }
@@ -122,16 +232,27 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
 
   const handleBuy = async (name: string) => {
     if (!gameState) return;
-    const result = buyAsset(gameState, name, quantities[name] || 1);
-    if (!result.blocked) await applyResult(result.state, result.messages);
-    else pushMessages(result.messages);
+    const qty = quantities[name] || 1;
+    const cashBefore = gameState.cash;
+    const city = gameState.location;
+    const result = buyAsset(gameState, name, qty);
+    if (!result.blocked) {
+      await applyResult(result.state, result.messages);
+      const cost = Math.max(0, cashBefore - result.state.cash);
+      emitStreet("buy", formatLocalBuy(streetWho, qty, displayName(name), city, cost));
+    } else pushMessages(result.messages);
   };
 
   const handleSell = async (name: string) => {
     if (!gameState) return;
-    const result = sellAsset(gameState, name, quantities[name] || 1);
-    if (!result.blocked) await applyResult(result.state, result.messages);
-    else pushMessages(result.messages);
+    const qty = quantities[name] || 1;
+    const cashBefore = gameState.cash;
+    const result = sellAsset(gameState, name, qty);
+    if (!result.blocked) {
+      await applyResult(result.state, result.messages);
+      const revenue = Math.max(0, result.state.cash - cashBefore);
+      emitStreet("sell", formatLocalSell(streetWho, qty, displayName(name), revenue));
+    } else pushMessages(result.messages);
   };
 
   const handlePlant = async (name: string) => {
@@ -151,26 +272,49 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
     const result = plantStash(gameState, name, qty);
     if (!result.blocked) {
       await applyResult(result.state, result.messages);
+      emitStreet("plant", formatLocalPlant(streetWho, qty, displayName(name)));
       setSheet("stash");
     } else {
       pushMessages(result.messages);
     }
   };
 
-  const handleRetrieve = async (city?: CityId, units?: number) => {
+  const handleRetrieve = async (city: CityId | undefined, units: number | undefined, asset: string) => {
     if (!gameState) return;
-    const result = retrieveStash(gameState, city, units);
-    if (!result.blocked) await applyResult(result.state, result.messages);
-    else pushMessages(result.messages);
+    const target = city ?? gameState.location;
+    const pile = gameState.plantedStashes[target]?.[asset];
+    const take = units === undefined ? pile?.units ?? 0 : units;
+    const result = retrieveStash(gameState, city, units, asset);
+    if (!result.blocked) {
+      await applyResult(result.state, result.messages);
+      emitStreet("stash", formatLocalStash(streetWho, take || 1, displayName(asset)));
+    } else pushMessages(result.messages);
   };
 
-  const handleTravel = async (city: CityId, mode: "walk" | "chopper" | "whip") => {
+  const handleTravel = async (city: CityId, mode: "walk" | "chopper" | "whip" = "walk") => {
     if (!gameState) return;
     const result = travel(gameState, city, mode);
     if (!result.blocked) {
       await applyResult(result.state, result.messages);
+      emitStreet("travel", formatLocalTravel(streetWho, city));
+      setTravelTarget(null);
+      setTravelMode("walk");
       setSheet(null);
     } else pushMessages(result.messages);
+  };
+
+  const confirmTravel = async () => {
+    if (!travelTarget || !gameState) {
+      pushMessages([
+        {
+          type: "warning",
+          title: "Pick a city",
+          text: "Tap a city on the map, then hit Travel.",
+        },
+      ]);
+      return;
+    }
+    await handleTravel(travelTarget, travelMode);
   };
 
   const handleFightBack = async (accept: boolean) => {
@@ -186,23 +330,23 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
   };
 
   const notifFeed = useMemo(() => {
-    const feed: { from: string; text: string; hot?: boolean }[] = [];
-    messages.slice(0, 4).forEach((m, i) => {
-      feed.push({
-        from: STREET_NAMES[i % STREET_NAMES.length],
-        text: m.text.slice(0, 72) + (m.text.length > 72 ? "…" : ""),
-        hot: m.type === "success" || m.type === "street",
-      });
-    });
-    if (feed.length === 0) {
-      feed.push(
-        { from: "P-Nut", text: "Compton quiet. Cop mids if prices soft.", hot: true },
-        { from: "Kayla", text: "Check Market before you travel.", hot: false },
-        { from: "Big Lou", text: "Heat rises with loud bags. Stay sharp." }
-      );
-    }
-    return feed;
-  }, [messages]);
+    if (streetFeed.length > 0) return streetFeed;
+    return cityPulseEvents();
+  }, [streetFeed]);
+
+  // Seamless vertical loop: render list twice
+  const scrollItems = useMemo(() => [...notifFeed, ...notifFeed], [notifFeed]);
+
+  /** Trap Phone contact rail expects { from, text } */
+  const phoneStreet = useMemo(
+    () =>
+      notifFeed.slice(0, 10).map((n) => ({
+        from: n.local ? "You" : n.text.split(/\s+/)[0] || kindLabel(n.kind),
+        text: n.text,
+        hot: Boolean(n.local) || n.kind === "raid" || n.kind === "rob" || n.kind === "rank",
+      })),
+    [notifFeed]
+  );
 
   if (!gameState) {
     return (
@@ -224,14 +368,28 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
   }
 
   if (gameState.gameOver) {
+    const fullThirty = gameState.day >= MAX_DAYS;
     return (
       <section className="game-complete">
-        <h2>RUN COMPLETE</h2>
+        <h2>{fullThirty ? "30-DAY RUN COMPLETE" : "RUN ENDED"}</h2>
         <p className="score">${gameState.finalScore.toLocaleString()}</p>
         <p>
           Protected: <span className="stat-value">${gameState.protectedReserves.toLocaleString()}</span>
         </p>
         <p className="log-info">{RANKS.find((r) => r.id === gameState.rank)?.name}</p>
+        <p className="runs-stat">
+          {fullThirty ? (
+            <>
+              30-day runs completed: <strong>{careerRuns}</strong>
+            </>
+          ) : (
+            <>
+              Day {gameState.day} end · 30-day runs completed: <strong>{careerRuns}</strong>
+              <br />
+              <span className="runs-stat-hint">Early ends don&apos;t count toward 30-day finishes.</span>
+            </>
+          )}
+        </p>
         <button type="button" onClick={startNewGame} className="action-button" style={{ marginTop: "1rem" }}>
           Play Again
         </button>
@@ -241,11 +399,10 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
 
   const g = migrateSavedState(gameState);
   const rankName = RANKS.find((r) => r.id === g.rank)?.name ?? "Corner Boy";
-  const planted = g.plantedStashes[g.location];
-  const allStashes = Object.entries(g.plantedStashes).filter(([, s]) => s && s.units > 0) as [
-    CityId,
-    NonNullable<(typeof g.plantedStashes)[CityId]>,
-  ][];
+  const hereMap = g.plantedStashes[g.location];
+  const herePiles = hereMap ? Object.values(hereMap).filter((s) => s && s.units > 0) : [];
+  const allStashes = listAllStashes(g);
+  const hereShield = cityShieldDays(g, g.location);
   const stashUnits = totalStashUnits(g);
   const stashFree = stashSpaceLeft(g);
   const totalValue = calculateTotalValue(g);
@@ -332,15 +489,43 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
         </div>
       )}
 
+      {/* Street wire board — messages + player / NPC profiles */}
+      {activityOpen && (
+        <ActivityBoard
+          key={activityFocusId ?? "feed"}
+          game={g}
+          feed={notifFeed}
+          selfStreetName={streetWho}
+          focusId={activityFocusId}
+          onClose={() => {
+            setActivityOpen(false);
+            setActivityFocusId(null);
+          }}
+          onOpenPhoneMessages={() => {
+            setActivityOpen(false);
+            setActivityFocusId(null);
+            setSheet(null);
+            setPhoneInitialView("messages");
+            setOverlay("phone");
+          }}
+        />
+      )}
+
       {/* Trap Phone full screen */}
       {overlay === "phone" && (
         <TrapPhone
+          key={phoneInitialView}
           game={g}
-          streetMessages={notifFeed}
-          onClose={() => setOverlay(null)}
+          streetMessages={phoneStreet}
+          initialView={phoneInitialView}
+          onClose={() => {
+            setOverlay(null);
+            setPhoneInitialView("home");
+          }}
           onOpenTravel={() => {
             setOverlay(null);
-            setSheet("travel");
+            setPhoneInitialView("home");
+            openTravelSheet();
           }}
         />
       )}
@@ -389,7 +574,7 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
                     <div className="inv-name">🦺 Body Armor</div>
                     <div className="inv-sub">Raid shield when stash planted</div>
                   </div>
-                  <div className="inv-qty">{planted ? "Active" : "—"}</div>
+                  <div className="inv-qty">{hereShield > 0 ? `${hereShield}d` : herePiles.length ? "On" : "—"}</div>
                 </div>
                 <div className="inv-row">
                   <div>
@@ -490,14 +675,37 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
           </div>
         </div>
 
-        {/* Notifications rail */}
-        <div className="notif-rail" aria-label="Recent texts">
-          {notifFeed.slice(0, 3).map((n, i) => (
-            <div key={i} className={`notif-bubble ${n.hot ? "hot" : ""}`}>
-              <div className="nb-from">{n.from}</div>
-              <div>{n.text}</div>
+        {/* Live street wire — tap opens messages + player/NPC profiles */}
+        <div className="notif-rail" aria-label="Live street activity">
+          <button
+            type="button"
+            className="notif-rail-label"
+            onClick={() => openActivityBoard()}
+          >
+            STREET WIRE
+          </button>
+          <div className="notif-tap-hint">Tap for messages</div>
+          <div className="notif-viewport">
+            <div
+              className="notif-scroll"
+              style={{ animationDuration: `${Math.max(18, notifFeed.length * 2.2)}s` }}
+            >
+              {scrollItems.map((n, i) => (
+                <button
+                  key={`${n.id}_${i}`}
+                  type="button"
+                  className={`notif-bubble kind-${n.kind}${n.local ? " local" : ""}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openActivityBoard(n.id);
+                  }}
+                >
+                  <div className="nb-from">{kindLabel(n.kind)}</div>
+                  <div>{n.text}</div>
+                </button>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
 
         <div className="bottom-meta">
@@ -520,11 +728,13 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
           >
             <div className="mc-label">Stash · {stashUnits}/{STASH_CAPACITY}</div>
             <div className="mc-value">
-              {planted
-                ? `${planted.units} ${displayName(planted.asset)} @ ${g.location}`
+              {herePiles.length > 0
+                ? herePiles.length === 1
+                  ? `${herePiles[0]!.units} ${displayName(herePiles[0]!.asset)} @ ${g.location}`
+                  : `${herePiles.length} products here · ${herePiles.map((p) => displayName(p.asset)).join(" · ")}`
                 : stashUnits > 0
-                  ? `${allStashes.length} city stash${allStashes.length > 1 ? "es" : ""} · $${allStashes
-                      .reduce((s, [, st]) => s + getSellPrice(g, st.asset) * st.units, 0)
+                  ? `${allStashes.length} pile${allStashes.length > 1 ? "s" : ""} · $${allStashes
+                      .reduce((s, { stash: st }) => s + getSellPrice(g, st.asset) * st.units, 0)
                       .toLocaleString()}`
                   : "None planted"}
             </div>
@@ -547,6 +757,15 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
                 {sheet === "travel" && "Travel"}
                 {sheet === "stash" && "Stash"}
               </h2>
+              {sheet === "market" && (
+                <div className="sheet-cash" title="Your cash on hand">
+                  <span className="sheet-cash-ico">$</span>
+                  <div>
+                    <div className="sheet-cash-label">Cash</div>
+                    <div className="sheet-cash-value">${g.cash.toLocaleString()}</div>
+                  </div>
+                </div>
+              )}
               <button type="button" className="panel-close" onClick={() => setSheet(null)}>
                 ×
               </button>
@@ -554,6 +773,10 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
             <div className="panel-body">
               {sheet === "market" && (
                 <>
+                  <div className="sheet-cash-bar" aria-live="polite">
+                    <span>Your cash</span>
+                    <strong>${g.cash.toLocaleString()}</strong>
+                  </div>
                   <div className="asset-grid">
                     {marketAssets.map((asset) => {
                       const h = held(asset.name, asset.category);
@@ -651,77 +874,113 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
 
               {sheet === "travel" && (
                 <>
+                  <p className="hint-text" style={{ marginTop: 0 }}>
+                    Tap a city, then hit <strong>Travel</strong> below. Walk costs a day · prices differ by block.
+                  </p>
                   <div className="city-map">
                     {CITIES.map((city) => {
                       const gate = canTravelTo(g, city);
                       const isHere = city === g.location;
-                      const locked = !gate.allowed && !gate.softPenalty;
+                      const canGo = gate.allowed || Boolean(gate.softPenalty);
+                      const locked = !canGo;
+                      const selected = travelTarget === city;
                       let cls = "city-chip";
                       if (isHere) cls += " current";
                       else if (locked) cls += " locked";
                       else if (gate.softPenalty) cls += " soft-lock";
+                      if (selected) cls += " selected";
                       return (
                         <button
                           key={city}
                           type="button"
                           className={cls}
                           disabled={isHere || locked}
-                          title={gate.reason}
-                          onClick={() => !isHere && gate.allowed && handleTravel(city, "walk")}
+                          title={gate.reason || (isHere ? "You are here" : `Select ${city}`)}
+                          onClick={() => {
+                            if (isHere || locked) return;
+                            setTravelTarget(city);
+                            // Prefer walk unless they already picked a fast mode that can reach this city
+                            if (travelMode === "chopper") {
+                              const adj = ADJACENT_CITIES[g.location]?.includes(city);
+                              if (!adj || !g.hasChopper || g.chopperHopsLeft <= 0) setTravelMode("walk");
+                            }
+                          }}
                         >
                           {isHere && <span className="city-dot" />}
+                          {selected && !isHere ? "→ " : ""}
                           {locked ? `${city} 🔒` : city}
                         </button>
                       );
                     })}
                   </div>
+
                   {((g.hasChopper && g.chopperHopsLeft > 0) || (g.hasWhip && g.whipHopsLeft > 0)) && (
-                    <div className="fast-travel">
-                      {CITIES.filter((c) => c !== g.location).map((city) => {
-                        const gate = canTravelTo(g, city);
-                        if (!gate.allowed && !gate.softPenalty) return null;
-                        if (g.hasChopper && g.chopperHopsLeft > 0) {
-                          if (!ADJACENT_CITIES[g.location]?.includes(city)) return null;
-                          return (
-                            <button
-                              key={`c-${city}`}
-                              type="button"
-                              className="action-button small"
-                              onClick={() => handleTravel(city, "chopper")}
-                            >
-                              Chopper → {city}
-                            </button>
-                          );
-                        }
-                        if (g.hasWhip && g.whipHopsLeft > 0) {
-                          return (
-                            <button
-                              key={`w-${city}`}
-                              type="button"
-                              className="action-button small"
-                              onClick={() => handleTravel(city, "whip")}
-                            >
-                              Whip → {city}
-                            </button>
-                          );
-                        }
-                        return null;
-                      })}
+                    <div className="travel-mode-row">
+                      <span className="travel-mode-label">How you move</span>
+                      <div className="btn-row" style={{ flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          className={`action-button small ${travelMode === "walk" ? "" : "ghost"}`}
+                          onClick={() => setTravelMode("walk")}
+                        >
+                          Walk (+1 day)
+                        </button>
+                        {g.hasChopper && g.chopperHopsLeft > 0 && (
+                          <button
+                            type="button"
+                            className={`action-button small ${travelMode === "chopper" ? "" : "ghost"}`}
+                            onClick={() => setTravelMode("chopper")}
+                            title="Adjacent cities only · same day"
+                          >
+                            Chopper ({g.chopperHopsLeft})
+                          </button>
+                        )}
+                        {g.hasWhip && g.whipHopsLeft > 0 && (
+                          <button
+                            type="button"
+                            className={`action-button small ${travelMode === "whip" ? "" : "ghost"}`}
+                            onClick={() => setTravelMode("whip")}
+                            title="Any unlocked city · same day"
+                          >
+                            Whip ({g.whipHopsLeft})
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
-                  <p className="hint-text">Walk = +1 day · city prices differ · watch heat</p>
+
+                  {travelTarget && (
+                    <p className="travel-dest-preview">
+                      Destination: <strong>{travelTarget}</strong>
+                      {travelMode === "walk" && " · walk (ends the day)"}
+                      {travelMode === "chopper" && " · chopper hop"}
+                      {travelMode === "whip" && " · whip hop"}
+                      {canTravelTo(g, travelTarget).softPenalty && " · sneak (risky)"}
+                    </p>
+                  )}
+
                   <button
                     type="button"
-                    className="action-button sell"
+                    className="action-button travel-confirm"
                     style={{ width: "100%", marginTop: "0.75rem" }}
+                    disabled={!travelTarget}
+                    onClick={() => void confirmTravel()}
+                  >
+                    {travelTarget ? `Travel to ${travelTarget}` : "Select a city to travel"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="travel-end-link"
                     onClick={async () => {
-                      if (confirm(`End run on day ${g.day}?`)) {
+                      if (confirm(`End run on day ${g.day}? Your score locks in — this is not travel.`)) {
                         const r = endRunEarly(g);
                         await applyResult(r.state, r.messages);
+                        setSheet(null);
                       }
                     }}
                   >
-                    End Run Early
+                    End run early (not travel)
                   </button>
                 </>
               )}
@@ -732,7 +991,7 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
                     <strong>Stash capacity</strong> {stashUnits}/{STASH_CAPACITY} units used · {stashFree} free
                     <br />
                     <span style={{ color: "var(--muted)", fontSize: "0.75rem" }}>
-                      Plant from Buy/Sell moves product out of your bag into protected storage on that block.
+                      Plant multiple products on the same block (or across cities). Cap {STASH_CAPACITY} units total.
                     </span>
                   </div>
 
@@ -742,11 +1001,15 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
                     </div>
                   ) : (
                     <div className="inv-list" style={{ marginBottom: "0.85rem" }}>
-                      {allStashes.map(([city, stash]) => {
+                      {allStashes.map(({ city, stash }) => {
                         const value = getSellPrice(g, stash.asset) * stash.units;
                         const here = city === g.location;
                         return (
-                          <div key={city} className="inv-row" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
+                          <div
+                            key={`${city}-${stash.asset}`}
+                            className="inv-row"
+                            style={{ flexWrap: "wrap", gap: "0.5rem" }}
+                          >
                             <div style={{ flex: 1, minWidth: "140px" }}>
                               <div className="inv-name">
                                 {displayName(stash.asset)} ×{stash.units}
@@ -761,8 +1024,8 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
                                 type="button"
                                 className="action-button sell small"
                                 disabled={!here}
-                                title={here ? "Take all back to bag" : "Travel here to retrieve"}
-                                onClick={() => handleRetrieve(city)}
+                                title={here ? "Take all of this product back to bag" : "Travel here to retrieve"}
+                                onClick={() => handleRetrieve(city, undefined, stash.asset)}
                               >
                                 {here ? "Retrieve all" : "Travel first"}
                               </button>
@@ -770,7 +1033,7 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
                                 <button
                                   type="button"
                                   className="action-button ghost small"
-                                  onClick={() => handleRetrieve(city, 1)}
+                                  onClick={() => handleRetrieve(city, 1, stash.asset)}
                                 >
                                   Take 1
                                 </button>
@@ -822,7 +1085,10 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
         <button
           type="button"
           className={`dock-btn ${sheet === "travel" ? "active" : ""}`}
-          onClick={() => setSheet(sheet === "travel" ? null : "travel")}
+          onClick={() => {
+            if (sheet === "travel") setSheet(null);
+            else openTravelSheet();
+          }}
         >
           <span className="dock-ico">↗</span>
           Travel
@@ -848,6 +1114,7 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
           className={`dock-btn ${overlay === "phone" ? "active" : ""}`}
           onClick={() => {
             setSheet(null);
+            setPhoneInitialView("home");
             setOverlay("phone");
           }}
         >

@@ -34,6 +34,7 @@ import type {
   GameMessage,
   GameState,
   PendingFightBack,
+  CityStashMap,
   PlantedStash,
 } from "./types";
 
@@ -106,12 +107,7 @@ export function migrateSavedState(raw: Partial<GameState>): GameState {
   if (merged.dispatcherGiftClaimed === undefined) merged.dispatcherGiftClaimed = false;
 
   if (merged.inventory) merged.inventory = migrateInventoryKeys(merged.inventory);
-  if (merged.plantedStashes) {
-    for (const city of Object.keys(merged.plantedStashes) as CityId[]) {
-      const stash = merged.plantedStashes[city];
-      if (stash) stash.asset = remapAssetName(stash.asset);
-    }
-  }
+  merged.plantedStashes = migratePlantedStashes(merged.plantedStashes);
   if (merged.priceHaircuts) {
     const haircuts = { ...merged.priceHaircuts };
     for (const [name, haircut] of Object.entries({ ...haircuts })) {
@@ -175,17 +171,89 @@ function diversityCount(state: GameState): number {
   return CORE_ASSETS.filter((name) => (state.inventory[name] || 0) > 0 || plantedUnits(state, name) > 0).length;
 }
 
+/** Normalize legacy single-pile cities → multi-product maps */
+function migratePlantedStashes(
+  raw: GameState["plantedStashes"] | Record<string, unknown> | undefined
+): GameState["plantedStashes"] {
+  const out: GameState["plantedStashes"] = {};
+  if (!raw || typeof raw !== "object") return out;
+
+  for (const city of Object.keys(raw) as CityId[]) {
+    const val = (raw as Record<string, unknown>)[city];
+    if (!val || typeof val !== "object") continue;
+
+    // Legacy: one PlantedStash object with .asset + .units
+    if ("units" in val && "asset" in val && typeof (val as PlantedStash).units === "number") {
+      const s = val as PlantedStash;
+      const asset = remapAssetName(s.asset);
+      out[city] = {
+        [asset]: {
+          asset,
+          units: s.units,
+          plantedOnDay: s.plantedOnDay ?? 1,
+          shieldDaysLeft: s.shieldDaysLeft ?? 0,
+        },
+      };
+      continue;
+    }
+
+    // Multi: map asset → PlantedStash
+    const map: CityStashMap = {};
+    for (const [key, entry] of Object.entries(val as Record<string, unknown>)) {
+      if (!entry || typeof entry !== "object") continue;
+      const s = entry as PlantedStash;
+      if (typeof s.units !== "number" || s.units <= 0) continue;
+      const asset = remapAssetName(s.asset || key);
+      map[asset] = {
+        asset,
+        units: s.units,
+        plantedOnDay: s.plantedOnDay ?? 1,
+        shieldDaysLeft: s.shieldDaysLeft ?? 0,
+      };
+    }
+    if (Object.keys(map).length > 0) out[city] = map;
+  }
+  return out;
+}
+
+/** Flat list of all product piles across cities */
+export function listAllStashes(state: GameState): { city: CityId; stash: PlantedStash }[] {
+  const rows: { city: CityId; stash: PlantedStash }[] = [];
+  for (const city of Object.keys(state.plantedStashes) as CityId[]) {
+    const map = state.plantedStashes[city];
+    if (!map) continue;
+    for (const stash of Object.values(map)) {
+      if (stash && stash.units > 0) rows.push({ city, stash });
+    }
+  }
+  return rows;
+}
+
+export function cityShieldDays(state: GameState, city: CityId): number {
+  const map = state.plantedStashes[city];
+  if (!map) return 0;
+  let max = 0;
+  for (const s of Object.values(map)) {
+    if (s && s.shieldDaysLeft > max) max = s.shieldDaysLeft;
+  }
+  return max;
+}
+
 function plantedUnits(state: GameState, asset: string): number {
-  return Object.values(state.plantedStashes).reduce((sum, stash) => {
-    if (stash?.asset === asset) return sum + stash.units;
-    return sum;
-  }, 0);
+  let sum = 0;
+  for (const map of Object.values(state.plantedStashes)) {
+    if (!map) continue;
+    const pile = map[asset];
+    if (pile) sum += pile.units;
+  }
+  return sum;
 }
 
 function stashCityCredits(state: GameState): number {
   let credits = 0;
   for (const city of CITIES) {
-    if (state.plantedStashes[city]) credits += 1;
+    const map = state.plantedStashes[city];
+    if (map && Object.keys(map).length > 0) credits += 1;
     else if (state.location === city && CORE_ASSETS.some((a) => (state.inventory[a] || 0) > 0)) {
       credits += 0.5;
     }
@@ -198,8 +266,8 @@ export function calculateTotalValue(state: GameState): number {
   for (const [name, qty] of Object.entries(state.inventory)) {
     total += getSellPrice(state, name) * qty;
   }
-  for (const stash of Object.values(state.plantedStashes)) {
-    if (stash) total += getSellPrice(state, stash.asset) * stash.units;
+  for (const { stash } of listAllStashes(state)) {
+    total += getSellPrice(state, stash.asset) * stash.units;
   }
   return Math.floor(total);
 }
@@ -439,14 +507,14 @@ export function sellAsset(state: GameState, assetName: string, quantity: number)
 }
 
 export function totalStashUnits(state: GameState): number {
-  return Object.values(state.plantedStashes).reduce((sum, stash) => sum + (stash?.units || 0), 0);
+  return listAllStashes(state).reduce((sum, { stash }) => sum + stash.units, 0);
 }
 
 export function stashSpaceLeft(state: GameState): number {
   return Math.max(0, STASH_CAPACITY - totalStashUnits(state));
 }
 
-/** Move product from bag → protected city stash (same city can stack same product). */
+/** Move product from bag → protected city stash (multi-product per city; same product stacks). */
 export function plantStash(state: GameState, assetName: string, units: number): ActionResult {
   if (!CORE_ASSETS.includes(assetName)) {
     return {
@@ -501,20 +569,8 @@ export function plantStash(state: GameState, assetName: string, units: number): 
     };
   }
 
-  const existing = state.plantedStashes[state.location];
-  if (existing && existing.asset !== assetName) {
-    return {
-      state,
-      messages: [
-        {
-          type: "warning",
-          title: "Stash Occupied",
-          text: `Already stashing ${existing.units} ${existing.asset} in ${state.location}. Retrieve it first, or plant more ${existing.asset}.`,
-        },
-      ],
-      blocked: true,
-    };
-  }
+  const cityMap = state.plantedStashes[state.location] || {};
+  const existing = cityMap[assetName];
 
   const space = stashSpaceLeft(state);
   if (space <= 0) {
@@ -559,11 +615,14 @@ export function plantStash(state: GameState, assetName: string, units: number): 
     shieldDaysLeft: shieldDays,
   };
 
+  const nextCityMap: CityStashMap = { ...cityMap, [assetName]: stash };
+  const productCount = Object.keys(nextCityMap).length;
+
   let newState: GameState = {
     ...state,
     cash: state.cash - PLANT_COST,
     inventory: { ...state.inventory, [assetName]: held - qty },
-    plantedStashes: { ...state.plantedStashes, [state.location]: stash },
+    plantedStashes: { ...state.plantedStashes, [state.location]: nextCityMap },
     extendedShieldPending: existing ? state.extendedShieldPending : false,
   };
   if (newState.inventory[assetName] === 0) delete newState.inventory[assetName];
@@ -575,7 +634,10 @@ export function plantStash(state: GameState, assetName: string, units: number): 
     {
       type: "success",
       title: "Planted",
-      text: `${assetName} x${qty} planted in stash (${state.location}). Stash now holds ${stash.units} ${assetName}. Shield ${stash.shieldDaysLeft}d.`,
+      text:
+        `${assetName} x${qty} planted in ${state.location}. ` +
+        `That pile: ${stash.units} ${assetName} · 🛡 ${stash.shieldDaysLeft}d. ` +
+        `${productCount} product type${productCount > 1 ? "s" : ""} on this block.`,
     },
   ];
   if (!state.firstPlantShown) {
@@ -583,7 +645,7 @@ export function plantStash(state: GameState, assetName: string, units: number): 
     messages.push({
       type: "street",
       title: "Word on the Street",
-      text: "Stash is protected storage — separate from your bag. Plant for yield + raid shield on this block.",
+      text: "Stash holds multiple products per city. Plant for yield + raid shield on this block.",
     });
   }
 
@@ -597,15 +659,19 @@ export function plantStash(state: GameState, assetName: string, units: number): 
   return { state: afterAction, messages };
 }
 
-/** Pull product from a city stash back into the bag. Defaults to current city, all units. */
+/**
+ * Pull product from a city stash back into the bag.
+ * @param asset — required when the city has more than one product pile
+ */
 export function retrieveStash(
   state: GameState,
   city?: CityId,
-  units?: number
+  units?: number,
+  asset?: string
 ): ActionResult {
   const targetCity = city ?? state.location;
-  const stash = state.plantedStashes[targetCity];
-  if (!stash) {
+  const cityMap = state.plantedStashes[targetCity];
+  if (!cityMap || Object.keys(cityMap).length === 0) {
     return {
       state,
       messages: [
@@ -613,6 +679,40 @@ export function retrieveStash(
           type: "warning",
           title: "Empty Stash",
           text: targetCity === state.location ? "No stash planted here." : `No stash in ${targetCity}.`,
+        },
+      ],
+      blocked: true,
+    };
+  }
+
+  const assets = Object.keys(cityMap);
+  let assetName = asset;
+  if (!assetName) {
+    if (assets.length === 1) assetName = assets[0];
+    else {
+      return {
+        state,
+        messages: [
+          {
+            type: "warning",
+            title: "Pick Product",
+            text: `Multiple products in ${targetCity}: ${assets.join(", ")}. Choose which to retrieve.`,
+          },
+        ],
+        blocked: true,
+      };
+    }
+  }
+
+  const stash = cityMap[assetName];
+  if (!stash || stash.units <= 0) {
+    return {
+      state,
+      messages: [
+        {
+          type: "warning",
+          title: "Empty Stash",
+          text: `No ${assetName} planted in ${targetCity}.`,
         },
       ],
       blocked: true,
@@ -655,12 +755,13 @@ export function retrieveStash(
   if (penalty?.blocked) return penalty;
 
   const remaining = stash.units - take;
+  const nextMap: CityStashMap = { ...cityMap };
+  if (remaining <= 0) delete nextMap[assetName];
+  else nextMap[assetName] = { ...stash, units: remaining };
+
   const plantedStashes = { ...state.plantedStashes };
-  if (remaining <= 0) {
-    delete plantedStashes[targetCity];
-  } else {
-    plantedStashes[targetCity] = { ...stash, units: remaining };
-  }
+  if (Object.keys(nextMap).length === 0) delete plantedStashes[targetCity];
+  else plantedStashes[targetCity] = nextMap;
 
   let newState: GameState = {
     ...state,
@@ -688,18 +789,21 @@ export function retrieveStash(
 }
 
 function updateClientProgressFromPlant(state: GameState): void {
-  const stash = state.plantedStashes[state.location];
-  if (!stash) return;
+  const map = state.plantedStashes[state.location];
+  if (!map) return;
 
-  if (state.location === "Compton" && stash.asset === "Weed") {
-    state.clientProgress.pearl.progress = Math.max(state.clientProgress.pearl.progress, stash.units);
+  const weed = map["Weed"];
+  if (state.location === "Compton" && weed) {
+    state.clientProgress.pearl.progress = Math.max(state.clientProgress.pearl.progress, weed.units);
   }
   if (state.location === "Inglewood") {
-    if (stash.asset === "Coke") {
-      state.clientProgress.ray.blueChips = Math.max(state.clientProgress.ray.blueChips, stash.units);
+    const coke = map["Coke"];
+    const molly = map["Molly"];
+    if (coke) {
+      state.clientProgress.ray.blueChips = Math.max(state.clientProgress.ray.blueChips, coke.units);
     }
-    if (stash.asset === "Molly") {
-      state.clientProgress.ray.memeBags = Math.max(state.clientProgress.ray.memeBags, stash.units);
+    if (molly) {
+      state.clientProgress.ray.memeBags = Math.max(state.clientProgress.ray.memeBags, molly.units);
     }
   }
 }
@@ -898,10 +1002,17 @@ export function advanceDay(state: GameState): DayAdvanceResult {
   }
 
   for (const city of CITIES) {
-    const stash = newState.plantedStashes[city];
-    if (stash && stash.shieldDaysLeft > 0) {
-      newState.plantedStashes[city] = { ...stash, shieldDaysLeft: stash.shieldDaysLeft - 1 };
+    const map = newState.plantedStashes[city];
+    if (!map) continue;
+    const next: CityStashMap = {};
+    for (const [asset, stash] of Object.entries(map)) {
+      if (!stash) continue;
+      next[asset] = {
+        ...stash,
+        shieldDaysLeft: Math.max(0, stash.shieldDaysLeft - 1),
+      };
     }
+    newState.plantedStashes[city] = next;
   }
 
   const yieldResult = accrueYield(newState);
@@ -942,8 +1053,7 @@ function accrueYield(state: GameState): { state: GameState; messages: GameMessag
     grossYield += getSellPrice(state, name) * qty * asset.dailyYield * yieldMult;
   }
 
-  for (const stash of Object.values(state.plantedStashes)) {
-    if (!stash) continue;
+  for (const { stash } of listAllStashes(state)) {
     const asset = assetDef(stash.asset);
     if (!asset) continue;
     grossYield += getSellPrice(state, stash.asset) * stash.units * asset.dailyYield * yieldMult * 1.25;
@@ -969,8 +1079,7 @@ function robberyChance(state: GameState): number {
   chance += Math.min(0.2, ((state.inventory["Molly"] || 0) / 10) * 0.04);
   chance += Math.min(0.24, ((state.inventory["Meth"] || 0) / 10) * 0.06);
   if (state.stickCount > 0) chance -= 0.12;
-  const shield = state.plantedStashes[state.location]?.shieldDaysLeft || 0;
-  if (shield > 0) chance -= 0.15;
+  if (cityShieldDays(state, state.location) > 0) chance -= 0.15;
   if (state.cash >= 20000) chance += 0.08;
   return Math.max(0.05, Math.min(0.45, chance));
 }
@@ -1107,8 +1216,7 @@ function policeRaidChance(state: GameState): number {
   let chance = 0.08;
   chance += Math.min(0.25, ((state.inventory["Molly"] || 0) / 10) * 0.05);
   chance += Math.min(0.32, ((state.inventory["Meth"] || 0) / 10) * 0.08);
-  const shield = state.plantedStashes[state.location]?.shieldDaysLeft || 0;
-  if (shield > 0) chance -= 0.2;
+  if (cityShieldDays(state, state.location) > 0) chance -= 0.2;
   if (state.stickCount > 0) chance -= 0.08;
 
   const onlyStable =
@@ -1121,8 +1229,7 @@ function policeRaidChance(state: GameState): number {
 function resolvePoliceRaid(state: GameState): { state: GameState; messages: GameMessage[] } {
   if (Math.random() >= policeRaidChance(state)) return { state, messages: [] };
 
-  const shield = state.plantedStashes[state.location]?.shieldDaysLeft || 0;
-  if (shield > 0) {
+  if (cityShieldDays(state, state.location) > 0) {
     return {
       state,
       messages: [{ type: "info", text: "🛡️ Raid shield blocked the police hit." }],

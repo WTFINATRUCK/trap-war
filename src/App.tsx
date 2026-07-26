@@ -4,7 +4,7 @@ import { useCloudSave } from "@/hooks/useCloudSave";
 import TrapWarGame from "@/components/TrapWarGame";
 import CrewPanel from "@/components/CrewPanel";
 import VaultPanel from "@/components/VaultPanel";
-import { BOT_LINK, CHANNEL_URL } from "@/config/telegram";
+import { BOT_LINK, CHANNEL_URL, COMMUNITY_URL, isLiveTelegramUrl } from "@/config/telegram";
 
 type Tab = "game" | "crew" | "vault";
 
@@ -29,6 +29,17 @@ export default function App() {
             <a className="action-button" href={BOT_LINK} style={{ textDecoration: "none", display: "block" }}>
               Open Telegram Bot
             </a>
+            {isLiveTelegramUrl(COMMUNITY_URL) && (
+              <a
+                className="action-button"
+                href={COMMUNITY_URL}
+                target="_blank"
+                rel="noreferrer"
+                style={{ textDecoration: "none", display: "block" }}
+              >
+                💬 Join Community Chat
+              </a>
+            )}
             <a
               className="action-button ghost"
               href={CHANNEL_URL}
@@ -36,7 +47,7 @@ export default function App() {
               rel="noreferrer"
               style={{ textDecoration: "none", display: "block" }}
             >
-              Join Channel
+              📢 Join Channel
             </a>
           </div>
         </div>
@@ -50,6 +61,7 @@ export default function App() {
 
   const cash = save?.game?.cash ?? 500;
   const invites = save?.inviteCount ?? 0;
+  const runsCompleted = save?.runsCompleted ?? 0;
 
   return (
     <div className="telegram-shell">
@@ -57,7 +69,16 @@ export default function App() {
         <div id="game-container">
           <header className="app-header">
             <h1>TRAP WAR</h1>
-            <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "0.4rem", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <div
+                className="cash-pill runs-pill"
+                title="Full 30-day runs completed"
+              >
+                <span className="cash-icon" style={{ background: "linear-gradient(145deg,#facc15,#ca8a04)" }}>
+                  30
+                </span>
+                {runsCompleted}
+              </div>
               <button
                 type="button"
                 className="cash-pill"
@@ -84,11 +105,25 @@ export default function App() {
               Bot
             </a>
           </div>
+          <div className="beta-banner" role="status">
+            <strong>PRIVATE BETA</strong>
+            <span>
+              Free game · no real money · vault / NFT / pay-to-earn are previews only · progress can
+              reset
+            </span>
+          </div>
           {!hideChannelBanner && (
             <div className="channel-banner">
-              <a href={CHANNEL_URL} target="_blank" rel="noreferrer" className="channel-banner-link">
-                📢 Join the Trap War channel — Word on the Street
-              </a>
+              <div className="channel-banner-links">
+                {isLiveTelegramUrl(COMMUNITY_URL) ? (
+                  <a href={COMMUNITY_URL} target="_blank" rel="noreferrer" className="channel-banner-link">
+                    💬 Community chat — talk with players
+                  </a>
+                ) : null}
+                <a href={CHANNEL_URL} target="_blank" rel="noreferrer" className="channel-banner-link">
+                  📢 Channel — Word on the Street
+                </a>
+              </div>
               <button
                 type="button"
                 className="channel-banner-x"
@@ -117,6 +152,7 @@ export default function App() {
               initialGame={save?.game ?? null}
               onSave={saveGame}
               onGameOver={setScore}
+              runsCompleted={runsCompleted}
             />
           )}
           {tab === "crew" && (
@@ -138,6 +174,8 @@ export default function App() {
                 game={save?.game ?? null}
                 lastScore={score}
                 walletConnected={!!save?.walletAddress}
+                runsCompleted={runsCompleted}
+                bestRunScore={save?.bestRunScore ?? 0}
               />
             </div>
           )}

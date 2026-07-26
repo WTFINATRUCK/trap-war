@@ -14,15 +14,23 @@ npm run dev
 # open http://localhost:5173/?tg=12345
 ```
 
+### Deploy (Vercel + domain — no laptop for the game)
+
+Step-by-step: **[DEPLOY.md](./DEPLOY.md)**
+
+- Correct repo: **https://github.com/WTFINATRUCK/trap-war**
+- Mini App → Vercel + optional **trappywar.com**
+- Bot still needs a 24/7 host (Railway/Render) — not only your PC
+
 ### Telegram channel + Mini App access
 
 Full checklist: **[TELEGRAM_SETUP.md](./TELEGRAM_SETUP.md)**
 
 1. Create bot in **@BotFather** → copy `BOT_TOKEN`  
 2. Create public **channel** → `CHANNEL_URL`  
-3. Deploy Mini App to **HTTPS** → `WEBAPP_URL`  
+3. Deploy Mini App to **HTTPS** (Vercel) → `WEBAPP_URL`  
 4. Copy `.env.example` → `.env` and fill values  
-5. `npm run bot:setup` then `npm run bot`  
+5. `npm run bot:setup` then `npm run bot` (or host bot in the cloud)  
 6. Open `t.me/YourBot` → **Play Trap War**
 
 ## Features shipped

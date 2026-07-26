@@ -8,7 +8,11 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "bot": "tsx bot/index.ts",
-    "bot:setup": "tsx bot/setup-menu.ts"
+    "bot:community": "tsx bot/communityBot.ts",
+    "bot:guard": "tsx bot/guardBot.ts",
+    "bot:all": "tsx bot/run-all.ts",
+    "bot:setup": "tsx bot/setup-menu.ts",
+    "bot:personas": "tsx bot/setup-personas.ts"
   },
   "dependencies": {
     "@twa-dev/sdk": "^8.0.2",

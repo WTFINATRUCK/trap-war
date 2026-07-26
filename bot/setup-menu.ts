@@ -30,7 +30,10 @@ async function main() {
     { command: "invite", description: "Your invite link" },
       { command: "crew", description: "Crew stats + invite" },
       { command: "stats", description: "Total users & online now" },
-      { command: "channel", description: "Official channel" },
+      { command: "channel", description: "Official channel (news)" },
+      { command: "community", description: "Player community chat" },
+      { command: "chat", description: "Player community chat" },
+      { command: "adminbots", description: "Admin bot stack (2–3 bots)" },
       { command: "vault", description: "Protected vault" },
       { command: "help", description: "Commands menu" },
     ]);

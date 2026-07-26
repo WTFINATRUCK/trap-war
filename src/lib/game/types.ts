@@ -7,6 +7,9 @@ export interface PlantedStash {
   shieldDaysLeft: number;
 }
 
+/** Per-city product piles — multiple assets allowed on the same block */
+export type CityStashMap = Record<string, PlantedStash>;
+
 export interface PriceHaircut {
   percent: number;
   daysLeft: number;
@@ -30,7 +33,8 @@ export interface GameState {
   cash: number;
   protectedReserves: number;
   inventory: Record<string, number>;
-  plantedStashes: Partial<Record<CityId, PlantedStash>>;
+  /** city → product name → stash pile (multi-product per city) */
+  plantedStashes: Partial<Record<CityId, CityStashMap>>;
   coatSpace: number;
   prices: Record<string, number>;
   priceHaircuts: Record<string, PriceHaircut>;

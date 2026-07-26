@@ -3,7 +3,8 @@
 You need three pieces:
 
 1. **Bot** (entry point + Mini App button)  
-2. **Channel** (community / Word on the Street)  
+2. **Channel** (announcements / Word on the Street) + **Community group** (player chat) — see `COMMUNITY_SETUP.md`  
+
 3. **Hosted Mini App** (HTTPS URL of this game)
 
 Telegram cannot open `http://localhost` as a Mini App for real users. Deploy first (or use a tunnel for testing).

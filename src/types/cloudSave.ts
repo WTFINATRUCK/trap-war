@@ -12,6 +12,10 @@ export interface CloudSave {
   /** Telegram IDs (string) of invited users */
   invitedIds?: string[];
   game: GameState | null;
+  /** Full 30-day runs finished (not early end) */
+  runsCompleted?: number;
+  /** Best final score across full or early ends */
+  bestRunScore?: number;
   referralPending: {
     queuedDrip: number;
   };

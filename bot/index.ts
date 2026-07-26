@@ -29,24 +29,22 @@ import {
   getUserStats,
   touchUser,
 } from "./users";
+import { pushActivity } from "./activity";
+import {
+  adminBotsStatusHtml,
+  configuredAdminBots,
+  isHumanAdmin,
+  isLiveTelegramUrl,
+} from "./adminBots";
 import type { Context } from "telegraf";
 
 const token = process.env.BOT_TOKEN?.trim();
 const webAppUrl = (process.env.WEBAPP_URL || "").replace(/\/$/, "");
 const channelUrl = (process.env.CHANNEL_URL || "").replace(/\/$/, "");
 const channelId = process.env.CHANNEL_ID?.trim();
+const communityUrl = (process.env.COMMUNITY_URL || "").replace(/\/$/, "");
 const requireChannel = process.env.REQUIRE_CHANNEL === "true";
 const botUsername = (process.env.BOT_USERNAME || "TrapWarAppBot").replace(/^@/, "");
-/** Comma-separated Telegram user IDs who can see full /stats admin list */
-const adminIds = new Set(
-  (process.env.ADMIN_IDS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => parseInt(s, 10))
-    .filter((n) => Number.isFinite(n) && n > 0)
-);
-
 if (!token) {
   console.error("Missing BOT_TOKEN. Copy .env.example → .env");
   process.exit(1);
@@ -59,15 +57,35 @@ if (!webAppUrl || !webAppUrl.startsWith("https://")) {
 const bot = new Telegraf(token);
 
 // Track every interaction → total users + online (last 5 min)
+// New / returning players land on the street activity wire
 bot.use(async (ctx, next) => {
   try {
     const from = ctx.from;
     if (from?.id) {
-      touchUser({
+      const hit = touchUser({
         id: from.id,
         username: from.username,
         firstName: from.first_name,
       });
+      if (hit) {
+        const label =
+          (hit.user.firstName && hit.user.firstName.slice(0, 16)) ||
+          (hit.user.username && `@${hit.user.username.slice(0, 14)}`) ||
+          `Player ${String(from.id).slice(-4)}`;
+        if (hit.isNew) {
+          pushActivity({
+            kind: "new_player",
+            text: `${label} just linked up · new blood on the block`,
+            playerId: String(from.id),
+          });
+        } else if (hit.isReturning) {
+          pushActivity({
+            kind: "return",
+            text: `${label} back on the set · returning player`,
+            playerId: String(from.id),
+          });
+        }
+      }
     }
   } catch {
     /* never block handlers */
@@ -76,10 +94,7 @@ bot.use(async (ctx, next) => {
 });
 
 function isAdmin(userId?: number): boolean {
-  if (!userId) return false;
-  // If no ADMIN_IDS configured, allow /stats counts for everyone (early launch)
-  if (adminIds.size === 0) return true;
-  return adminIds.has(userId);
+  return isHumanAdmin(userId);
 }
 
 /** HTML first; plain text fallback if Telegram rejects formatting */
@@ -141,9 +156,16 @@ function mainKeyboard(startPayload?: string, userId?: number) {
     rows.push([Markup.button.webApp("▶️ Play Trap War", playUrl(startPayload))]);
   }
 
-  if (channelUrl && !channelUrl.includes("your_") && !channelUrl.includes("YourChannel")) {
-    rows.push([Markup.button.url("📢 Join the Channel", channelUrl)]);
+  const hubRow: (
+    | ReturnType<typeof Markup.button.url>
+  )[] = [];
+  if (isLiveTelegramUrl(communityUrl)) {
+    hubRow.push(Markup.button.url("💬 Community Chat", communityUrl));
   }
+  if (isLiveTelegramUrl(channelUrl)) {
+    hubRow.push(Markup.button.url("📢 Channel", channelUrl));
+  }
+  if (hubRow.length) rows.push(hubRow);
 
   rows.push([
     Markup.button.callback("📖 How to Play", "guide_info"),
@@ -316,7 +338,10 @@ bot.command("invite", async (ctx) => {
       ...(webAppUrl.startsWith("https://")
         ? [[Markup.button.webApp("▶️ Play Trap War", playUrl())]]
         : []),
-      ...(channelUrl && !channelUrl.includes("your_")
+      ...(isLiveTelegramUrl(communityUrl)
+        ? [[Markup.button.url("💬 Community", communityUrl)]]
+        : []),
+      ...(isLiveTelegramUrl(channelUrl)
         ? [[Markup.button.url("📢 Channel", channelUrl)]]
         : []),
     ])
@@ -324,20 +349,86 @@ bot.command("invite", async (ctx) => {
 });
 
 bot.command("channel", async (ctx) => {
-  if (!channelUrl || channelUrl.includes("your_") || channelUrl.includes("YourChannel")) {
+  if (!isLiveTelegramUrl(channelUrl)) {
     await safeReply(
       ctx,
       "📢 <b>Channel coming soon</b>\n\n" +
         "Official Word on the Street channel for drops, NFT rush, and crew calls.\n\n" +
-        "Follow /soon for the roadmap.",
+        "Owner: create the channel in Telegram, set CHANNEL_URL, restart the bot.\n" +
+        "See COMMUNITY_SETUP.md\n\n" +
+        "Player chat → /community",
       soonKeyboard()
     );
     return;
   }
+  const rows: ReturnType<typeof Markup.button.url>[][] = [
+    [Markup.button.url("Join Channel", channelUrl)],
+  ];
+  if (isLiveTelegramUrl(communityUrl)) {
+    rows.push([Markup.button.url("💬 Community Chat", communityUrl)]);
+  }
   await safeReply(
     ctx,
-    "📢 <b>Trap War Channel</b>\n\nUpdates, Word on the Street, NFT drops.\nJoin for news + crew calls.",
-    Markup.inlineKeyboard([[Markup.button.url("Join Channel", channelUrl)]])
+    "📢 <b>Trap War Channel</b>\n\n" +
+      "Announcements · Word on the Street · drops.\n" +
+      "Want to talk with players? → /community",
+    Markup.inlineKeyboard(rows)
+  );
+});
+
+async function replyCommunity(ctx: Context) {
+  if (!isLiveTelegramUrl(communityUrl)) {
+    await safeReply(
+      ctx,
+      "💬 <b>Community chat — almost live</b>\n\n" +
+        "This is where hustlers talk, flex ranks, and share tips.\n\n" +
+        "<b>Owner setup (2 min)</b>\n" +
+        "1. Telegram → New Group → name it <b>Trap War Community</b>\n" +
+        "2. Make it <b>Public</b> (or create invite link)\n" +
+        "3. Add <b>@" +
+        botUsername +
+        "</b> as admin\n" +
+        "4. Optional: Channel → Discussion → link this group\n" +
+        "5. Run <code>.\\scripts\\set-community.ps1 -CommunityUrl \"https://t.me/...\"</code>\n" +
+        "6. Restart bot\n\n" +
+        "Full guide: COMMUNITY_SETUP.md in the repo.\n" +
+        "Announcements channel → /channel",
+      isLiveTelegramUrl(channelUrl)
+        ? Markup.inlineKeyboard([[Markup.button.url("📢 Channel", channelUrl)]])
+        : undefined
+    );
+    return;
+  }
+  const rows: ReturnType<typeof Markup.button.url>[][] = [
+    [Markup.button.url("💬 Join Community Chat", communityUrl)],
+  ];
+  if (isLiveTelegramUrl(channelUrl)) {
+    rows.push([Markup.button.url("📢 Channel (news)", channelUrl)]);
+  }
+  if (webAppUrl.startsWith("https://")) {
+    rows.push([Markup.button.webApp("▶️ Play Trap War", playUrl())]);
+  }
+  await safeReply(
+    ctx,
+    "💬 <b>Trap War Community</b>\n\n" +
+      "Player chat — tips, flexes, crew talk.\n" +
+      "Keep it street-fiction. No scams.\n\n" +
+      "News & drops live on the channel → /channel",
+    Markup.inlineKeyboard(rows)
+  );
+}
+
+bot.command("community", replyCommunity);
+bot.command("chat", replyCommunity);
+
+bot.command("adminbots", async (ctx) => {
+  const n = configuredAdminBots().length;
+  await safeReply(
+    ctx,
+    adminBotsStatusHtml() +
+      (n < 2
+        ? "\n\n💡 Run <code>npm run bot:all</code> after adding COMMUNITY_BOT_TOKEN + GUARD_BOT_TOKEN."
+        : `\n\n✅ ${n} bots ready — use <code>npm run bot:all</code> to keep them online.`)
   );
 });
 
@@ -480,7 +571,10 @@ async function boot() {
   const me = await bot.telegram.getMe();
   console.log(`Trap War bot online as @${me.username}`);
   console.log(`  WEBAPP_URL:  ${webAppUrl || "(not set)"}`);
-  console.log(`  CHANNEL_URL: ${channelUrl || "(not set)"}`);
+  console.log(`  CHANNEL_URL: ${channelUrl || "(not set)"}${isLiveTelegramUrl(channelUrl) ? "" : " ⚠ set real link"}`);
+  console.log(
+    `  COMMUNITY_URL: ${communityUrl || "(not set)"}${isLiveTelegramUrl(communityUrl) ? "" : " ⚠ create group + set-community.ps1"}`
+  );
   console.log(`  Open: https://t.me/${me.username}`);
 
   try {
@@ -514,7 +608,10 @@ async function boot() {
       { command: "invite", description: "Your invite link" },
       { command: "crew", description: "Crew stats + invite" },
       { command: "stats", description: "Total users & online now" },
-      { command: "channel", description: "Official channel" },
+      { command: "channel", description: "Official channel (news)" },
+      { command: "community", description: "Player community chat" },
+      { command: "chat", description: "Player community chat" },
+      { command: "adminbots", description: "Admin bot stack (2–3 bots)" },
       { command: "vault", description: "Protected vault" },
       { command: "help", description: "Commands menu" },
     ]);

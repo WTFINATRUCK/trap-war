@@ -10,6 +10,7 @@ import http from "http";
 import { validateWebAppInitData, rateLimit, redactSecrets } from "./security";
 import { crewStats, getInviteCountForUser } from "./referrals";
 import { getUserStats, touchUser } from "./users";
+import { listActivity, pushActivity, type ActivityKind } from "./activity";
 
 export function startSecureApi(botToken: string, port: number): http.Server {
   const corsOrigins = (process.env.API_CORS_ORIGIN || "*")
@@ -124,6 +125,55 @@ export function startSecureApi(botToken: string, port: number): http.Server {
           inviteCount: getInviteCountForUser(validated.userId),
           referralCode: crewStats(validated.userId).code,
         });
+        return;
+      }
+
+      // Public street wire (no PII beyond street-style text players post)
+      if (req.method === "GET" && url.pathname === "/api/activity") {
+        if (!rateLimit(`api-activity-r:${req.socket.remoteAddress || "x"}`, 90, 60_000)) {
+          json(res, 429, { ok: false, error: "rate_limited" });
+          return;
+        }
+        const limit = parseInt(url.searchParams.get("limit") || "30", 10);
+        json(res, 200, { ok: true, items: listActivity(Number.isFinite(limit) ? limit : 30) });
+        return;
+      }
+
+      // POST /api/activity  { kind, text, playerId? } — rate limited, sanitised
+      if (req.method === "POST" && url.pathname === "/api/activity") {
+        if (!rateLimit(`api-activity-w:${req.socket.remoteAddress || "x"}`, 40, 60_000)) {
+          json(res, 429, { ok: false, error: "rate_limited" });
+          return;
+        }
+        const body = await readJson(req);
+        const kind = typeof body.kind === "string" ? body.kind : "";
+        const text = typeof body.text === "string" ? body.text.trim() : "";
+        const playerId = typeof body.playerId === "string" ? body.playerId.slice(0, 32) : undefined;
+        const allowed: ActivityKind[] = [
+          "buy",
+          "sell",
+          "travel",
+          "raid",
+          "rob",
+          "plant",
+          "stash",
+          "new_player",
+          "return",
+          "rank",
+          "vault",
+          "heat",
+          "day",
+        ];
+        if (!allowed.includes(kind as ActivityKind) || text.length < 4 || text.length > 200) {
+          json(res, 400, { ok: false, error: "invalid_activity" });
+          return;
+        }
+        const item = pushActivity({
+          kind: kind as ActivityKind,
+          text: text.replace(/[<>]/g, ""),
+          playerId,
+        });
+        json(res, 200, { ok: true, item });
         return;
       }
 

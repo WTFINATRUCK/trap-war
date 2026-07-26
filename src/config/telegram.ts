@@ -8,6 +8,33 @@ export const BOT_USERNAME = (import.meta.env.VITE_BOT_USERNAME as string | undef
 export const CHANNEL_URL =
   (import.meta.env.VITE_CHANNEL_URL as string | undefined) || "https://t.me/TrapWarOfficial";
 
+/**
+ * Player chat / community group (not the announcement channel).
+ * Set VITE_COMMUNITY_URL after you create the Telegram group.
+ */
+export const COMMUNITY_URL = (
+  (import.meta.env.VITE_COMMUNITY_URL as string | undefined) || ""
+).replace(/\/$/, "");
+
+/** True when a real public/invite link is configured (not a placeholder). */
+export function isLiveTelegramUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  const u = url.toLowerCase();
+  if (!u.startsWith("https://t.me/") && !u.startsWith("http://t.me/")) return false;
+  return (
+    !u.includes("your_") &&
+    !u.includes("yourchannel") &&
+    !u.includes("yourcommunity") &&
+    !u.includes("example") &&
+    !u.includes("placeholder")
+  );
+}
+
+/** Bot secure API (local: http://127.0.0.1:8787). Empty on static hosts without a public API. */
+export const API_BASE =
+  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
+  (import.meta.env.DEV ? "http://127.0.0.1:8787" : "");
+
 export const BOT_LINK = `https://t.me/${BOT_USERNAME}`;
 
 export function botStartLink(payload?: string): string {

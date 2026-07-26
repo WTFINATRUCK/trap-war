@@ -53,12 +53,20 @@ function saveUsers(store: UserStore): void {
   fs.renameSync(tmp, FILE);
 }
 
+export interface TouchResult {
+  user: UserRecord;
+  /** First time we ever saw this Telegram id */
+  isNew: boolean;
+  /** Was idle 24h+ before this hit (returning player) */
+  isReturning: boolean;
+}
+
 /** Record activity for a Telegram user (call on every update). */
 export function touchUser(input: {
   id: number;
   username?: string;
   firstName?: string;
-}): UserRecord | null {
+}): TouchResult | null {
   if (!isValidTelegramId(input.id)) return null;
 
   const store = loadUsers();
@@ -67,24 +75,28 @@ export function touchUser(input: {
   const existing = store.users[key];
 
   if (existing) {
+    const idle = now - existing.lastSeen;
+    const isReturning = idle >= ACTIVE_24H_MS;
     existing.lastSeen = now;
     existing.hits = (existing.hits || 0) + 1;
     if (input.username) existing.username = sanitizeName(input.username);
     if (input.firstName) existing.firstName = sanitizeName(input.firstName);
     store.users[key] = existing;
-  } else {
-    store.users[key] = {
-      id: key,
-      username: sanitizeName(input.username),
-      firstName: sanitizeName(input.firstName),
-      firstSeen: now,
-      lastSeen: now,
-      hits: 1,
-    };
+    saveUsers(store);
+    return { user: existing, isNew: false, isReturning };
   }
 
+  const user: UserRecord = {
+    id: key,
+    username: sanitizeName(input.username),
+    firstName: sanitizeName(input.firstName),
+    firstSeen: now,
+    lastSeen: now,
+    hits: 1,
+  };
+  store.users[key] = user;
   saveUsers(store);
-  return store.users[key];
+  return { user, isNew: true, isReturning: false };
 }
 
 export interface UserStats {

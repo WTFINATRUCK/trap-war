@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { CloudSave } from "@/types/cloudSave";
 import type { GameState } from "@/lib/game/types";
+import { MAX_DAYS } from "@/lib/game/constants";
 import {
   applyInviteCountToCloudSave,
   generateReferralCode,
@@ -118,6 +119,8 @@ export function createEmptySave(user: TelegramUser): CloudSave {
     inviteCount: ref.inviteCount,
     invitedIds: ref.referrals,
     game: null,
+    runsCompleted: 0,
+    bestRunScore: 0,
     referralPending: { queuedDrip: 0 },
     updatedAt: Date.now(),
   };
@@ -181,7 +184,21 @@ export function useCloudSave(user: TelegramUser | null) {
     async (game: GameState) => {
       if (!user) return;
       const base = save ?? createEmptySave(user);
-      await persist({ ...base, game });
+      let runsCompleted = base.runsCompleted ?? 0;
+      let bestRunScore = base.bestRunScore ?? 0;
+      const prev = base.game;
+
+      // Count a full 30-day finish once when run flips to gameOver
+      if (game.gameOver && !prev?.gameOver) {
+        if (game.day >= MAX_DAYS) {
+          runsCompleted += 1;
+        }
+        if (game.finalScore > bestRunScore) {
+          bestRunScore = game.finalScore;
+        }
+      }
+
+      await persist({ ...base, game, runsCompleted, bestRunScore });
     },
     [save, persist, user]
   );
@@ -193,6 +210,9 @@ export function useCloudSave(user: TelegramUser | null) {
     next.referredBy = save?.referredBy;
     next.inviteCount = save?.inviteCount ?? 0;
     next.invitedIds = save?.invitedIds ?? [];
+    // Keep career stats across wipe
+    next.runsCompleted = save?.runsCompleted ?? 0;
+    next.bestRunScore = save?.bestRunScore ?? 0;
     await persist(next);
   }, [user, save, persist]);
 

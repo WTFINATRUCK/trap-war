@@ -5,6 +5,8 @@ interface VaultPanelProps {
   game: GameState | null;
   lastScore: number;
   walletConnected: boolean;
+  runsCompleted?: number;
+  bestRunScore?: number;
 }
 
 /** Yield meter progress from rank + vault size (0–100) for NFT showcase */
@@ -17,7 +19,13 @@ function yieldProgress(game: GameState | null): number {
   return Math.min(100, Math.round(8 + rankPct + vaultPct + dayPct));
 }
 
-export default function VaultPanel({ game, lastScore, walletConnected }: VaultPanelProps) {
+export default function VaultPanel({
+  game,
+  lastScore,
+  walletConnected,
+  runsCompleted = 0,
+  bestRunScore = 0,
+}: VaultPanelProps) {
   const protectedReserves = game?.protectedReserves ?? 0;
   const payToEarn = game?.payToEarnBoost ?? false;
   const progress = yieldProgress(game);
@@ -25,7 +33,20 @@ export default function VaultPanel({ game, lastScore, walletConnected }: VaultPa
 
   return (
     <>
-      {/* Protected Vault */}
+      <h2>Career</h2>
+      <div className="stat-card" style={{ marginBottom: "0.65rem" }}>
+        <div className="label">30-day runs completed</div>
+        <div className="value green">{runsCompleted}</div>
+      </div>
+      {bestRunScore > 0 && (
+        <div className="stat-card" style={{ marginBottom: "1.25rem" }}>
+          <div className="label">Best run value</div>
+          <div className="value">${bestRunScore.toLocaleString()}</div>
+        </div>
+      )}
+
+      {/* Protected Vault — in-game sim only (not real funds) */}
+      <div className="preview-badge">IN-GAME ONLY · NOT REAL MONEY</div>
       <h2>Protected Vault</h2>
       <div className="vault-hero">
         <div className="vault-particles" aria-hidden>
@@ -39,8 +60,11 @@ export default function VaultPanel({ game, lastScore, walletConnected }: VaultPa
           🛡️
         </div>
         <div className="vault-amount">${protectedReserves.toLocaleString()}</div>
-        <div className="vault-label">Locked Reserves</div>
-        <p className="vault-copy">8% of every win auto-locks here. Untouchable gas stash.</p>
+        <div className="vault-label">Sim Locked Reserves</div>
+        <p className="vault-copy">
+          8% of every in-game win auto-locks here for the run. Numbers are for play — no real crypto
+          is deposited or withdrawable yet.
+        </p>
       </div>
 
       {lastScore > 0 && (
@@ -50,7 +74,8 @@ export default function VaultPanel({ game, lastScore, walletConnected }: VaultPa
         </div>
       )}
 
-      {/* Dynamic Founder NFT */}
+      {/* Dynamic Founder NFT — preview only */}
+      <div className="preview-badge">PREVIEW · NOT MINTABLE YET</div>
       <h2>Founder NFT</h2>
       <div className="nft-showcase">
         <div className="nft-frame">
@@ -101,41 +126,43 @@ export default function VaultPanel({ game, lastScore, walletConnected }: VaultPa
         </div>
       </div>
       <p className="boost-idle" style={{ marginBottom: "1.5rem" }}>
-        Claim your 1-of-1 PFP after day 1 — gas sponsored. Chain thickens as you rank up.
+        Concept art for a future 1-of-1 PFP. No mint, no ownership, no gas — beta showcase only. Later
+        it will evolve with rank.
       </p>
 
-      {/* Pay-to-Earn */}
+      {/* Pay-to-Earn — sim only */}
+      <div className="preview-badge">SIM ONLY · NO DEPOSITS</div>
       <h2>Pay-to-Earn</h2>
       {payToEarn ? (
         <div className="boost-banner">
           <span className="boost-icon">⚡</span>
-          SIM BOOST ACTIVE — 1.5× yield
+          SIM BOOST ACTIVE — 1.5× in-game yield (not real money)
         </div>
       ) : (
         <p className="boost-idle">
-          Deposit $10+ in TON or USDT Jetton for 1.5× yield + extended raid shield. Week 2 goes live
-          on-chain.
+          Real deposits (TON / USDT) are not live. Do not send crypto to anyone. When week 2 ships, a
+          wallet connect will appear here after contracts are audited.
         </p>
       )}
-      <button type="button" className="action-button ton" disabled>
-        {walletConnected ? "TON Connect — week 2" : "Connect TON Wallet"}
+      <button type="button" className="action-button ton" disabled title="Not available in beta">
+        {walletConnected ? "TON Connect — not live" : "Wallet connect — not live"}
       </button>
+      <p className="boost-idle" style={{ marginTop: "0.5rem", fontSize: "0.7rem" }}>
+        Never share seed phrases. Official play: Telegram bot only.
+      </p>
 
-      <h2 style={{ marginTop: "1.5rem" }}>Coming Soon</h2>
+      <h2 style={{ marginTop: "1.5rem" }}>Coming Soon (not live)</h2>
       <div className="client-row">
-        <strong>Week 2</strong> — TON Connect · real Pay-to-Earn · on-chain crew payouts
+        <strong>Later</strong> — TON Connect · real Pay-to-Earn · audited contracts
       </div>
       <div className="client-row">
-        <strong>Founder NFT</strong> — sponsored mint · evolves with rank & vault
+        <strong>Later</strong> — Founder NFT mint · evolves with rank & vault
       </div>
       <div className="client-row">
-        <strong>Channel</strong> — Word on the Street drops · NFT rush
-      </div>
-      <div className="client-row">
-        <strong>Later</strong> — Base / Aerodrome LP · leaderboards · crew wars
+        <strong>Later</strong> — Word on the Street drops · leaderboards · crew wars
       </div>
       <p className="boost-idle" style={{ marginTop: "0.75rem" }}>
-        In Telegram bot: /guide (how to play) · /soon (roadmap)
+        Bot: /guide (how to play) · /soon (roadmap) · beta = free game only
       </p>
     </>
   );
