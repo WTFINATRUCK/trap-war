@@ -4,6 +4,7 @@ import { useCloudSave } from "@/hooks/useCloudSave";
 import TrapWarGame from "@/components/TrapWarGame";
 import CrewPanel from "@/components/CrewPanel";
 import VaultPanel from "@/components/VaultPanel";
+import LandingPage from "@/components/LandingPage";
 import { BOT_LINK, CHANNEL_URL, COMMUNITY_URL, isLiveTelegramUrl } from "@/config/telegram";
 
 type Tab = "game" | "crew" | "vault";
@@ -19,40 +20,9 @@ export default function App() {
     return <div className="loading-screen">LOADING TRAP WAR…</div>;
   }
 
+  /* Browser visitors → public landing (never show local/dev copy) */
   if (!user) {
-    return (
-      <div className="start-screen">
-        <div className="start-content">
-          <h1>TRAP WAR</h1>
-          <p>Open from Telegram via the bot, or use local dev with <code>?tg=12345</code>.</p>
-          <div className="start-buttons">
-            <a className="action-button" href={BOT_LINK} style={{ textDecoration: "none", display: "block" }}>
-              Open Telegram Bot
-            </a>
-            {isLiveTelegramUrl(COMMUNITY_URL) && (
-              <a
-                className="action-button"
-                href={COMMUNITY_URL}
-                target="_blank"
-                rel="noreferrer"
-                style={{ textDecoration: "none", display: "block" }}
-              >
-                💬 Join Community Chat
-              </a>
-            )}
-            <a
-              className="action-button ghost"
-              href={CHANNEL_URL}
-              target="_blank"
-              rel="noreferrer"
-              style={{ textDecoration: "none", display: "block" }}
-            >
-              📢 Join Channel
-            </a>
-          </div>
-        </div>
-      </div>
-    );
+    return <LandingPage />;
   }
 
   if (loading) {
@@ -99,7 +69,7 @@ export default function App() {
           </header>
           <div className="user-tag">
             {user.firstName || user.username || `ID ${user.id}`}
-            {user.isTelegram ? " · Telegram" : " · Dev"}
+            {user.isTelegram ? " · Telegram" : ""}
             {" · "}
             <a href={BOT_LINK} style={{ color: "var(--purple)", textDecoration: "none" }}>
               Bot

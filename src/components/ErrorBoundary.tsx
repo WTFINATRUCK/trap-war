@@ -66,7 +66,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               } catch {
                 /* ignore */
               }
-              window.location.href = "/?tg=12345";
+              window.location.href = "/";
             }}
           >
             Clear save & reload
