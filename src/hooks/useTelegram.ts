@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
-import { parseStartParam, registerReferral } from "@/lib/referral";
+import { parseStartParam, readInvitePayloadFromWindow, registerReferral } from "@/lib/referral";
 
 export interface TelegramUser {
   id: number;
@@ -19,7 +19,6 @@ function devUserFromQuery(): TelegramUser | null {
       return { id, username: "dev_player", firstName: "Dev", isTelegram: false };
     }
   }
-  // Localhost always gets a dev player so the app never sits empty
   const host = window.location.hostname;
   if (host === "localhost" || host === "127.0.0.1") {
     return { id: 12345, username: "dev_player", firstName: "Dev", isTelegram: false };
@@ -65,7 +64,9 @@ export function useTelegram() {
 
     if (tgUser) {
       try {
-        const refCode = parseStartParam(WebApp.initDataUnsafe?.start_param);
+        const fromSdk = parseStartParam(WebApp.initDataUnsafe?.start_param);
+        const fromUrl = readInvitePayloadFromWindow();
+        const refCode = fromSdk || fromUrl;
         if (refCode) registerReferral(tgUser.id, refCode);
       } catch {
         // optional

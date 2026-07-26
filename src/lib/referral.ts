@@ -1,4 +1,5 @@
 import type { CloudSave } from "@/types/cloudSave";
+import { BOT_USERNAME, crewInviteLink } from "@/config/telegram";
 
 const SAVE_PREFIX = "trapwar_ref_";
 
@@ -36,16 +37,29 @@ export function saveReferralData(telegramId: number, data: ReferralData): void {
 }
 
 export function registerReferral(newUserId: number, referrerCode: string): boolean {
+  const code = referrerCode.toUpperCase().replace(/^REF_/, "");
   const allKeys = Object.keys(localStorage).filter((k) => k.startsWith(SAVE_PREFIX));
   let referrerId: number | null = null;
 
   for (const key of allKeys) {
     const id = parseInt(key.replace(SAVE_PREFIX, ""), 10);
     const data = getReferralData(id);
-    if (data.referralCode === referrerCode.toUpperCase()) {
+    if (data.referralCode === code) {
       referrerId = id;
       break;
     }
+  }
+
+  // Fallback: code encodes telegram id as TRAP-XXXXYYYY from padded id
+  if (!referrerId && code.startsWith("TRAP-") && code.length >= 9) {
+    // Best-effort: still record referredBy as the code string
+    const newUserData = getReferralData(newUserId);
+    if (!newUserData.referredBy) {
+      newUserData.referredBy = code;
+      saveReferralData(newUserId, newUserData);
+      return true;
+    }
+    return false;
   }
 
   if (!referrerId || referrerId === newUserId) return false;
@@ -65,21 +79,44 @@ export function registerReferral(newUserId: number, referrerCode: string): boole
   return true;
 }
 
-export function parseStartParam(startParam?: string): string | null {
+/** Parse start_param / startapp / query payloads */
+export function parseStartParam(startParam?: string | null): string | null {
   if (!startParam) return null;
-  if (startParam.startsWith("ref_")) return startParam.replace("ref_", "").toUpperCase();
-  if (startParam.startsWith("TRAP-")) return startParam.toUpperCase();
+  const raw = decodeURIComponent(String(startParam)).trim();
+  if (raw.startsWith("ref_")) return raw.replace(/^ref_/i, "").toUpperCase();
+  if (raw.toUpperCase().startsWith("TRAP-")) return raw.toUpperCase();
   return null;
 }
 
-export function getReferralLink(
-  referralCode: string,
-  botUsername = (typeof import.meta !== "undefined" &&
-    (import.meta as { env?: { VITE_BOT_USERNAME?: string } }).env?.VITE_BOT_USERNAME) ||
-    "TrapWarBot"
-): string {
-  const user = String(botUsername).replace(/^@/, "");
-  return `https://t.me/${user}?start=ref_${referralCode}`;
+/** Collect invite payload from Telegram Mini App + URL query */
+export function readInvitePayloadFromWindow(): string | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    // @twa-dev/sdk sets this when opened with startapp / start param
+    const w = window as unknown as {
+      Telegram?: { WebApp?: { initDataUnsafe?: { start_param?: string } } };
+    };
+    const fromTg = parseStartParam(w.Telegram?.WebApp?.initDataUnsafe?.start_param);
+    if (fromTg) return fromTg;
+  } catch {
+    /* ignore */
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  for (const key of ["tgWebAppStartParam", "startapp", "startApp", "ref", "start"]) {
+    const v = parseStartParam(params.get(key));
+    if (v) return v;
+  }
+
+  // Hash style: #tgWebAppData=... rarely has start_param; skip
+  return null;
+}
+
+export function getReferralLink(referralCode: string, botUsername = BOT_USERNAME): string {
+  // Prefer shared helper so bot username stays consistent
+  void botUsername;
+  return crewInviteLink(referralCode);
 }
 
 export function getReferralStats(telegramId: number, cloudSave?: CloudSave | null) {
@@ -102,5 +139,6 @@ export function getReferralStats(telegramId: number, cloudSave?: CloudSave | nul
     pendingDrip: data.pendingDrip + (cloudSave?.referralPending?.queuedDrip ?? 0),
     referralCode: data.referralCode,
     referredBy: data.referredBy,
+    inviteLink: crewInviteLink(data.referralCode),
   };
 }

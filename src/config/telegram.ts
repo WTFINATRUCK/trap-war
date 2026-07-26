@@ -14,3 +14,17 @@ export function botStartLink(payload?: string): string {
   if (!payload) return BOT_LINK;
   return `https://t.me/${BOT_USERNAME}?start=${encodeURIComponent(payload)}`;
 }
+
+/** Personal crew invite — opens bot with referral payload */
+export function crewInviteLink(referralCode: string): string {
+  const code = referralCode.replace(/^ref_/i, "").toUpperCase();
+  return `https://t.me/${BOT_USERNAME}?start=ref_${code}`;
+}
+
+/** Telegram native share sheet */
+export function telegramShareLink(inviteUrl: string, text?: string): string {
+  const msg =
+    text ||
+    "Join me on TRAP WAR — 30-day street hustle. Everybody Eats 🤝";
+  return `https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent(msg)}`;
+}

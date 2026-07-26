@@ -1,5 +1,6 @@
-import { getReferralLink, getReferralStats } from "@/lib/referral";
-import { BOT_USERNAME, CHANNEL_URL } from "@/config/telegram";
+import { useState } from "react";
+import { getReferralStats } from "@/lib/referral";
+import { BOT_USERNAME, CHANNEL_URL, telegramShareLink } from "@/config/telegram";
 import type { CloudSave } from "@/types/cloudSave";
 
 interface CrewPanelProps {
@@ -9,22 +10,41 @@ interface CrewPanelProps {
 
 export default function CrewPanel({ telegramId, cloudSave }: CrewPanelProps) {
   const stats = getReferralStats(telegramId, cloudSave);
-  const link = getReferralLink(stats.referralCode, BOT_USERNAME);
+  const link = stats.inviteLink;
+  const shareHref = telegramShareLink(link);
+  const [copied, setCopied] = useState(false);
 
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(link);
-      alert("Crew link copied!");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
-      prompt("Copy your crew link:", link);
+      prompt("Copy your invite link:", link);
     }
+  };
+
+  const shareNative = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Trap War",
+          text: "Join my crew on TRAP WAR — Everybody Eats 🤝",
+          url: link,
+        });
+        return;
+      } catch {
+        /* fall through */
+      }
+    }
+    window.open(shareHref, "_blank", "noopener,noreferrer");
   };
 
   return (
     <>
       <h2>Everybody Eats</h2>
       <p className="boost-idle">
-        0.3% daily drip on crew yield + 5% bonus at day 30. Payouts queue until week 2.
+        Share your invite. You earn 0.3% daily on crew yield + 5% when they finish day 30.
       </p>
 
       <div className="stat-grid">
@@ -46,13 +66,43 @@ export default function CrewPanel({ telegramId, cloudSave }: CrewPanelProps) {
         </div>
       </div>
 
-      <p className="stat-label" style={{ marginTop: "0.5rem" }}>
-        Your crew link
+      <p className="stat-label" style={{ marginTop: "0.75rem" }}>
+        Your invite link
       </p>
       <div className="ref-link-box">{link}</div>
+      <p className="boost-idle" style={{ marginBottom: "0.5rem" }}>
+        Code: <strong style={{ color: "var(--purple)" }}>{stats.referralCode}</strong>
+      </p>
+
       <button type="button" className="action-button" onClick={copyLink} style={{ width: "100%" }}>
-        Copy Link
+        {copied ? "✓ Copied" : "Copy Invite Link"}
       </button>
+
+      <button
+        type="button"
+        className="action-button"
+        onClick={shareNative}
+        style={{ width: "100%", marginTop: "0.5rem", background: "linear-gradient(180deg,#34d399,#059669)" }}
+      >
+        📤 Share Invite
+      </button>
+
+      <a
+        className="action-button ghost"
+        href={shareHref}
+        target="_blank"
+        rel="noreferrer"
+        style={{
+          width: "100%",
+          marginTop: "0.5rem",
+          display: "block",
+          textAlign: "center",
+          textDecoration: "none",
+          boxSizing: "border-box",
+        }}
+      >
+        Share via Telegram
+      </a>
 
       <a
         className="action-button ghost"
@@ -61,7 +111,7 @@ export default function CrewPanel({ telegramId, cloudSave }: CrewPanelProps) {
         rel="noreferrer"
         style={{
           width: "100%",
-          marginTop: "0.65rem",
+          marginTop: "0.5rem",
           display: "block",
           textAlign: "center",
           textDecoration: "none",
@@ -71,9 +121,14 @@ export default function CrewPanel({ telegramId, cloudSave }: CrewPanelProps) {
         📢 Join Trap War Channel
       </a>
 
+      <p className="boost-idle" style={{ marginTop: "1rem", fontSize: "0.72rem" }}>
+        Link opens @{BOT_USERNAME} and tags them to your crew.
+        Also works from bot command /invite.
+      </p>
+
       {stats.referredBy && (
-        <p className="boost-idle" style={{ marginTop: "1rem", textAlign: "center" }}>
-          Referred by crew #{stats.referredBy}
+        <p className="boost-idle" style={{ marginTop: "0.5rem", textAlign: "center" }}>
+          You joined via crew {stats.referredBy}
         </p>
       )}
     </>

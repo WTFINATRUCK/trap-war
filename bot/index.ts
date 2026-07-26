@@ -14,13 +14,20 @@
 
 import "dotenv/config";
 import { Telegraf, Markup } from "telegraf";
+import {
+  attributeReferral,
+  codeForUser,
+  crewStats,
+  inviteLink,
+  parseRefPayload,
+} from "./referrals";
 
 const token = process.env.BOT_TOKEN?.trim();
 const webAppUrl = (process.env.WEBAPP_URL || "").replace(/\/$/, "");
 const channelUrl = (process.env.CHANNEL_URL || "").replace(/\/$/, "");
 const channelId = process.env.CHANNEL_ID?.trim(); // e.g. -1001234567890
 const requireChannel = process.env.REQUIRE_CHANNEL === "true";
-const botUsername = (process.env.BOT_USERNAME || "TrapWarBot").replace(/^@/, "");
+const botUsername = (process.env.BOT_USERNAME || "TrapWarAppBot").replace(/^@/, "");
 
 if (!token) {
   console.error("Missing BOT_TOKEN. Copy .env.example → .env and paste token from @BotFather");
@@ -46,21 +53,39 @@ function playUrl(startPayload?: string): string {
   return `${base}${sep}tgWebAppStartParam=${encodeURIComponent(startPayload)}`;
 }
 
-function mainKeyboard(startPayload?: string) {
-  const rows: ReturnType<typeof Markup.button.webApp>[][] = [];
+function shareUrl(invite: string): string {
+  const text = encodeURIComponent(
+    "Join me on TRAP WAR — 30-day street hustle. Everybody Eats 🤝"
+  );
+  return `https://t.me/share/url?url=${encodeURIComponent(invite)}&text=${text}`;
+}
+
+function mainKeyboard(startPayload?: string, userId?: number) {
+  const rows: (
+    | ReturnType<typeof Markup.button.webApp>
+    | ReturnType<typeof Markup.button.url>
+    | ReturnType<typeof Markup.button.callback>
+  )[][] = [];
 
   if (webAppUrl.startsWith("https://")) {
     rows.push([Markup.button.webApp("▶️ Play Trap War", playUrl(startPayload))]);
   }
 
-  if (channelUrl) {
+  if (channelUrl && !channelUrl.includes("your_") && !channelUrl.includes("YourChannel")) {
     rows.push([Markup.button.url("📢 Join the Channel", channelUrl)]);
   }
 
-  rows.push([
-    Markup.button.callback("🤝 Crew / Invite", "crew_info"),
-    Markup.button.callback("❓ Help", "help_info"),
-  ]);
+  if (userId) {
+    const invite = inviteLink(botUsername, userId);
+    rows.push([
+      Markup.button.url("📤 Share invite", shareUrl(invite)),
+      Markup.button.callback("🔗 My invite link", "my_invite"),
+    ]);
+  } else {
+    rows.push([Markup.button.callback("🤝 Crew / Invite", "crew_info")]);
+  }
+
+  rows.push([Markup.button.callback("❓ Help", "help_info")]);
 
   return Markup.inlineKeyboard(rows);
 }
@@ -87,6 +112,23 @@ bot.start(async (ctx) => {
   const payload = ctx.startPayload || undefined;
   const userId = ctx.from?.id;
 
+  // Attribute invite if they came from someone's link
+  if (userId && payload) {
+    const refCode = parseRefPayload(payload);
+    if (refCode) {
+      const ok = attributeReferral(userId, refCode);
+      if (ok) {
+        await ctx.reply(
+          "🤝 *Crew linked!* You're riding with a referrer.\nEverybody Eats when you hustle.",
+          { parse_mode: "Markdown" }
+        );
+      }
+    }
+  }
+
+  // Ensure this user has an invite code
+  if (userId) codeForUser(userId);
+
   if (requireChannel && channelId && userId) {
     const inCh = await isInChannel(userId);
     if (inCh === false) {
@@ -107,8 +149,25 @@ bot.start(async (ctx) => {
 
   await ctx.reply(WELCOME, {
     parse_mode: "Markdown",
-    ...mainKeyboard(payload),
+    ...mainKeyboard(payload, userId),
   });
+
+  // Always show their personal invite under welcome
+  if (userId) {
+    const link = inviteLink(botUsername, userId);
+    await ctx.reply(
+      `🔗 *Your invite link*\n\n\`${link}\`\n\nShare it — you earn when they hustle.`,
+      {
+        parse_mode: "Markdown",
+        ...Markup.inlineKeyboard([
+          [Markup.button.url("📤 Share to Telegram", shareUrl(link))],
+          ...(webAppUrl.startsWith("https://")
+            ? [[Markup.button.webApp("▶️ Play Trap War", playUrl(payload))]]
+            : []),
+        ]),
+      }
+    );
+  }
 });
 
 bot.command("play", async (ctx) => {
@@ -116,33 +175,76 @@ bot.command("play", async (ctx) => {
     await ctx.reply("Mini App URL not configured yet. Set WEBAPP_URL in bot .env (HTTPS).");
     return;
   }
-  await ctx.reply("Open the hustle:", mainKeyboard(ctx.startPayload || undefined));
+  await ctx.reply("Open the hustle:", mainKeyboard(undefined, ctx.from?.id));
+});
+
+bot.command("invite", async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!userId) return;
+  const link = inviteLink(botUsername, userId);
+  const stats = crewStats(userId);
+  await ctx.reply(
+    `🔗 *Your Trap War invite*\n\n` +
+      `\`${link}\`\n\n` +
+      `Code: \`${stats.code}\`\n` +
+      `Crew joined: *${stats.total}*\n\n` +
+      `Anyone who opens this link is linked to you. Everybody Eats.`,
+    {
+      parse_mode: "Markdown",
+      ...Markup.inlineKeyboard([
+        [Markup.button.url("📤 Share invite", shareUrl(link))],
+        ...(webAppUrl.startsWith("https://")
+          ? [[Markup.button.webApp("▶️ Play Trap War", playUrl())]]
+          : []),
+        ...(channelUrl && !channelUrl.includes("your_")
+          ? [[Markup.button.url("📢 Channel", channelUrl)]]
+          : []),
+      ]),
+    }
+  );
 });
 
 bot.command("channel", async (ctx) => {
-  if (!channelUrl) {
-    await ctx.reply("Channel link not set. Add CHANNEL_URL to .env (e.g. https://t.me/TrapWarOfficial).");
+  if (!channelUrl || channelUrl.includes("your_") || channelUrl.includes("YourChannel")) {
+    await ctx.reply(
+      "📢 *Channel not linked yet*\n\n" +
+        "Create it in Telegram (takes 30 seconds):\n" +
+        "1. New Channel → name *Trap War*\n" +
+        "2. Public link → e.g. `TrapWarOfficial`\n" +
+        "3. Add @TrapWarAppBot as *Admin*\n" +
+        "4. Send the link here or put it in `.env` as `CHANNEL_URL`",
+      { parse_mode: "Markdown" }
+    );
     return;
   }
   await ctx.reply(
-    "📢 *Trap War Channel*\n\nUpdates, Word on the Street, NFT drops.",
+    "📢 *Trap War Channel*\n\nUpdates, Word on the Street, NFT drops.\n\nJoin for news + crew calls.",
     {
       parse_mode: "Markdown",
-      ...Markup.inlineKeyboard([[Markup.button.url("Open Channel", channelUrl)]]),
+      ...Markup.inlineKeyboard([[Markup.button.url("Join Channel", channelUrl)]]),
     }
   );
 });
 
 bot.command("crew", async (ctx) => {
   const userId = ctx.from?.id;
+  if (!userId) return;
+  const link = inviteLink(botUsername, userId);
+  const stats = crewStats(userId);
   await ctx.reply(
     "🤝 *Everybody Eats*\n\n" +
-      "1. Open the Mini App → *CREW* tab\n" +
-      "2. Copy your crew link\n" +
-      "3. Share it — you earn on their yield\n\n" +
-      `Link format:\n\`https://t.me/${botUsername}?start=ref_TRAP-XXXX\`\n\n` +
-      (userId ? `Your Telegram ID: \`${userId}\`` : ""),
-    { parse_mode: "Markdown", ...mainKeyboard() }
+      `Your invite:\n\`${link}\`\n\n` +
+      `Code: \`${stats.code}\` · Crew: *${stats.total}*\n\n` +
+      "Share the link. You earn 0.3% daily on crew yield + 5% when they finish a run.",
+    {
+      parse_mode: "Markdown",
+      ...Markup.inlineKeyboard([
+        [Markup.button.url("📤 Share invite", shareUrl(link))],
+        ...(webAppUrl.startsWith("https://")
+          ? [[Markup.button.webApp("▶️ Play Trap War", playUrl())]]
+          : []),
+      ]),
+    }
   );
 });
 
@@ -164,10 +266,30 @@ bot.action("help_info", async (ctx) => {
 
 bot.action("crew_info", async (ctx) => {
   await ctx.answerCbQuery();
+  const userId = ctx.from?.id;
+  if (!userId) return;
+  const link = inviteLink(botUsername, userId);
   await ctx.reply(
-    "🤝 Open *Play Trap War* → CREW tab to copy your invite link.\n" +
-      `Or share: https://t.me/${botUsername}?start=ref_YOURCODE`,
-    { parse_mode: "Markdown", ...mainKeyboard() }
+    `🤝 *Your invite*\n\n\`${link}\`\n\nShare it — Everybody Eats.`,
+    {
+      parse_mode: "Markdown",
+      ...Markup.inlineKeyboard([[Markup.button.url("📤 Share invite", shareUrl(link))]]),
+    }
+  );
+});
+
+bot.action("my_invite", async (ctx) => {
+  await ctx.answerCbQuery();
+  const userId = ctx.from?.id;
+  if (!userId) return;
+  const link = inviteLink(botUsername, userId);
+  const stats = crewStats(userId);
+  await ctx.reply(
+    `🔗 *Invite link*\n\n\`${link}\`\n\nCode: \`${stats.code}\` · Crew: *${stats.total}*`,
+    {
+      parse_mode: "Markdown",
+      ...Markup.inlineKeyboard([[Markup.button.url("📤 Share invite", shareUrl(link))]]),
+    }
   );
 });
 
@@ -203,8 +325,9 @@ function helpText() {
     "• Rank: Corner Boy → Trap God\n\n" +
     "/start — Welcome + Play\n" +
     "/play — Open Mini App\n" +
+    "/invite — Your personal invite link\n" +
+    "/crew — Crew stats + invite\n" +
     "/channel — Official channel\n" +
-    "/crew — Referral info\n" +
     "/vault — Reserves\n" +
     "/help — This message"
   );
@@ -238,8 +361,9 @@ async function boot() {
     await bot.telegram.setMyCommands([
       { command: "start", description: "Play Trap War" },
       { command: "play", description: "Open Mini App" },
+      { command: "invite", description: "Your invite link" },
+      { command: "crew", description: "Crew stats + invite" },
       { command: "channel", description: "Official channel" },
-      { command: "crew", description: "Crew / referrals" },
       { command: "vault", description: "Protected vault" },
       { command: "help", description: "How to play" },
     ]);
