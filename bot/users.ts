@@ -4,8 +4,8 @@
  */
 import fs from "fs";
 import path from "path";
-import { isValidTelegramId, sanitizeName } from "./security";
-import { dataDir } from "./paths";
+import { isValidTelegramId, sanitizeName } from "./security.js";
+import { dataDir } from "./paths.js";
 
 const DATA_DIR = dataDir();
 const FILE = path.join(DATA_DIR, "users.json");

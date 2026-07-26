@@ -14,8 +14,8 @@ import {
   rateLimit,
   sanitizeName,
   telegramIdFromInviteCode,
-} from "./security";
-import { dataDir } from "./paths";
+} from "./security.js";
+import { dataDir } from "./paths.js";
 
 const DATA_DIR = dataDir();
 const FILE = path.join(DATA_DIR, "referrals.json");

@@ -1,8 +1,12 @@
 /**
- * One-shot: GET /api/setup-webhook?key=SETUP_SECRET
- * Registers Telegram webhook to this Vercel deployment.
+ * GET /api/setup-webhook?key=SETUP_SECRET
+ * Points Telegram at this deployment's /api/telegram
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const botMod = require("./bot-bundle.cjs") as {
+  setupWebhook: (base: string) => Promise<void>;
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const key = String(req.query.key || "");
@@ -13,14 +17,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { setupWebhook } = await import("../bot/index.js");
     const host =
       process.env.WEBHOOK_URL ||
       (process.env.VERCEL_PROJECT_PRODUCTION_URL
         ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-        : process.env.WEBAPP_URL) ||
-      "https://trap-war-telegram.vercel.app";
-    await setupWebhook(host.replace(/\/$/, ""));
+        : "https://trap-war-telegram.vercel.app");
+    await botMod.setupWebhook(host.replace(/\/$/, ""));
     res.status(200).json({
       ok: true,
       webhook: `${host.replace(/\/$/, "")}/api/telegram`,

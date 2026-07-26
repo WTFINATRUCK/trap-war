@@ -13,7 +13,7 @@ import {
   crewStats,
   inviteLink,
   parseRefPayload,
-} from "./referrals";
+} from "./referrals.js";
 import {
   WELCOME,
   comingSoonText,
@@ -22,20 +22,20 @@ import {
   howToPlayPart2,
   howToPlayPlainParts,
   howToPlayShort,
-} from "./messages";
+} from "./messages.js";
 import {
   formatStatsHtml,
   getRecentUsers,
   getUserStats,
   touchUser,
-} from "./users";
-import { pushActivity } from "./activity";
+} from "./users.js";
+import { pushActivity } from "./activity.js";
 import {
   adminBotsStatusHtml,
   configuredAdminBots,
   isHumanAdmin,
   isLiveTelegramUrl,
-} from "./adminBots";
+} from "./adminBots.js";
 import type { Context } from "telegraf";
 
 const token = process.env.BOT_TOKEN?.trim();
@@ -117,7 +117,8 @@ function isAdmin(userId?: number): boolean {
 async function safeReply(
   ctx: Context,
   text: string,
-  extra: Record<string, unknown> = {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  extra: any = {}
 ): Promise<void> {
   try {
     await ctx.reply(text, { ...extra, parse_mode: "HTML" });
@@ -161,12 +162,9 @@ function shareUrl(invite: string): string {
   return `https://t.me/share/url?url=${encodeURIComponent(invite)}&text=${text}`;
 }
 
-function mainKeyboard(startPayload?: string, userId?: number) {
-  const rows: (
-    | ReturnType<typeof Markup.button.webApp>
-    | ReturnType<typeof Markup.button.url>
-    | ReturnType<typeof Markup.button.callback>
-  )[][] = [];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mainKeyboard(startPayload?: string, userId?: number): any {
+  const rows: any[][] = [];
 
   if (webAppUrl.startsWith("https://")) {
     rows.push([Markup.button.webApp("▶️ Play Trap War", playUrl(startPayload))]);
@@ -629,7 +627,7 @@ async function boot() {
   const apiPort = parseInt(process.env.API_PORT || "8787", 10);
   if (Number.isFinite(apiPort) && apiPort > 0 && token) {
     try {
-      const { startSecureApi } = await import("./api");
+      const { startSecureApi } = await import("./api.js");
       startSecureApi(token, apiPort);
     } catch (e) {
       console.warn("  Secure API not started:", e);

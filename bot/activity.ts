@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { dataDir } from "./paths";
+import { dataDir } from "./paths.js";
 
 const DATA_DIR = dataDir();
 const FILE = path.join(DATA_DIR, "activity.json");

@@ -1,44 +1,26 @@
 /**
- * Vercel serverless Telegram webhook — bot stays online without your laptop.
- * POST https://YOUR-DEPLOY.vercel.app/api/telegram
+ * Vercel serverless Telegram webhook — no laptop required.
+ * POST https://trap-war-telegram.vercel.app/api/telegram
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+// Bundled CommonJS bot (built in npm run build)
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const botMod = require("./bot-bundle.cjs") as {
+  bot: { handleUpdate: (u: unknown) => Promise<void> };
+  configureBotPresentation: () => Promise<void>;
+};
 
 export const config = {
   maxDuration: 30,
-  api: { bodyParser: true },
 };
 
-let ready: Promise<void> | null = null;
-
-async function getBot() {
-  // Dynamic import so local `npm run bot` stays independent
-  const mod = await import("../bot/index.js");
-  return mod;
-}
-
-async function ensureReady() {
-  if (!ready) {
-    ready = (async () => {
-      const { bot, configureBotPresentation } = await getBot();
-      // Warm presentation once per cold start
-      try {
-        await configureBotPresentation();
-      } catch (e) {
-        console.warn("configureBotPresentation:", e);
-      }
-      return bot;
-    })().then(() => undefined);
-  }
-  await ready;
-}
+let warmed = false;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "GET" || req.method === "HEAD") {
     res.status(200).send("Trap War bot webhook OK");
     return;
   }
-
   if (req.method !== "POST") {
     res.status(405).send("Method not allowed");
     return;
@@ -54,12 +36,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    await ensureReady();
-    const { bot } = await getBot();
-    await bot.handleUpdate(req.body);
+    if (!warmed) {
+      await botMod.configureBotPresentation();
+      warmed = true;
+    }
+    await botMod.bot.handleUpdate(req.body);
     res.status(200).json({ ok: true });
   } catch (e) {
     console.error("telegram webhook error:", e);
-    res.status(200).json({ ok: false }); // Telegram retries on non-200; avoid loops on bugs
+    res.status(200).json({ ok: false });
   }
 }
