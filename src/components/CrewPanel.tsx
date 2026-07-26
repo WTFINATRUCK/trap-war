@@ -1,4 +1,5 @@
 import { getReferralLink, getReferralStats } from "@/lib/referral";
+import { BOT_USERNAME, CHANNEL_URL } from "@/config/telegram";
 import type { CloudSave } from "@/types/cloudSave";
 
 interface CrewPanelProps {
@@ -8,7 +9,7 @@ interface CrewPanelProps {
 
 export default function CrewPanel({ telegramId, cloudSave }: CrewPanelProps) {
   const stats = getReferralStats(telegramId, cloudSave);
-  const link = getReferralLink(stats.referralCode);
+  const link = getReferralLink(stats.referralCode, BOT_USERNAME);
 
   const copyLink = async () => {
     try {
@@ -52,6 +53,23 @@ export default function CrewPanel({ telegramId, cloudSave }: CrewPanelProps) {
       <button type="button" className="action-button" onClick={copyLink} style={{ width: "100%" }}>
         Copy Link
       </button>
+
+      <a
+        className="action-button ghost"
+        href={CHANNEL_URL}
+        target="_blank"
+        rel="noreferrer"
+        style={{
+          width: "100%",
+          marginTop: "0.65rem",
+          display: "block",
+          textAlign: "center",
+          textDecoration: "none",
+          boxSizing: "border-box",
+        }}
+      >
+        📢 Join Trap War Channel
+      </a>
 
       {stats.referredBy && (
         <p className="boost-idle" style={{ marginTop: "1rem", textAlign: "center" }}>

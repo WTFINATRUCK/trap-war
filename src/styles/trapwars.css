@@ -94,6 +94,35 @@ body {
   background: rgba(0,0,0,0.4);
 }
 
+.channel-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.65rem;
+  background: linear-gradient(90deg, rgba(168, 85, 247, 0.2), rgba(168, 85, 247, 0.06));
+  border-bottom: 1px solid var(--border);
+  z-index: 40;
+}
+
+.channel-banner-link {
+  flex: 1;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--purple);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.channel-banner-x {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+
 .app-nav {
   display: flex;
   background: rgba(0,0,0,0.55);
@@ -126,13 +155,24 @@ body {
 .loading-screen {
   min-height: 100dvh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--purple);
+  gap: 0.75rem;
+  color: #fff;
   font-weight: 700;
   letter-spacing: 0.16em;
   background: var(--bg);
   text-shadow: 0 0 20px var(--purple-glow);
+  font-size: 1rem;
+}
+
+.loading-screen::before {
+  content: "TRAP WAR";
+  display: block;
+  color: var(--purple);
+  font-size: 1.4rem;
+  letter-spacing: 0.22em;
 }
 
 .start-screen {
@@ -181,7 +221,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  min-height: 420px;
   position: relative;
   background: var(--bg);
 }
@@ -190,7 +230,7 @@ body {
 .hero-stage {
   position: relative;
   flex: 1;
-  min-height: 0;
+  min-height: 320px;
   background:
     linear-gradient(180deg, rgba(7,6,12,0.55) 0%, transparent 22%, transparent 48%, rgba(7,6,12,0.75) 78%, var(--bg) 100%),
     linear-gradient(90deg, rgba(7,6,12,0.55) 0%, transparent 28%, transparent 72%, rgba(7,6,12,0.35) 100%),

@@ -4,6 +4,7 @@ import { useCloudSave } from "@/hooks/useCloudSave";
 import TrapWarGame from "@/components/TrapWarGame";
 import CrewPanel from "@/components/CrewPanel";
 import VaultPanel from "@/components/VaultPanel";
+import { BOT_LINK, CHANNEL_URL } from "@/config/telegram";
 
 type Tab = "game" | "crew" | "vault";
 
@@ -12,6 +13,7 @@ export default function App() {
   const { save, loading, saveGame } = useCloudSave(user);
   const [tab, setTab] = useState<Tab>("game");
   const [score, setScore] = useState(0);
+  const [hideChannelBanner, setHideChannelBanner] = useState(false);
 
   if (!ready) {
     return <div className="loading-screen">LOADING TRAP WAR…</div>;
@@ -22,9 +24,21 @@ export default function App() {
       <div className="start-screen">
         <div className="start-content">
           <h1>TRAP WAR</h1>
-          <p>
-            Open from Telegram, or add <code>?tg=12345</code> for local dev.
-          </p>
+          <p>Open from Telegram via the bot, or use local dev with <code>?tg=12345</code>.</p>
+          <div className="start-buttons">
+            <a className="action-button" href={BOT_LINK} style={{ textDecoration: "none", display: "block" }}>
+              Open Telegram Bot
+            </a>
+            <a
+              className="action-button ghost"
+              href={CHANNEL_URL}
+              target="_blank"
+              rel="noreferrer"
+              style={{ textDecoration: "none", display: "block" }}
+            >
+              Join Channel
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -50,7 +64,26 @@ export default function App() {
           <div className="user-tag">
             {user.firstName || user.username || `ID ${user.id}`}
             {user.isTelegram ? " · Telegram" : " · Dev"}
+            {" · "}
+            <a href={BOT_LINK} style={{ color: "var(--purple)", textDecoration: "none" }}>
+              Bot
+            </a>
           </div>
+          {!hideChannelBanner && (
+            <div className="channel-banner">
+              <a href={CHANNEL_URL} target="_blank" rel="noreferrer" className="channel-banner-link">
+                📢 Join the Trap War channel — Word on the Street
+              </a>
+              <button
+                type="button"
+                className="channel-banner-x"
+                aria-label="Dismiss"
+                onClick={() => setHideChannelBanner(true)}
+              >
+                ×
+              </button>
+            </div>
+          )}
           <nav className="app-nav">
             <button type="button" className={tab === "game" ? "active" : ""} onClick={() => setTab("game")}>
               HUSTLE

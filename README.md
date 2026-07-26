@@ -6,13 +6,24 @@ Players buy low, travel, sell high, plant stashes, dodge raids, and rank up from
 
 ## Live codebase
 
-This repo is the **Telegram Mini App** (Vite + React + TypeScript).
+This repo is the **Telegram Mini App** (Vite + React + TypeScript) + **Telegraf bot**.
 
 ```bash
 npm install
 npm run dev
 # open http://localhost:5173/?tg=12345
 ```
+
+### Telegram channel + Mini App access
+
+Full checklist: **[TELEGRAM_SETUP.md](./TELEGRAM_SETUP.md)**
+
+1. Create bot in **@BotFather** → copy `BOT_TOKEN`  
+2. Create public **channel** → `CHANNEL_URL`  
+3. Deploy Mini App to **HTTPS** → `WEBAPP_URL`  
+4. Copy `.env.example` → `.env` and fill values  
+5. `npm run bot:setup` then `npm run bot`  
+6. Open `t.me/YourBot` → **Play Trap War**
 
 ## Features shipped
 

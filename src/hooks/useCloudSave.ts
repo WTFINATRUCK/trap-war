@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import WebApp from "@twa-dev/sdk";
 import type { CloudSave } from "@/types/cloudSave";
 import type { GameState } from "@/lib/game/types";
 import { generateReferralCode, getReferralData } from "@/lib/referral";
@@ -7,16 +6,16 @@ import type { TelegramUser } from "./useTelegram";
 
 const CLOUD_KEY = "game_v1";
 const LOCAL_PREFIX = "trapwar_cloud_";
-const CLOUD_TIMEOUT_MS = 3000;
+const CLOUD_TIMEOUT_MS = 1500;
 
 function localKey(telegramId: number) {
   return `${LOCAL_PREFIX}${telegramId}`;
 }
 
 function readLocal(telegramId: number): CloudSave | null {
-  const raw = localStorage.getItem(localKey(telegramId));
-  if (!raw) return null;
   try {
+    const raw = localStorage.getItem(localKey(telegramId));
+    if (!raw) return null;
     return JSON.parse(raw) as CloudSave;
   } catch {
     return null;
@@ -24,15 +23,27 @@ function readLocal(telegramId: number): CloudSave | null {
 }
 
 function writeLocal(save: CloudSave): void {
-  localStorage.setItem(localKey(save.telegramId), JSON.stringify(save));
+  try {
+    localStorage.setItem(localKey(save.telegramId), JSON.stringify(save));
+  } catch {
+    /* quota / private mode */
+  }
 }
 
-/** Only use Cloud Storage inside a real Telegram Mini App session */
 function isTelegramCloudAvailable(): boolean {
   if (typeof window === "undefined") return false;
-  const hasInitData = Boolean(WebApp.initData && WebApp.initData.length > 0);
-  const hasCloudApi = Boolean(WebApp.CloudStorage?.getItem);
-  return hasInitData && hasCloudApi;
+  try {
+    // Avoid importing SDK at module top — blank screen if it fails
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const tg = w.Telegram?.WebApp;
+    if (!tg) return false;
+    const hasInitData = Boolean(tg.initData && String(tg.initData).length > 0);
+    const hasCloudApi = Boolean(tg.CloudStorage?.getItem);
+    return hasInitData && hasCloudApi;
+  } catch {
+    return false;
+  }
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
@@ -43,9 +54,10 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 }
 
 function cloudGetItem(): Promise<string | null> {
-  if (!isTelegramCloudAvailable()) {
-    return Promise.resolve(null);
-  }
+  if (!isTelegramCloudAvailable()) return Promise.resolve(null);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const CloudStorage = (window as any).Telegram.WebApp.CloudStorage;
 
   const promise = new Promise<string | null>((resolve) => {
     let settled = false;
@@ -54,9 +66,8 @@ function cloudGetItem(): Promise<string | null> {
       settled = true;
       resolve(value);
     };
-
     try {
-      WebApp.CloudStorage.getItem(CLOUD_KEY, (err, value) => {
+      CloudStorage.getItem(CLOUD_KEY, (err: unknown, value?: string) => {
         if (err) done(null);
         else done(value ?? null);
       });
@@ -69,9 +80,10 @@ function cloudGetItem(): Promise<string | null> {
 }
 
 function cloudSetItem(value: string): Promise<boolean> {
-  if (!isTelegramCloudAvailable()) {
-    return Promise.resolve(false);
-  }
+  if (!isTelegramCloudAvailable()) return Promise.resolve(false);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const CloudStorage = (window as any).Telegram.WebApp.CloudStorage;
 
   const promise = new Promise<boolean>((resolve) => {
     let settled = false;
@@ -80,11 +92,8 @@ function cloudSetItem(value: string): Promise<boolean> {
       settled = true;
       resolve(ok);
     };
-
     try {
-      WebApp.CloudStorage.setItem(CLOUD_KEY, value, (err) => {
-        done(!err);
-      });
+      CloudStorage.setItem(CLOUD_KEY, value, (err: unknown) => done(!err));
     } catch {
       done(false);
     }
@@ -114,37 +123,37 @@ export function useCloudSave(user: TelegramUser | null) {
 
   useEffect(() => {
     if (!user) {
+      setSave(null);
       setLoading(false);
       return;
     }
 
     let cancelled = false;
+    setLoading(true);
 
     (async () => {
       let loaded: CloudSave | null = null;
 
       try {
         const cloudRaw = await cloudGetItem();
-        if (cloudRaw) {
-          loaded = JSON.parse(cloudRaw) as CloudSave;
-        }
+        if (cloudRaw) loaded = JSON.parse(cloudRaw) as CloudSave;
       } catch {
         loaded = null;
       }
 
-      if (!loaded) {
-        loaded = readLocal(user.id);
-      }
-
-      if (!loaded) {
-        loaded = createEmptySave(user);
-      }
+      if (!loaded) loaded = readLocal(user.id);
+      if (!loaded) loaded = createEmptySave(user);
 
       if (!cancelled) {
         setSave(loaded);
         setLoading(false);
       }
-    })();
+    })().catch(() => {
+      if (!cancelled) {
+        setSave(createEmptySave(user));
+        setLoading(false);
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -162,8 +171,7 @@ export function useCloudSave(user: TelegramUser | null) {
     async (game: GameState) => {
       if (!user) return;
       const base = save ?? createEmptySave(user);
-      const next: CloudSave = { ...base, game };
-      await persist(next);
+      await persist({ ...base, game });
     },
     [save, persist, user]
   );

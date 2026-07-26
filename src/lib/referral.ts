@@ -72,8 +72,14 @@ export function parseStartParam(startParam?: string): string | null {
   return null;
 }
 
-export function getReferralLink(referralCode: string, botUsername = "TrapWarBot"): string {
-  return `https://t.me/${botUsername}?start=ref_${referralCode}`;
+export function getReferralLink(
+  referralCode: string,
+  botUsername = (typeof import.meta !== "undefined" &&
+    (import.meta as { env?: { VITE_BOT_USERNAME?: string } }).env?.VITE_BOT_USERNAME) ||
+    "TrapWarBot"
+): string {
+  const user = String(botUsername).replace(/^@/, "");
+  return `https://t.me/${user}?start=ref_${referralCode}`;
 }
 
 export function getReferralStats(telegramId: number, cloudSave?: CloudSave | null) {
