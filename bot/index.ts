@@ -397,19 +397,14 @@ async function boot() {
     /* optional */
   }
 
-  if (webAppUrl.startsWith("https://")) {
-    try {
-      await bot.telegram.setChatMenuButton({
-        menuButton: {
-          type: "web_app",
-          text: "Play",
-          web_app: { url: webAppUrl },
-        },
-      });
-      console.log("  Menu button set → Play");
-    } catch (e) {
-      console.warn("  Could not set menu button:", e);
-    }
+  // Menu button opens the /commands list (not the Mini App)
+  try {
+    await bot.telegram.setChatMenuButton({
+      menuButton: { type: "commands" },
+    });
+    console.log("  Menu button set → Commands list");
+  } catch (e) {
+    console.warn("  Could not set menu button:", e);
   }
 
   try {
