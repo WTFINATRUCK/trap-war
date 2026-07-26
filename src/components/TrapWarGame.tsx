@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, type CSSProperties } from "react";
 import {
   ADJACENT_CITIES,
   ASSETS,
@@ -54,6 +54,8 @@ import {
   streetNameFromId,
 } from "@/lib/game/activityFeed";
 import { API_BASE } from "@/config/telegram";
+import { useGameAudio } from "@/hooks/useGameAudio";
+import { citySlug, cityVisual } from "@/lib/game/cityVisuals";
 import TrapPhone from "./TrapPhone";
 import ActivityBoard from "./ActivityBoard";
 
@@ -123,6 +125,7 @@ export default function TrapWarGame({
   const [careerRuns, setCareerRuns] = useState(runsCompleted);
   const streetWho = useMemo(() => streetNameFromId(String(telegramId)), [telegramId]);
   const myFirstSeen = useMemo(() => selfFirstSeenMs(telegramId), [telegramId]);
+  const { muted, toggleMute, sfx } = useGameAudio(gameState?.location);
 
   useEffect(() => {
     setCareerRuns(runsCompleted);
@@ -198,6 +201,7 @@ export default function TrapWarGame({
       if (title.includes("robbery") || text.includes("Mugged for") || text.includes("Yield skimmed")) {
         const lost = Number((text.match(/\$([0-9,]+)/) || [])[1]?.replace(/,/g, "")) || 0;
         emitStreet("rob", formatLocalRob(streetWho, lost || 500));
+        sfx("warn");
       } else if (
         title.includes("raid") ||
         text.toLowerCase().includes("police raid") ||
@@ -205,11 +209,13 @@ export default function TrapWarGame({
         text.toLowerCase().includes("raid shield")
       ) {
         emitStreet("raid", formatLocalRaid(streetWho, text.slice(0, 80)));
+        sfx("raid");
       }
     }
     if (prev && next.rank !== prev.rank) {
       const rankName = RANKS.find((r) => r.id === next.rank)?.name ?? next.rank;
       emitStreet("rank", formatLocalRank(streetWho, rankName));
+      sfx("rank");
     }
     if (prev && next.day > prev.day) {
       emitStreet("day", formatLocalDay(streetWho, next.day));
@@ -265,7 +271,11 @@ export default function TrapWarGame({
       await applyResult(result.state, result.messages);
       const cost = Math.max(0, cashBefore - result.state.cash);
       emitStreet("buy", formatLocalBuy(streetWho, qty, displayName(name), city, cost));
-    } else pushMessages(result.messages);
+      sfx("buy");
+    } else {
+      pushMessages(result.messages);
+      sfx("warn");
+    }
   };
 
   const handleSell = async (name: string) => {
@@ -277,7 +287,11 @@ export default function TrapWarGame({
       await applyResult(result.state, result.messages);
       const revenue = Math.max(0, result.state.cash - cashBefore);
       emitStreet("sell", formatLocalSell(streetWho, qty, displayName(name), revenue));
-    } else pushMessages(result.messages);
+      sfx("sell");
+    } else {
+      pushMessages(result.messages);
+      sfx("warn");
+    }
   };
 
   const handlePlant = async (name: string) => {
@@ -291,6 +305,7 @@ export default function TrapWarGame({
           text: `No ${displayName(name)} in your bag. Buy first, then plant into stash.`,
         },
       ]);
+      sfx("warn");
       return;
     }
     const qty = Math.min(quantities[name] || 1, held);
@@ -299,8 +314,10 @@ export default function TrapWarGame({
       await applyResult(result.state, result.messages);
       emitStreet("plant", formatLocalPlant(streetWho, qty, displayName(name)));
       setSheet("stash");
+      sfx("plant");
     } else {
       pushMessages(result.messages);
+      sfx("warn");
     }
   };
 
@@ -322,10 +339,14 @@ export default function TrapWarGame({
     if (!result.blocked) {
       await applyResult(result.state, result.messages);
       emitStreet("travel", formatLocalTravel(streetWho, city));
+      sfx("travel");
       setTravelTarget(null);
       setTravelMode("walk");
       setSheet(null);
-    } else pushMessages(result.messages);
+    } else {
+      pushMessages(result.messages);
+      sfx("warn");
+    }
   };
 
   const confirmTravel = async () => {
@@ -630,8 +651,24 @@ export default function TrapWarGame({
         </>
       )}
 
-      {/* Hero stage */}
-      <div className="hero-stage">
+      {/* Hero stage — city-specific background grade */}
+      <div
+        className="hero-stage"
+        data-city={citySlug(g.location)}
+        style={{ ["--city-accent" as string]: cityVisual(g.location).accent } as CSSProperties}
+      >
+        <button
+          type="button"
+          className={`audio-mute-btn${muted ? " muted" : ""}`}
+          title={muted ? "Unmute street audio" : "Mute street audio"}
+          aria-label={muted ? "Unmute audio" : "Mute audio"}
+          onClick={() => {
+            toggleMute();
+            sfx("tap");
+          }}
+        >
+          {muted ? "🔇" : "🔊"}
+        </button>
         <div className="hud-top">
           <div className="hud-left">
             <div className="hud-day-block">
@@ -697,6 +734,11 @@ export default function TrapWarGame({
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="city-badge" aria-hidden>
+          <div className="cb-name">{cityVisual(g.location).label}</div>
+          <div className="cb-vibe">{cityVisual(g.location).vibe}</div>
         </div>
 
         {/* Live street wire (right rail) — scroll + tap entry for profile */}

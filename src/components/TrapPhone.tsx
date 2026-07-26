@@ -272,7 +272,7 @@ export default function TrapPhone({
             )}
             {view === "settings" && (
               <div className="client-row">
-                Trap War · Telegram Mini App · 30-day runs · Audio ambience (week 2)
+                Trap War · Telegram Mini App · 30-day runs · Street audio on (mute on HUD 🔊)
               </div>
             )}
           </div>
