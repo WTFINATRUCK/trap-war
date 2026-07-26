@@ -1,12 +1,14 @@
 /**
- * Vercel serverless Telegram webhook — no laptop required.
- * POST https://trap-war-telegram.vercel.app/api/telegram
+ * ESM handler (package.json type:module) requiring CJS bot bundle.
  */
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 const botMod = require("./bot-bundle.cjs");
 
 let warmed = false;
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method === "GET" || req.method === "HEAD") {
     res.status(200).send("Trap War bot webhook OK");
     return;
@@ -39,4 +41,4 @@ module.exports = async function handler(req, res) {
       error: String(e && e.message ? e.message : e),
     });
   }
-};
+}

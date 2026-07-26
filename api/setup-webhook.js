@@ -1,9 +1,9 @@
-/**
- * GET /api/setup-webhook?key=SETUP_SECRET
- */
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 const botMod = require("./bot-bundle.cjs");
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   const key = String((req.query && req.query.key) || "");
   const expected = (process.env.SETUP_SECRET || process.env.WEBHOOK_SECRET || "").trim();
   if (!expected || key !== expected) {
@@ -31,4 +31,4 @@ module.exports = async function handler(req, res) {
       error: String(e && e.message ? e.message : e),
     });
   }
-};
+}
