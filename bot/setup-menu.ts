@@ -1,16 +1,14 @@
 /**
- * One-shot: register menu button + command list.
+ * One-shot: register Menu Button as Commands + full command list.
  * Usage: npx tsx bot/setup-menu.ts
+ *
+ * Menu Button shows the slash-command menu (not a direct Mini App jump).
+ * Players launch the game with /play or the Play Trap War inline button on /start.
  */
 import "dotenv/config";
 import { Telegraf } from "telegraf";
 
 const token = process.env.BOT_TOKEN?.trim();
-const webAppUrl = (
-  process.env.WEBAPP_URL ||
-  process.env.VITE_WEBAPP_URL ||
-  "https://www.trap-war.com"
-).replace(/\/$/, "");
 
 if (!token) {
   console.error("BOT_TOKEN missing");
@@ -19,41 +17,38 @@ if (!token) {
 
 const bot = new Telegraf(token);
 
+const COMMANDS = [
+  { command: "play", description: "Play Trap War — open the game" },
+  { command: "start", description: "Welcome + Play button" },
+  { command: "guide", description: "How to play" },
+  { command: "crew", description: "Crew / invites" },
+  { command: "invite", description: "Your invite link" },
+  { command: "soon", description: "Roadmap / coming soon" },
+  { command: "help", description: "All commands" },
+  { command: "stats", description: "Players online" },
+  { command: "channel", description: "Official channel" },
+  { command: "community", description: "Community chat" },
+  { command: "chat", description: "Community chat (alias)" },
+  { command: "vault", description: "Vault info" },
+] as const;
+
 async function main() {
   const me = await bot.telegram.getMe();
 
-  if (webAppUrl.startsWith("https://")) {
-    await bot.telegram.setChatMenuButton({
-      menuButton: {
-        type: "web_app",
-        text: "Play Trap War",
-        web_app: { url: webAppUrl },
-      },
-    });
-    console.log(`Menu button → Play Trap War (${webAppUrl})`);
-  } else {
-    await bot.telegram.setChatMenuButton({
-      menuButton: { type: "commands" },
-    });
-    console.log("Menu button → Commands list");
+  await bot.telegram.setChatMenuButton({
+    menuButton: { type: "commands" },
+  });
+  console.log("Menu button → Commands list (not Web App)");
+
+  await bot.telegram.setMyCommands([...COMMANDS]);
+  console.log(`Commands (${COMMANDS.length}):`);
+  for (const c of COMMANDS) {
+    console.log(`  /${c.command} — ${c.description}`);
   }
 
-  await bot.telegram.setMyCommands([
-    { command: "start", description: "Welcome + Play button" },
-    { command: "play", description: "Open the Mini App" },
-    { command: "guide", description: "How to play" },
-    { command: "help", description: "All commands" },
-    { command: "invite", description: "Your invite link" },
-    { command: "crew", description: "Crew / invites list" },
-    { command: "stats", description: "Players online" },
-    { command: "channel", description: "Official channel" },
-    { command: "community", description: "Community chat" },
-    { command: "vault", description: "Vault info" },
-    { command: "soon", description: "Roadmap" },
-  ]);
-
-  console.log(`OK @${me.username}`);
-  console.log("Type / in chat for command list · Menu button opens game");
+  console.log(`\nOK @${me.username}`);
+  console.log("Open bot chat → Menu (☰) should list commands.");
+  console.log("Play via /play or the Play Trap War button on /start.");
   process.exit(0);
 }
 

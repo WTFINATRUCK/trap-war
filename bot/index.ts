@@ -806,46 +806,37 @@ async function boot() {
   console.log("  Invites: ONLY via t.me/Bot?start=ref_TRAP-{id}");
 }
 
-/** Menu button = Play game · slash commands = full list */
+/**
+ * Menu Button (☰ next to composer) = full command list (not Web App).
+ * Launch game via /play or the inline "Play Trap War" button on /start messages.
+ */
 export async function configureBotPresentation(): Promise<void> {
   try {
-    if (webAppUrl.startsWith("https://")) {
-      await bot.telegram.setChatMenuButton({
-        menuButton: {
-          type: "web_app",
-          text: "Play Trap War",
-          web_app: { url: playUrl() },
-        },
-      });
-      console.log(`  Menu button → Play Trap War (${webAppUrl})`);
-    } else {
-      await bot.telegram.setChatMenuButton({
-        menuButton: { type: "commands" },
-      });
-      console.log("  Menu button → Commands (set HTTPS WEBAPP_URL for Play)");
-    }
+    await bot.telegram.setChatMenuButton({
+      menuButton: { type: "commands" },
+    });
+    console.log("  Menu button → Commands list");
   } catch (e) {
     console.warn("  Could not set menu button:", e);
   }
 
   try {
-    // Shown when user types /  (clean command list)
+    // Order = what players see first when they open Menu / type /
     await bot.telegram.setMyCommands([
+      { command: "play", description: "Play Trap War — open the game" },
       { command: "start", description: "Welcome + Play button" },
-      { command: "play", description: "Open the Mini App" },
       { command: "guide", description: "How to play" },
-      { command: "help", description: "All commands" },
+      { command: "crew", description: "Crew / invites" },
       { command: "invite", description: "Your invite link" },
-      { command: "crew", description: "Crew / invites list" },
+      { command: "soon", description: "Roadmap / coming soon" },
+      { command: "help", description: "All commands" },
       { command: "stats", description: "Players online" },
       { command: "channel", description: "Official channel" },
       { command: "community", description: "Community chat" },
+      { command: "chat", description: "Community chat (alias)" },
       { command: "vault", description: "Vault info" },
-      { command: "soon", description: "Roadmap" },
-      { command: "admin", description: "Admin panel (owner)" },
-      { command: "players", description: "Admin: list players" },
     ]);
-    console.log("  Commands list registered (type / in chat)");
+    console.log("  Commands list registered (Menu Button + / )");
   } catch {
     /* optional */
   }

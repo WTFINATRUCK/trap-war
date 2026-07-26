@@ -11839,41 +11839,29 @@ async function boot() {
 }
 async function configureBotPresentation() {
   try {
-    if (webAppUrl.startsWith("https://")) {
-      await bot.telegram.setChatMenuButton({
-        menuButton: {
-          type: "web_app",
-          text: "Play Trap War",
-          web_app: { url: playUrl() }
-        }
-      });
-      console.log(`  Menu button \u2192 Play Trap War (${webAppUrl})`);
-    } else {
-      await bot.telegram.setChatMenuButton({
-        menuButton: { type: "commands" }
-      });
-      console.log("  Menu button \u2192 Commands (set HTTPS WEBAPP_URL for Play)");
-    }
+    await bot.telegram.setChatMenuButton({
+      menuButton: { type: "commands" }
+    });
+    console.log("  Menu button \u2192 Commands list");
   } catch (e) {
     console.warn("  Could not set menu button:", e);
   }
   try {
     await bot.telegram.setMyCommands([
+      { command: "play", description: "Play Trap War \u2014 open the game" },
       { command: "start", description: "Welcome + Play button" },
-      { command: "play", description: "Open the Mini App" },
       { command: "guide", description: "How to play" },
-      { command: "help", description: "All commands" },
+      { command: "crew", description: "Crew / invites" },
       { command: "invite", description: "Your invite link" },
-      { command: "crew", description: "Crew / invites list" },
+      { command: "soon", description: "Roadmap / coming soon" },
+      { command: "help", description: "All commands" },
       { command: "stats", description: "Players online" },
       { command: "channel", description: "Official channel" },
       { command: "community", description: "Community chat" },
-      { command: "vault", description: "Vault info" },
-      { command: "soon", description: "Roadmap" },
-      { command: "admin", description: "Admin panel (owner)" },
-      { command: "players", description: "Admin: list players" }
+      { command: "chat", description: "Community chat (alias)" },
+      { command: "vault", description: "Vault info" }
     ]);
-    console.log("  Commands list registered (type / in chat)");
+    console.log("  Commands list registered (Menu Button + / )");
   } catch {
   }
 }
