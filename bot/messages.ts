@@ -116,6 +116,7 @@ export function helpMenuText(): string {
     "/soon — Coming soon / roadmap\n" +
     "/invite — Your invite link\n" +
     "/crew — Crew stats + invite\n" +
+    "/stats — Total users & online now\n" +
     "/channel — Official channel\n" +
     "/vault — Protected reserves\n" +
     "/help — This menu\n\n" +

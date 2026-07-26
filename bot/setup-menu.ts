@@ -28,11 +28,12 @@ async function main() {
     { command: "guide", description: "How to play (in-game)" },
     { command: "soon", description: "Coming soon / roadmap" },
     { command: "invite", description: "Your invite link" },
-    { command: "crew", description: "Crew stats + invite" },
-    { command: "channel", description: "Official channel" },
-    { command: "vault", description: "Protected vault" },
-    { command: "help", description: "Commands menu" },
-  ]);
+      { command: "crew", description: "Crew stats + invite" },
+      { command: "stats", description: "Total users & online now" },
+      { command: "channel", description: "Official channel" },
+      { command: "vault", description: "Protected vault" },
+      { command: "help", description: "Commands menu" },
+    ]);
 
   console.log(`OK @${me.username}`);
   console.log("Menu button → Commands list (/start /play /guide /soon …)");

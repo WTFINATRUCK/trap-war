@@ -23,6 +23,12 @@ import {
   howToPlayPlainParts,
   howToPlayShort,
 } from "./messages";
+import {
+  formatStatsHtml,
+  getRecentUsers,
+  getUserStats,
+  touchUser,
+} from "./users";
 import type { Context } from "telegraf";
 
 const token = process.env.BOT_TOKEN?.trim();
@@ -31,6 +37,15 @@ const channelUrl = (process.env.CHANNEL_URL || "").replace(/\/$/, "");
 const channelId = process.env.CHANNEL_ID?.trim();
 const requireChannel = process.env.REQUIRE_CHANNEL === "true";
 const botUsername = (process.env.BOT_USERNAME || "TrapWarAppBot").replace(/^@/, "");
+/** Comma-separated Telegram user IDs who can see full /stats admin list */
+const adminIds = new Set(
+  (process.env.ADMIN_IDS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => parseInt(s, 10))
+    .filter((n) => Number.isFinite(n) && n > 0)
+);
 
 if (!token) {
   console.error("Missing BOT_TOKEN. Copy .env.example → .env");
@@ -42,6 +57,30 @@ if (!webAppUrl || !webAppUrl.startsWith("https://")) {
 }
 
 const bot = new Telegraf(token);
+
+// Track every interaction → total users + online (last 5 min)
+bot.use(async (ctx, next) => {
+  try {
+    const from = ctx.from;
+    if (from?.id) {
+      touchUser({
+        id: from.id,
+        username: from.username,
+        firstName: from.first_name,
+      });
+    }
+  } catch {
+    /* never block handlers */
+  }
+  return next();
+});
+
+function isAdmin(userId?: number): boolean {
+  if (!userId) return false;
+  // If no ADMIN_IDS configured, allow /stats counts for everyone (early launch)
+  if (adminIds.size === 0) return true;
+  return adminIds.has(userId);
+}
 
 /** HTML first; plain text fallback if Telegram rejects formatting */
 async function safeReply(
@@ -359,6 +398,22 @@ bot.command("help", async (ctx) => {
   await safeReply(ctx, helpMenuText(), mainKeyboard(undefined, ctx.from?.id));
 });
 
+bot.command("stats", async (ctx) => {
+  const userId = ctx.from?.id;
+  const stats = getUserStats();
+  const showList = isAdmin(userId);
+  const recent = showList ? getRecentUsers(12) : undefined;
+  await safeReply(ctx, formatStatsHtml(stats, recent));
+});
+
+bot.command("users", async (ctx) => {
+  // Alias of /stats
+  const userId = ctx.from?.id;
+  const stats = getUserStats();
+  const recent = isAdmin(userId) ? getRecentUsers(12) : undefined;
+  await safeReply(ctx, formatStatsHtml(stats, recent));
+});
+
 bot.action("help_info", async (ctx) => {
   await ctx.answerCbQuery().catch(() => undefined);
   await safeReply(ctx, helpMenuText(), mainKeyboard(undefined, ctx.from?.id));
@@ -458,6 +513,7 @@ async function boot() {
       { command: "soon", description: "Coming soon / roadmap" },
       { command: "invite", description: "Your invite link" },
       { command: "crew", description: "Crew stats + invite" },
+      { command: "stats", description: "Total users & online now" },
       { command: "channel", description: "Official channel" },
       { command: "vault", description: "Protected vault" },
       { command: "help", description: "Commands menu" },
