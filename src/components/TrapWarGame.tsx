@@ -120,6 +120,14 @@ export default function TrapWarGame({
   const [streetFeed, setStreetFeed] = useState<ActivityItem[]>([]);
   const [activityOpen, setActivityOpen] = useState(false);
   const [activityFocusId, setActivityFocusId] = useState<string | null>(null);
+  /** Street Wire panel collapsed (persisted) — fully clears the stage when hidden */
+  const [streetWireOpen, setStreetWireOpen] = useState(() => {
+    try {
+      return localStorage.getItem("trapwar_street_wire_open") !== "0";
+    } catch {
+      return true;
+    }
+  });
   const [phoneInitialView, setPhoneInitialView] = useState<"home" | "messages">("home");
   /** Career 30-day finishes — synced from cloud, bumped instantly on full clear */
   const [careerRuns, setCareerRuns] = useState(runsCompleted);
@@ -134,6 +142,15 @@ export default function TrapWarGame({
   const openActivityBoard = (focusId?: string) => {
     setActivityFocusId(focusId ?? null);
     setActivityOpen(true);
+  };
+
+  const setStreetWireVisible = (open: boolean) => {
+    setStreetWireOpen(open);
+    try {
+      localStorage.setItem("trapwar_street_wire_open", open ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
   };
 
   const openTravelSheet = () => {
@@ -750,37 +767,72 @@ export default function TrapWarGame({
           <div className="cb-vibe">{cityVisual(g.location).vibe}</div>
         </div>
 
-        {/* Live street wire (right rail) — scroll + tap entry for profile */}
-        <div className="notif-rail" aria-label="Live street activity">
-          <button
-            type="button"
-            className="notif-rail-label"
-            onClick={() => openActivityBoard()}
-          >
-            STREET WIRE
-          </button>
-          <div className="notif-tap-hint">Scroll · tap a hustler</div>
-          <div className="notif-viewport">
-            <div className="notif-scroll">
-              {notifFeed.length === 0 && (
-                <div className="notif-bubble">Wire quiet — make a move.</div>
-              )}
-              {notifFeed.map((n) => (
+        {/* Live street wire (right rail) — translucent, hide/show toggle */}
+        <div
+          className={`notif-rail${streetWireOpen ? "" : " collapsed"}`}
+          aria-label="Live street activity"
+        >
+          {streetWireOpen ? (
+            <>
+              <div className="notif-rail-head">
                 <button
-                  key={n.id}
                   type="button"
-                  className={`notif-bubble kind-${n.kind}${n.local ? " local" : ""}`}
+                  className="notif-rail-label"
+                  onClick={() => openActivityBoard()}
+                  title="Open full Street Wire board"
+                >
+                  STREET WIRE
+                </button>
+                <button
+                  type="button"
+                  className="notif-rail-toggle"
+                  aria-label="Hide Street Wire"
+                  title="Hide Street Wire"
                   onClick={(e) => {
                     e.stopPropagation();
-                    openActivityBoard(n.id);
+                    setStreetWireVisible(false);
                   }}
                 >
-                  <div className="nb-from">{kindLabel(n.kind)}</div>
-                  <div>{n.text}</div>
+                  ›
                 </button>
-              ))}
-            </div>
-          </div>
+              </div>
+              <div className="notif-rail-body">
+                <div className="notif-tap-hint">Scroll · tap a hustler · › hides</div>
+                <div className="notif-viewport">
+                  <div className="notif-scroll">
+                    {notifFeed.length === 0 && (
+                      <div className="notif-bubble">Wire quiet — make a move.</div>
+                    )}
+                    {notifFeed.map((n) => (
+                      <button
+                        key={n.id}
+                        type="button"
+                        className={`notif-bubble kind-${n.kind}${n.local ? " local" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openActivityBoard(n.id);
+                        }}
+                      >
+                        <div className="nb-from">{kindLabel(n.kind)}</div>
+                        <div>{n.text}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="notif-rail-reopen"
+              aria-label="Show Street Wire"
+              title="Show Street Wire"
+              onClick={() => setStreetWireVisible(true)}
+            >
+              <span aria-hidden>‹</span>
+              Wire
+            </button>
+          )}
         </div>
 
         <div className="bottom-meta">

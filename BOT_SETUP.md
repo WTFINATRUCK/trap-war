@@ -1,78 +1,74 @@
-# Trap War — live bot + Mini App (no laptop)
+# Trap War — fully live (no laptop)
 
-## Final live URLs
+## Final URLs (use these)
 
 | What | URL |
 |------|-----|
-| **Game (works now)** | **https://www.trap-war.com** |
-| Game (backup) | https://trap-war-telegram.vercel.app |
-| Apex trap-war.com | Fix Cloudflare CNAME first (SSL errors until then) |
-| Bot webhook | https://trap-war-telegram.vercel.app/api/telegram |
-| Bot chat | https://t.me/TrapWarAppBot |
+| **Game (recommended)** | **https://www.trap-war.com** |
+| Game backup | https://trap-war-telegram.vercel.app |
+| Apex https://trap-war.com | Fix Cloudflare `@` CNAME first (SSL error until then) |
+| Bot webhook (auto) | https://trap-war-telegram.vercel.app/api/telegram |
+| Bot | https://t.me/TrapWarAppBot |
 
-## What runs where
+## Independent of laptop?
 
-| Piece | Host | Laptop needed? |
-|-------|------|----------------|
-| Mini App | Vercel | **No** |
-| Bot | Vercel webhook `/api/telegram` | **No** (after webhook set) |
+| Piece | Host | Laptop off? |
+|-------|------|-------------|
+| Mini App | Vercel | **Yes** |
+| Bot replies | Vercel webhook | **Yes** |
+
+Do **not** run `npm run bot` on your laptop while the webhook is set (conflicts).
 
 ## Menu button vs commands
 
-Telegram only allows **one** menu-button type:
+| Control | What it does |
+|---------|----------------|
+| **Menu button** (bottom left) | **Play Trap War** → opens Mini App at WEBAPP_URL |
+| **Type `/` in chat** | Clean command list |
 
-| Control | Behavior |
-|---------|----------|
-| **Menu button** (bottom-left) | **Play Trap War** → opens Mini App |
-| **Type `/`** in chat | Clean command list |
+### Commands list
 
-## Commands (type `/`)
-
-- `/start` — Welcome + Play button  
+- `/start` — Welcome + Play  
 - `/play` — Open Mini App  
 - `/guide` — How to play  
 - `/help` — All commands  
-- `/invite` — Your invite link  
-- `/crew` — Crew list  
-- `/stats` — Players online  
-- `/channel` — News channel  
-- `/community` — Community chat  
-- `/vault` — Vault info  
+- `/invite` — Invite link  
+- `/crew` — Crew stats  
+- `/stats` — Online players  
+- `/channel` — Channel  
+- `/community` — Community  
+- `/vault` — Vault  
 - `/soon` — Roadmap  
 
-## BotFather (confirm)
+## Menu Button URL (BotFather)
 
-1. @BotFather → your bot  
-2. **Menu Button** → URL: `https://www.trap-war.com`  
-3. Optional **Domain**: `www.trap-war.com` and `trap-war-telegram.vercel.app`  
-4. Commands are set by the bot API automatically  
+```
+https://www.trap-war.com
+```
 
-## Env vars (Vercel Production)
+(Already set via API. Confirm in BotFather if needed.)
 
-| Name | Value |
-|------|--------|
-| `BOT_TOKEN` | from BotFather |
-| `WEBAPP_URL` | `https://www.trap-war.com` |
-| `VITE_WEBAPP_URL` | `https://www.trap-war.com` |
-| `VITE_BOT_USERNAME` | `TrapWarAppBot` |
-| `WEBHOOK_URL` | `https://trap-war-telegram.vercel.app` |
-| `WEBHOOK_SECRET` | long random string |
-| `SETUP_SECRET` | same as WEBHOOK_SECRET (or separate) |
-| `BOT_USERNAME` | `TrapWarAppBot` |
+## Env (Vercel Production — already set)
 
-## Register webhook (once after deploy)
+- `BOT_TOKEN`
+- `WEBAPP_URL=https://www.trap-war.com`
+- `VITE_WEBAPP_URL=https://www.trap-war.com`
+- `WEBHOOK_URL=https://trap-war-telegram.vercel.app`
+- `WEBHOOK_SECRET` / `SETUP_SECRET`
+
+## Apex domain fix (optional but recommended)
+
+Cloudflare → trap-war.com → DNS:
+
+| Type | Name | Target | Proxy |
+|------|------|--------|--------|
+| CNAME | `@` | `1dbe9f448e0e942a.vercel-dns-017.com` | **DNS only** |
+| CNAME | `www` | `1dbe9f448e0e942a.vercel-dns-017.com` | **DNS only** |
+
+`www` already works. Fix `@` to clear SSL errors on bare trap-war.com.
+
+## Re-register webhook (if bot stops replying)
 
 ```
 https://trap-war-telegram.vercel.app/api/setup-webhook?key=YOUR_SETUP_SECRET
 ```
-
-Should return `{ "ok": true, "webhook": ".../api/telegram" }`.
-
-## Local bot (dev only)
-
-```bash
-# Uses polling; deletes webhook first
-npm run bot
-```
-
-Do **not** leave local polling running if webhook is active (conflicts).

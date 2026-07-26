@@ -5,8 +5,13 @@ export const BOT_USERNAME = (import.meta.env.VITE_BOT_USERNAME as string | undef
   ""
 ) || "TrapWarAppBot";
 
-export const CHANNEL_URL =
-  (import.meta.env.VITE_CHANNEL_URL as string | undefined) || "https://t.me/TrapWarOfficial";
+/**
+ * Official announcements channel. Empty until a real public channel exists
+ * (t.me/TrapWarOfficial was a placeholder and showed “user not available”).
+ */
+export const CHANNEL_URL = (
+  (import.meta.env.VITE_CHANNEL_URL as string | undefined) || ""
+).replace(/\/$/, "");
 
 /**
  * Player chat / community group (not the announcement channel).
@@ -19,14 +24,18 @@ export const COMMUNITY_URL = (
 /** True when a real public/invite link is configured (not a placeholder). */
 export function isLiveTelegramUrl(url: string | undefined): boolean {
   if (!url) return false;
-  const u = url.toLowerCase();
+  const u = url.toLowerCase().trim();
   if (!u.startsWith("https://t.me/") && !u.startsWith("http://t.me/")) return false;
+  // Invite links (+hash) are fine for private groups
+  if (u.includes("t.me/+") || u.includes("joinchat/")) return true;
   return (
     !u.includes("your_") &&
     !u.includes("yourchannel") &&
     !u.includes("yourcommunity") &&
     !u.includes("example") &&
-    !u.includes("placeholder")
+    !u.includes("placeholder") &&
+    // Never treat empty username as live
+    /t\.me\/[a-zA-Z][a-zA-Z0-9_]{3,}/.test(u)
   );
 }
 

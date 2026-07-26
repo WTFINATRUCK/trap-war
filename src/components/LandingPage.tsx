@@ -21,6 +21,11 @@ const NAV: { id: SectionId; label: string }[] = [
  */
 export default function LandingPage() {
   const [active, setActive] = useState<SectionId>("home");
+  /** Live channel URL after /api/channel check (never a dead t.me username) */
+  const [channelHref, setChannelHref] = useState<string>(
+    isLiveTelegramUrl(CHANNEL_URL) ? CHANNEL_URL : "",
+  );
+  const [channelReady, setChannelReady] = useState(false);
 
   useEffect(() => {
     const ids = NAV.map((n) => n.id);
@@ -42,10 +47,35 @@ export default function LandingPage() {
     return () => obs.disconnect();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/channel", { signal: AbortSignal.timeout(4000) });
+        const data = (await res.json()) as { ok?: boolean; url?: string };
+        if (cancelled) return;
+        if (data.ok && data.url && isLiveTelegramUrl(data.url)) {
+          setChannelHref(data.url);
+        } else {
+          setChannelHref("");
+        }
+      } catch {
+        if (!cancelled && isLiveTelegramUrl(CHANNEL_URL)) setChannelHref(CHANNEL_URL);
+      } finally {
+        if (!cancelled) setChannelReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const scrollTo = (id: SectionId) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
     setActive(id);
   };
+
+  const hasChannel = Boolean(channelHref);
 
   return (
     <div className="site">
@@ -86,9 +116,15 @@ export default function LandingPage() {
           <a className="site-btn primary" href={BOT_LINK}>
             Play Now
           </a>
-          <a className="site-btn secondary" href={CHANNEL_URL} target="_blank" rel="noreferrer">
-            Join Channel
-          </a>
+          {hasChannel ? (
+            <a className="site-btn secondary" href={channelHref} target="_blank" rel="noreferrer">
+              Join Channel
+            </a>
+          ) : (
+            <a className="site-btn secondary" href={BOT_LINK}>
+              {channelReady ? "Open Bot · News via /channel" : "Join Channel…"}
+            </a>
+          )}
         </div>
         <p className="site-fine">Free private beta · no real money · open in Telegram</p>
 
@@ -262,13 +298,19 @@ export default function LandingPage() {
           </a>
           <ol className="site-play-steps">
             <li>Tap Play Now / open the bot</li>
-            <li>Press <strong>Play Trap War</strong> or send /play</li>
+            <li>
+              Press <strong>Play Trap War</strong> or send /play
+            </li>
             <li>Hit New Run and start hustling</li>
           </ol>
           <div className="site-play-links">
-            <a href={CHANNEL_URL} target="_blank" rel="noreferrer">
-              Join the channel
-            </a>
+            {hasChannel ? (
+              <a href={channelHref} target="_blank" rel="noreferrer">
+                Join the channel
+              </a>
+            ) : (
+              <a href={BOT_LINK}>Bot news · /channel</a>
+            )}
             {isLiveTelegramUrl(COMMUNITY_URL) && (
               <a href={COMMUNITY_URL} target="_blank" rel="noreferrer">
                 Community chat
@@ -285,14 +327,20 @@ export default function LandingPage() {
         <span className="site-logo muted">TRAP WAR</span>
         <div className="site-footer-links">
           <a href={BOT_LINK}>Bot</a>
-          <a href={CHANNEL_URL} target="_blank" rel="noreferrer">
-            Channel
-          </a>
+          {hasChannel ? (
+            <a href={channelHref} target="_blank" rel="noreferrer">
+              Channel
+            </a>
+          ) : (
+            <a href={BOT_LINK}>Channel (soon)</a>
+          )}
           <button type="button" onClick={() => scrollTo("guide")}>
             Guide
           </button>
         </div>
-        <p className="site-fine">© {new Date().getFullYear()} Trap War · Street fiction · Play on Telegram</p>
+        <p className="site-fine">
+          © {new Date().getFullYear()} Trap War · Street fiction · Play on Telegram
+        </p>
       </footer>
     </div>
   );
