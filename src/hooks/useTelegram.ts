@@ -13,8 +13,21 @@ export interface TelegramUser {
   isTelegram: boolean;
 }
 
+function isLocalDevHost(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname;
+  return host === "localhost" || host === "127.0.0.1";
+}
+
+/**
+ * Dev-only fake user. NEVER active on production domains
+ * (trap-war.com, vercel.app, etc.) — even with ?tg=.
+ */
 function devUserFromQuery(): TelegramUser | null {
+  if (import.meta.env.PROD) return null;
   if (typeof window === "undefined") return null;
+  if (!isLocalDevHost() && !import.meta.env.DEV) return null;
+
   const params = new URLSearchParams(window.location.search);
   const devId = params.get("tg");
   if (devId) {
@@ -23,8 +36,7 @@ function devUserFromQuery(): TelegramUser | null {
       return { id, username: "dev_player", firstName: "Dev", isTelegram: false };
     }
   }
-  const host = window.location.hostname;
-  if (host === "localhost" || host === "127.0.0.1") {
+  if (isLocalDevHost()) {
     return { id: 12345, username: "dev_player", firstName: "Dev", isTelegram: false };
   }
   return null;
@@ -32,14 +44,11 @@ function devUserFromQuery(): TelegramUser | null {
 
 function userFromTelegram(): TelegramUser | null {
   try {
-    // Prefer validated presence of initData (harder to spoof than initDataUnsafe alone)
     const hasInitData = Boolean(WebApp.initData && WebApp.initData.length > 0);
     const tgUser = WebApp.initDataUnsafe?.user;
     if (!tgUser?.id) return null;
-    if (!hasInitData && import.meta.env.PROD) {
-      // Production: require initData string for Telegram sessions
-      return null;
-    }
+    // Production Mini App: require signed initData
+    if (!hasInitData && import.meta.env.PROD) return null;
     return {
       id: tgUser.id,
       username: tgUser.username,
@@ -69,26 +78,19 @@ export function useTelegram() {
       // Outside Telegram
     }
 
-    const tgUser = devUserFromQuery() ?? userFromTelegram();
+    // Production browsers: only real Telegram sessions enter the game.
+    // Everyone else → LandingPage (no local/dev UI).
+    const tgUser = userFromTelegram() ?? devUserFromQuery();
     setUser(tgUser);
 
     if (tgUser) {
       try {
-        /**
-         * INVITE-ONLY attribution:
-         * - Telegram: only WebApp start_param (from invite deep link / startapp)
-         * - Dev: optional ?ref=TRAP-123 for local testing
-         * Spoofable free-form query is NOT accepted in Telegram sessions.
-         */
         const refCode = tgUser.isTelegram
           ? parseStartParam(WebApp.initDataUnsafe?.start_param)
           : readInvitePayloadFromTelegramOnly(false);
-
-        if (refCode) {
-          registerReferral(tgUser.id, refCode);
-        }
+        if (refCode) registerReferral(tgUser.id, refCode);
       } catch {
-        // optional
+        /* optional */
       }
     }
 

@@ -125,7 +125,7 @@ export default function TrapWarGame({
   const [careerRuns, setCareerRuns] = useState(runsCompleted);
   const streetWho = useMemo(() => streetNameFromId(String(telegramId)), [telegramId]);
   const myFirstSeen = useMemo(() => selfFirstSeenMs(telegramId), [telegramId]);
-  const { muted, toggleMute, sfx } = useGameAudio(gameState?.location);
+  const { muted, unlocked, toggleMute, enableSound, sfx } = useGameAudio(gameState?.location);
 
   useEffect(() => {
     setCareerRuns(runsCompleted);
@@ -651,24 +651,33 @@ export default function TrapWarGame({
         </>
       )}
 
-      {/* Hero stage — city-specific background grade */}
+      {/* Hero stage — city-specific background layers */}
       <div
         className="hero-stage"
         data-city={citySlug(g.location)}
+        key={`city-${citySlug(g.location)}`}
         style={{ ["--city-accent" as string]: cityVisual(g.location).accent } as CSSProperties}
       >
+        <div className="hero-city-bg" aria-hidden />
+        <div className="hero-city-wash" aria-hidden />
+        <div className="hero-city-vignette" aria-hidden />
         <button
           type="button"
-          className={`audio-mute-btn${muted ? " muted" : ""}`}
-          title={muted ? "Unmute street audio" : "Mute street audio"}
-          aria-label={muted ? "Unmute audio" : "Mute audio"}
+          className={`audio-mute-btn${muted || !unlocked ? " muted" : ""}`}
+          title={muted || !unlocked ? "Tap to enable street audio" : "Mute street audio"}
+          aria-label={muted || !unlocked ? "Enable audio" : "Mute audio"}
           onClick={() => {
-            toggleMute();
-            sfx("tap");
+            if (muted || !unlocked) enableSound();
+            else toggleMute();
           }}
         >
-          {muted ? "🔇" : "🔊"}
+          {muted || !unlocked ? "🔇" : "🔊"}
         </button>
+        {!unlocked && !muted && (
+          <button type="button" className="audio-nudge" onClick={() => enableSound()}>
+            Tap 🔊 for street sound
+          </button>
+        )}
         <div className="hud-top">
           <div className="hud-left">
             <div className="hud-day-block">

@@ -11837,31 +11837,35 @@ async function boot() {
   console.log(`  Mini App: ${webAppUrl}`);
   console.log("  Invites: ONLY via t.me/Bot?start=ref_TRAP-{id}");
 }
+var PLAYER_COMMANDS = [
+  { command: "play", description: "Play Trap War \u2014 open the game" },
+  { command: "start", description: "Welcome + Play button" },
+  { command: "guide", description: "How to play" },
+  { command: "crew", description: "Crew / invites" },
+  { command: "invite", description: "Your invite link" },
+  { command: "soon", description: "Roadmap / coming soon" },
+  { command: "help", description: "All commands" },
+  { command: "stats", description: "Players online" },
+  { command: "channel", description: "Official channel" },
+  { command: "community", description: "Community chat" },
+  { command: "chat", description: "Community chat (alias)" },
+  { command: "vault", description: "Vault info" }
+];
 async function configureBotPresentation() {
   try {
     await bot.telegram.setChatMenuButton({
       menuButton: { type: "commands" }
     });
-    console.log("  Menu button \u2192 Commands list");
+    console.log("  Menu button \u2192 Commands list (default scope)");
   } catch (e) {
     console.warn("  Could not set menu button:", e);
   }
   try {
-    await bot.telegram.setMyCommands([
-      { command: "play", description: "Play Trap War \u2014 open the game" },
-      { command: "start", description: "Welcome + Play button" },
-      { command: "guide", description: "How to play" },
-      { command: "crew", description: "Crew / invites" },
-      { command: "invite", description: "Your invite link" },
-      { command: "soon", description: "Roadmap / coming soon" },
-      { command: "help", description: "All commands" },
-      { command: "stats", description: "Players online" },
-      { command: "channel", description: "Official channel" },
-      { command: "community", description: "Community chat" },
-      { command: "chat", description: "Community chat (alias)" },
-      { command: "vault", description: "Vault info" }
-    ]);
-    console.log("  Commands list registered (Menu Button + / )");
+    await bot.telegram.setMyCommands([...PLAYER_COMMANDS]);
+    await bot.telegram.setMyCommands([...PLAYER_COMMANDS], {
+      scope: { type: "default" }
+    });
+    console.log("  Commands list registered (Menu + / )");
   } catch {
   }
 }

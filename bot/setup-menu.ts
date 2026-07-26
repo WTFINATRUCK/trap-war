@@ -38,9 +38,10 @@ async function main() {
   await bot.telegram.setChatMenuButton({
     menuButton: { type: "commands" },
   });
-  console.log("Menu button → Commands list (not Web App)");
-
   await bot.telegram.setMyCommands([...COMMANDS]);
+  await bot.telegram.setMyCommands([...COMMANDS], { scope: { type: "default" } });
+  await bot.telegram.setMyCommands([...COMMANDS], { scope: { type: "all_private_chats" } });
+  console.log("Menu button → Commands list (not Web App)");
   console.log(`Commands (${COMMANDS.length}):`);
   for (const c of COMMANDS) {
     console.log(`  /${c.command} — ${c.description}`);
