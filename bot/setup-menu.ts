@@ -1,11 +1,16 @@
 /**
- * One-shot: set menu button to Commands list + register bot commands.
+ * One-shot: register menu button + command list.
  * Usage: npx tsx bot/setup-menu.ts
  */
 import "dotenv/config";
 import { Telegraf } from "telegraf";
 
 const token = process.env.BOT_TOKEN?.trim();
+const webAppUrl = (
+  process.env.WEBAPP_URL ||
+  process.env.VITE_WEBAPP_URL ||
+  "https://www.trap-war.com"
+).replace(/\/$/, "");
 
 if (!token) {
   console.error("BOT_TOKEN missing");
@@ -17,7 +22,6 @@ const bot = new Telegraf(token);
 async function main() {
   const me = await bot.telegram.getMe();
 
-  const webAppUrl = (process.env.WEBAPP_URL || "").replace(/\/$/, "");
   if (webAppUrl.startsWith("https://")) {
     await bot.telegram.setChatMenuButton({
       menuButton: {
@@ -26,33 +30,30 @@ async function main() {
         web_app: { url: webAppUrl },
       },
     });
-    console.log(`Menu button → Play Mini App (${webAppUrl})`);
+    console.log(`Menu button → Play Trap War (${webAppUrl})`);
   } else {
     await bot.telegram.setChatMenuButton({
       menuButton: { type: "commands" },
     });
-    console.log("Menu button → Commands list (set HTTPS WEBAPP_URL for Play)");
+    console.log("Menu button → Commands list");
   }
 
   await bot.telegram.setMyCommands([
-    { command: "start", description: "Play Trap War" },
-    { command: "play", description: "Open Mini App" },
-    { command: "guide", description: "How to play (in-game)" },
-    { command: "soon", description: "Coming soon / roadmap" },
+    { command: "start", description: "Welcome + Play button" },
+    { command: "play", description: "Open the Mini App" },
+    { command: "guide", description: "How to play" },
+    { command: "help", description: "All commands" },
     { command: "invite", description: "Your invite link" },
-      { command: "crew", description: "Crew stats + invite" },
-      { command: "stats", description: "Total users & online now" },
-      { command: "channel", description: "Official channel (news)" },
-      { command: "community", description: "Player community chat" },
-      { command: "chat", description: "Player community chat" },
-      { command: "adminbots", description: "Admin bot stack (2–3 bots)" },
-      { command: "vault", description: "Protected vault" },
-      { command: "help", description: "Commands menu" },
-    ]);
+    { command: "crew", description: "Crew / invites list" },
+    { command: "stats", description: "Players online" },
+    { command: "channel", description: "Official channel" },
+    { command: "community", description: "Community chat" },
+    { command: "vault", description: "Vault info" },
+    { command: "soon", description: "Roadmap" },
+  ]);
 
   console.log(`OK @${me.username}`);
-  console.log("Menu button → Commands list (/start /play /guide /soon …)");
-  console.log(`Open: https://t.me/${me.username}`);
+  console.log("Type / in chat for command list · Menu button opens game");
   process.exit(0);
 }
 

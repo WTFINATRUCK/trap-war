@@ -39,22 +39,38 @@ import {
 import type { Context } from "telegraf";
 
 const token = process.env.BOT_TOKEN?.trim();
-const webAppUrl = (process.env.WEBAPP_URL || "").replace(/\/$/, "");
+/** Prefer www — apex trap-war.com SSL often broken until Cloudflare CNAME is fixed */
+const webAppUrl = (
+  process.env.WEBAPP_URL ||
+  process.env.VITE_WEBAPP_URL ||
+  "https://www.trap-war.com"
+).replace(/\/$/, "");
 const channelUrl = (process.env.CHANNEL_URL || "").replace(/\/$/, "");
 const channelId = process.env.CHANNEL_ID?.trim();
 const communityUrl = (process.env.COMMUNITY_URL || "").replace(/\/$/, "");
 const requireChannel = process.env.REQUIRE_CHANNEL === "true";
 const botUsername = (process.env.BOT_USERNAME || "TrapWarAppBot").replace(/^@/, "");
+/** Public HTTPS base for Telegram webhook (usually the Vercel project URL) */
+const webhookBase = (
+  process.env.WEBHOOK_URL ||
+  process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+  webAppUrl
+)
+  .replace(/\/$/, "")
+  .replace(/^http:\/\//, "https://");
+const webhookSecret = (process.env.WEBHOOK_SECRET || "").trim();
+
 if (!token) {
   console.error("Missing BOT_TOKEN. Copy .env.example → .env");
-  process.exit(1);
+  // Don't exit on Vercel import — handler will 500 if missing
+  if (!process.env.VERCEL) process.exit(1);
 }
 
 if (!webAppUrl || !webAppUrl.startsWith("https://")) {
   console.warn("⚠ WEBAPP_URL should be public HTTPS for Mini Apps.");
 }
 
-const bot = new Telegraf(token);
+export const bot = new Telegraf(token || "0:missing");
 
 // Track every interaction → total users + online (last 5 min)
 // New / returning players land on the street activity wire
@@ -589,9 +605,53 @@ async function boot() {
     /* optional */
   }
 
-  // Menu button opens the /commands list (not the Mini App)
+  await configureBotPresentation();
+
+  bot.catch((err, ctx) => {
+    console.error("Bot error on", ctx.updateType, err);
+    ctx.reply("Something glitched. Try /guide or /help again.").catch(() => undefined);
+  });
+
+  const useWebhook =
+    process.env.BOT_MODE === "webhook" ||
+    Boolean(process.env.VERCEL) ||
+    process.env.USE_WEBHOOK === "true";
+
+  if (useWebhook) {
+    // Webhook mode is handled by /api/telegram on Vercel — do not long-poll here
+    console.log("  Mode: webhook (configure via /api/telegram + setWebhook)");
+    console.log(`  Mini App: ${webAppUrl}`);
+    console.log("  Invites: ONLY via t.me/Bot?start=ref_TRAP-{id}");
+    return;
+  }
+
+  // Secure local API (initData HMAC) — bind localhost only (dev)
+  const apiPort = parseInt(process.env.API_PORT || "8787", 10);
+  if (Number.isFinite(apiPort) && apiPort > 0 && token) {
+    try {
+      const { startSecureApi } = await import("./api");
+      startSecureApi(token, apiPort);
+    } catch (e) {
+      console.warn("  Secure API not started:", e);
+    }
+  }
+
+  // Drop any leftover webhook so local polling works
   try {
-    // Mini App menu opens the live HTTPS game (Vercel / trapwar.com) — not laptop-local
+    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+  } catch {
+    /* ignore */
+  }
+
+  bot.launch({ dropPendingUpdates: true });
+  console.log("  Polling for updates…");
+  console.log(`  Mini App: ${webAppUrl}`);
+  console.log("  Invites: ONLY via t.me/Bot?start=ref_TRAP-{id}");
+}
+
+/** Menu button = Play game · slash commands = full list */
+export async function configureBotPresentation(): Promise<void> {
+  try {
     if (webAppUrl.startsWith("https://")) {
       await bot.telegram.setChatMenuButton({
         menuButton: {
@@ -600,62 +660,61 @@ async function boot() {
           web_app: { url: playUrl() },
         },
       });
-      console.log(`  Menu button set → Play Mini App (${webAppUrl})`);
+      console.log(`  Menu button → Play Trap War (${webAppUrl})`);
     } else {
       await bot.telegram.setChatMenuButton({
         menuButton: { type: "commands" },
       });
-      console.log("  Menu button set → Commands list (no HTTPS WEBAPP_URL)");
+      console.log("  Menu button → Commands (set HTTPS WEBAPP_URL for Play)");
     }
   } catch (e) {
     console.warn("  Could not set menu button:", e);
   }
 
   try {
+    // Shown when user types /  (clean command list)
     await bot.telegram.setMyCommands([
-      { command: "start", description: "Play Trap War" },
-      { command: "play", description: "Open Mini App" },
-      { command: "guide", description: "How to play (in-game)" },
-      { command: "soon", description: "Coming soon / roadmap" },
+      { command: "start", description: "Welcome + Play button" },
+      { command: "play", description: "Open the Mini App" },
+      { command: "guide", description: "How to play" },
+      { command: "help", description: "All commands" },
       { command: "invite", description: "Your invite link" },
-      { command: "crew", description: "Crew stats + invite" },
-      { command: "stats", description: "Total users & online now" },
-      { command: "channel", description: "Official channel (news)" },
-      { command: "community", description: "Player community chat" },
-      { command: "chat", description: "Player community chat" },
-      { command: "adminbots", description: "Admin bot stack (2–3 bots)" },
-      { command: "vault", description: "Protected vault" },
-      { command: "help", description: "Commands menu" },
+      { command: "crew", description: "Crew / invites list" },
+      { command: "stats", description: "Players online" },
+      { command: "channel", description: "Official channel" },
+      { command: "community", description: "Community chat" },
+      { command: "vault", description: "Vault info" },
+      { command: "soon", description: "Roadmap" },
     ]);
+    console.log("  Commands list registered (type / in chat)");
   } catch {
     /* optional */
   }
-
-  bot.catch((err, ctx) => {
-    console.error("Bot error on", ctx.updateType, err);
-    ctx.reply("Something glitched. Try /guide or /help again.").catch(() => undefined);
-  });
-
-  // Secure local API (initData HMAC) — bind localhost only
-  const apiPort = parseInt(process.env.API_PORT || "8787", 10);
-  if (Number.isFinite(apiPort) && apiPort > 0) {
-    try {
-      const { startSecureApi } = await import("./api");
-      startSecureApi(token!, apiPort);
-    } catch (e) {
-      console.warn("  Secure API not started:", e);
-    }
-  }
-
-  bot.launch({ dropPendingUpdates: true });
-  console.log("  Polling for updates…");
-  console.log("  Invites: ONLY via t.me/Bot?start=ref_TRAP-{id}");
 }
 
-boot().catch((e) => {
-  console.error("Bot failed to start:", e);
-  process.exit(1);
-});
+/** Register Telegram webhook for serverless (Vercel) */
+export async function setupWebhook(publicBaseUrl: string): Promise<void> {
+  const base = publicBaseUrl.replace(/\/$/, "").replace(/^http:\/\//, "https://");
+  const url = `${base}/api/telegram`;
+  await bot.telegram.setWebhook(url, {
+    drop_pending_updates: true,
+    secret_token: webhookSecret || undefined,
+  });
+  console.log(`  Webhook set → ${url}`);
+  await configureBotPresentation();
+}
 
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+// Only long-poll when run as `npm run bot` (not when imported by Vercel api/)
+const isDirectRun =
+  typeof process.argv[1] === "string" &&
+  (process.argv[1].includes("bot/index") || process.argv[1].includes("bot\\index"));
+
+if (isDirectRun && !process.env.VERCEL) {
+  boot().catch((e) => {
+    console.error("Bot failed to start:", e);
+    process.exit(1);
+  });
+
+  process.once("SIGINT", () => bot.stop("SIGINT"));
+  process.once("SIGTERM", () => bot.stop("SIGTERM"));
+}

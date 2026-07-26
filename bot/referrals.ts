@@ -8,7 +8,6 @@
  */
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import {
   inviteCodeForUser,
   isValidTelegramId,
@@ -16,9 +15,9 @@ import {
   sanitizeName,
   telegramIdFromInviteCode,
 } from "./security";
+import { dataDir } from "./paths";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, "..", "data");
+const DATA_DIR = dataDir();
 const FILE = path.join(DATA_DIR, "referrals.json");
 const MAX_INVITES_PER_ACCOUNT = 10_000;
 

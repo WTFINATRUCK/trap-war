@@ -4,11 +4,10 @@
  */
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import { isValidTelegramId, sanitizeName } from "./security";
+import { dataDir } from "./paths";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, "..", "data");
+const DATA_DIR = dataDir();
 const FILE = path.join(DATA_DIR, "users.json");
 
 /** Consider "online" if active within this window */
