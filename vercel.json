@@ -1,14 +1,8 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ],
-  "functions": {
-    "api/telegram.cjs": { "maxDuration": 30 },
-    "api/setup-webhook.cjs": { "maxDuration": 30 }
-  }
+  ]
 }
