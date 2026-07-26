@@ -120,6 +120,23 @@ export default function VaultPanel({ game, lastScore, walletConnected }: VaultPa
       <button type="button" className="action-button ton" disabled>
         {walletConnected ? "TON Connect — week 2" : "Connect TON Wallet"}
       </button>
+
+      <h2 style={{ marginTop: "1.5rem" }}>Coming Soon</h2>
+      <div className="client-row">
+        <strong>Week 2</strong> — TON Connect · real Pay-to-Earn · on-chain crew payouts
+      </div>
+      <div className="client-row">
+        <strong>Founder NFT</strong> — sponsored mint · evolves with rank & vault
+      </div>
+      <div className="client-row">
+        <strong>Channel</strong> — Word on the Street drops · NFT rush
+      </div>
+      <div className="client-row">
+        <strong>Later</strong> — Base / Aerodrome LP · leaderboards · crew wars
+      </div>
+      <p className="boost-idle" style={{ marginTop: "0.75rem" }}>
+        In Telegram bot: /guide (how to play) · /soon (roadmap)
+      </p>
     </>
   );
 }
