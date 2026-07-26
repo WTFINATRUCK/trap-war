@@ -46,5 +46,4 @@ vite.config.ts.timestamp-*
 .vercel
 .env*
 
-api/bot-bundle.cjs
 

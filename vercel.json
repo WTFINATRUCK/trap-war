@@ -8,13 +8,7 @@
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "functions": {
-    "api/telegram.ts": {
-      "maxDuration": 30,
-      "includeFiles": "bot/**"
-    },
-    "api/setup-webhook.ts": {
-      "maxDuration": 30,
-      "includeFiles": "bot/**"
-    }
+    "api/telegram.cjs": { "maxDuration": 30 },
+    "api/setup-webhook.cjs": { "maxDuration": 30 }
   }
 }

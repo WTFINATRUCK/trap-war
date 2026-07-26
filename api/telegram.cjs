@@ -1,22 +1,12 @@
 /**
- * Vercel serverless Telegram webhook — no laptop required.
+ * Vercel serverless Telegram webhook (CommonJS — reliable on Vercel).
  * POST https://trap-war-telegram.vercel.app/api/telegram
  */
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-// Bundled CommonJS bot (built in npm run build)
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const botMod = require("./bot-bundle.cjs") as {
-  bot: { handleUpdate: (u: unknown) => Promise<void> };
-  configureBotPresentation: () => Promise<void>;
-};
-
-export const config = {
-  maxDuration: 30,
-};
+const botMod = require("./bot-bundle.cjs");
 
 let warmed = false;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = async function handler(req, res) {
   if (req.method === "GET" || req.method === "HEAD") {
     res.status(200).send("Trap War bot webhook OK");
     return;
@@ -26,7 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const secret = process.env.WEBHOOK_SECRET?.trim();
+  const secret = (process.env.WEBHOOK_SECRET || "").trim();
   if (secret) {
     const header = req.headers["x-telegram-bot-api-secret-token"];
     if (header !== secret) {
@@ -44,6 +34,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(200).json({ ok: true });
   } catch (e) {
     console.error("telegram webhook error:", e);
-    res.status(200).json({ ok: false });
+    res.status(200).json({ ok: false, error: String(e && e.message ? e.message : e) });
   }
-}
+};
