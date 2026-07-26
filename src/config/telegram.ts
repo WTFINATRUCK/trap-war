@@ -3,7 +3,7 @@
 export const BOT_USERNAME = (import.meta.env.VITE_BOT_USERNAME as string | undefined)?.replace(
   /^@/,
   ""
-) || "TrapWarBot";
+) || "TrapWarAppBot";
 
 export const CHANNEL_URL =
   (import.meta.env.VITE_CHANNEL_URL as string | undefined) || "https://t.me/TrapWarOfficial";

@@ -210,12 +210,13 @@ function helpText() {
   );
 }
 
-bot.launch().then(async () => {
+async function boot() {
   const me = await bot.telegram.getMe();
   console.log(`Trap War bot online as @${me.username}`);
   console.log(`  WEBAPP_URL:  ${webAppUrl || "(not set)"}`);
   console.log(`  CHANNEL_URL: ${channelUrl || "(not set)"}`);
   console.log(`  REQUIRE_CHANNEL: ${requireChannel}`);
+  console.log(`  Open: https://t.me/${me.username}`);
 
   // Menu button (bottom-left in chat) → Mini App
   if (webAppUrl.startsWith("https://")) {
@@ -245,6 +246,15 @@ bot.launch().then(async () => {
   } catch {
     /* optional */
   }
+
+  // launch() promise resolves only when the bot stops — do not await setup after it
+  bot.launch({ dropPendingUpdates: true });
+  console.log("  Polling for updates…");
+}
+
+boot().catch((e) => {
+  console.error("Bot failed to start:", e);
+  process.exit(1);
 });
 
 process.once("SIGINT", () => bot.stop("SIGINT"));
