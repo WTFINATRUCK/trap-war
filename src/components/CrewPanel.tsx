@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getReferralStats } from "@/lib/referral";
 import { BOT_USERNAME, CHANNEL_URL, telegramShareLink } from "@/config/telegram";
 import type { CloudSave } from "@/types/cloudSave";
@@ -6,13 +6,23 @@ import type { CloudSave } from "@/types/cloudSave";
 interface CrewPanelProps {
   telegramId: number;
   cloudSave: CloudSave | null;
+  onInviteCountChange?: (count: number) => void;
 }
 
-export default function CrewPanel({ telegramId, cloudSave }: CrewPanelProps) {
+export default function CrewPanel({ telegramId, cloudSave, onInviteCountChange }: CrewPanelProps) {
+  const [tick, setTick] = useState(0);
   const stats = getReferralStats(telegramId, cloudSave);
   const link = stats.inviteLink;
   const shareHref = telegramShareLink(link);
   const [copied, setCopied] = useState(false);
+
+  // Re-read counter when panel opens / save updates
+  useEffect(() => {
+    setTick((t) => t + 1);
+    onInviteCountChange?.(stats.inviteCount);
+  }, [telegramId, cloudSave?.inviteCount, cloudSave?.updatedAt, stats.inviteCount, onInviteCountChange]);
+
+  void tick;
 
   const copyLink = async () => {
     try {
@@ -47,10 +57,20 @@ export default function CrewPanel({ telegramId, cloudSave }: CrewPanelProps) {
         Share your invite. You earn 0.3% daily on crew yield + 5% when they finish day 30.
       </p>
 
+      {/* Big invite counter for this account */}
+      <div className="invite-counter">
+        <div className="invite-counter-label">Your invites</div>
+        <div className="invite-counter-value">{stats.inviteCount}</div>
+        <div className="invite-counter-sub">
+          accounts joined with your link
+          {stats.activeReferrals > 0 ? ` · ${stats.activeReferrals} active` : ""}
+        </div>
+      </div>
+
       <div className="stat-grid">
         <div className="stat-card">
-          <div className="label">Total Crew</div>
-          <div className="value">{stats.totalReferrals}</div>
+          <div className="label">Total Invites</div>
+          <div className="value">{stats.inviteCount}</div>
         </div>
         <div className="stat-card">
           <div className="label">Active</div>
@@ -122,9 +142,19 @@ export default function CrewPanel({ telegramId, cloudSave }: CrewPanelProps) {
       </a>
 
       <p className="boost-idle" style={{ marginTop: "1rem", fontSize: "0.72rem" }}>
-        Link opens @{BOT_USERNAME} and tags them to your crew.
-        Also works from bot command /invite.
+        Each account has its own counter. Link opens @{BOT_USERNAME} and tags them to you.
+        Live count also on bot: /invite
       </p>
+
+      {stats.invitedIds.length > 0 && (
+        <>
+          <h2 style={{ marginTop: "1.25rem" }}>Your crew IDs</h2>
+          <div className="ref-link-box" style={{ fontSize: "0.7rem" }}>
+            {stats.invitedIds.slice(0, 20).join(", ")}
+            {stats.invitedIds.length > 20 ? ` … +${stats.invitedIds.length - 20} more` : ""}
+          </div>
+        </>
+      )}
 
       {stats.referredBy && (
         <p className="boost-idle" style={{ marginTop: "0.5rem", textAlign: "center" }}>

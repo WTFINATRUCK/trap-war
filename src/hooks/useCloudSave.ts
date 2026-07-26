@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import type { CloudSave } from "@/types/cloudSave";
 import type { GameState } from "@/lib/game/types";
-import { generateReferralCode, getReferralData } from "@/lib/referral";
+import {
+  applyInviteCountToCloudSave,
+  generateReferralCode,
+  getReferralData,
+} from "@/lib/referral";
 import type { TelegramUser } from "./useTelegram";
 
 const CLOUD_KEY = "game_v1";
@@ -111,6 +115,8 @@ export function createEmptySave(user: TelegramUser): CloudSave {
     firstName: user.firstName,
     referralCode: ref.referralCode,
     referredBy: ref.referredBy ?? undefined,
+    inviteCount: ref.inviteCount,
+    invitedIds: ref.referrals,
     game: null,
     referralPending: { queuedDrip: 0 },
     updatedAt: Date.now(),
@@ -144,6 +150,10 @@ export function useCloudSave(user: TelegramUser | null) {
       if (!loaded) loaded = readLocal(user.id);
       if (!loaded) loaded = createEmptySave(user);
 
+      // Always refresh invite counter for this account
+      loaded = applyInviteCountToCloudSave(loaded);
+      writeLocal(loaded);
+
       if (!cancelled) {
         setSave(loaded);
         setLoading(false);
@@ -161,10 +171,10 @@ export function useCloudSave(user: TelegramUser | null) {
   }, [user?.id]);
 
   const persist = useCallback(async (next: CloudSave) => {
-    const withMeta = { ...next, updatedAt: Date.now() };
-    setSave(withMeta);
-    writeLocal(withMeta);
-    await cloudSetItem(JSON.stringify(withMeta));
+    const synced = applyInviteCountToCloudSave({ ...next, updatedAt: Date.now() });
+    setSave(synced);
+    writeLocal(synced);
+    await cloudSetItem(JSON.stringify(synced));
   }, []);
 
   const saveGame = useCallback(
@@ -181,6 +191,8 @@ export function useCloudSave(user: TelegramUser | null) {
     const next = createEmptySave(user);
     next.referralCode = save?.referralCode ?? generateReferralCode(user.id);
     next.referredBy = save?.referredBy;
+    next.inviteCount = save?.inviteCount ?? 0;
+    next.invitedIds = save?.invitedIds ?? [];
     await persist(next);
   }, [user, save, persist]);
 

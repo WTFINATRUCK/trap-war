@@ -10,7 +10,7 @@ type Tab = "game" | "crew" | "vault";
 
 export default function App() {
   const { user, ready } = useTelegram();
-  const { save, loading, saveGame } = useCloudSave(user);
+  const { save, loading, saveGame, persist } = useCloudSave(user);
   const [tab, setTab] = useState<Tab>("game");
   const [score, setScore] = useState(0);
   const [hideChannelBanner, setHideChannelBanner] = useState(false);
@@ -49,6 +49,7 @@ export default function App() {
   }
 
   const cash = save?.game?.cash ?? 500;
+  const invites = save?.inviteCount ?? 0;
 
   return (
     <div className="telegram-shell">
@@ -56,9 +57,23 @@ export default function App() {
         <div id="game-container">
           <header className="app-header">
             <h1>TRAP WAR</h1>
-            <div className="cash-pill">
-              <span className="cash-icon">$</span>
-              {cash.toLocaleString()}
+            <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+              <button
+                type="button"
+                className="cash-pill"
+                style={{ cursor: "pointer", border: "1px solid var(--border-strong)" }}
+                title="Your invite count — open CREW"
+                onClick={() => setTab("crew")}
+              >
+                <span className="cash-icon" style={{ background: "linear-gradient(145deg,#c084fc,#7c3aed)" }}>
+                  ↗
+                </span>
+                {invites}
+              </button>
+              <div className="cash-pill">
+                <span className="cash-icon">$</span>
+                {cash.toLocaleString()}
+              </div>
             </div>
           </header>
           <div className="user-tag">
@@ -106,7 +121,15 @@ export default function App() {
           )}
           {tab === "crew" && (
             <div className="side-panel">
-              <CrewPanel telegramId={user.id} cloudSave={save} />
+              <CrewPanel
+                telegramId={user.id}
+                cloudSave={save}
+                onInviteCountChange={(count) => {
+                  if (save && (save.inviteCount ?? 0) !== count) {
+                    void persist({ ...save, inviteCount: count });
+                  }
+                }}
+              />
             </div>
           )}
           {tab === "vault" && (

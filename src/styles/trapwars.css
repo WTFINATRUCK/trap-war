@@ -1210,6 +1210,41 @@ body {
   font-family: var(--mono);
 }
 
+.invite-counter {
+  text-align: center;
+  padding: 1.15rem 1rem;
+  margin: 0.85rem 0 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 30%, rgba(168, 85, 247, 0.22), transparent 65%),
+    rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 24px rgba(168, 85, 247, 0.15);
+}
+
+.invite-counter-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.invite-counter-value {
+  font-size: 3rem;
+  font-weight: 800;
+  font-family: var(--mono);
+  color: #fff;
+  line-height: 1.1;
+  margin: 0.25rem 0;
+  text-shadow: 0 0 24px var(--purple-glow);
+}
+
+.invite-counter-sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 .boost-idle {
   font-size: 0.8rem;
   color: var(--muted);

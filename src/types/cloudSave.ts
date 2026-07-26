@@ -7,6 +7,10 @@ export interface CloudSave {
   firstName?: string;
   referralCode: string;
   referredBy?: string;
+  /** How many accounts this user has invited */
+  inviteCount?: number;
+  /** Telegram IDs (string) of invited users */
+  invitedIds?: string[];
   game: GameState | null;
   referralPending: {
     queuedDrip: number;

@@ -133,7 +133,8 @@ bot.start(async (ctx) => {
       const ok = attributeReferral(userId, refCode);
       if (ok) {
         await ctx.reply(
-          "🤝 *Crew linked!* You're riding with a referrer.\nEverybody Eats when you hustle.",
+          "🤝 *Crew linked!* You're riding with a referrer.\n" +
+            "Their *invite counter* just went up. Everybody Eats when you hustle.",
           { parse_mode: "Markdown" }
         );
       }
@@ -172,8 +173,13 @@ bot.start(async (ctx) => {
 
   if (userId) {
     const link = inviteLink(botUsername, userId);
+    const stats = crewStats(userId);
     await ctx.reply(
-      `🔗 *Your invite link*\n\n\`${link}\`\n\nShare it — you earn when they hustle.\n\nRoadmap → /soon`,
+      `🔗 *Your invite*\n\n` +
+        `📊 *Invites: ${stats.total}*\n\n` +
+        `\`${link}\`\n\n` +
+        `Share it — counter goes up for *your* account when they join.\n` +
+        `/crew for full list · Roadmap → /soon`,
       {
         parse_mode: "Markdown",
         ...Markup.inlineKeyboard([
@@ -229,10 +235,11 @@ bot.command("invite", async (ctx) => {
   const stats = crewStats(userId);
   await ctx.reply(
     `🔗 *Your Trap War invite*\n\n` +
+      `📊 *Invites: ${stats.total}*\n` +
+      `(accounts that joined with your link)\n\n` +
       `\`${link}\`\n\n` +
-      `Code: \`${stats.code}\`\n` +
-      `Crew joined: *${stats.total}*\n\n` +
-      `Anyone who opens this link is linked to you. Everybody Eats.`,
+      `Code: \`${stats.code}\`\n\n` +
+      `Anyone who opens this link is linked to *your* account. Everybody Eats.`,
     {
       parse_mode: "Markdown",
       ...Markup.inlineKeyboard([
@@ -272,12 +279,27 @@ bot.command("crew", async (ctx) => {
   if (!userId) return;
   const link = inviteLink(botUsername, userId);
   const stats = crewStats(userId);
+  const list =
+    stats.invites.length === 0
+      ? "_No invites yet — share your link._"
+      : stats.invites
+          .slice(-10)
+          .reverse()
+          .map((r, i) => {
+            const name = r.firstName || r.username || r.userId;
+            return `${i + 1}. ${name}`;
+          })
+          .join("\n") +
+        (stats.total > 10 ? `\n_…+${stats.total - 10} more_` : "");
+
   await ctx.reply(
     "🤝 *Everybody Eats*\n\n" +
-      `Your invite:\n\`${link}\`\n\n` +
-      `Code: \`${stats.code}\` · Crew: *${stats.total}*\n\n` +
-      "Share the link. You earn *0.3%* daily on crew yield + *5%* when they finish a run.\n\n" +
-      "In-game: open Mini App → *CREW* tab.",
+      `📊 *Your invite count: ${stats.total}*\n\n` +
+      `Your link:\n\`${link}\`\n\n` +
+      `Code: \`${stats.code}\`\n\n` +
+      `*Recent joins*\n${list}\n\n` +
+      "Earn *0.3%* daily on crew yield + *5%* when they finish a run.\n" +
+      "In-game: Mini App → *CREW* tab.",
     {
       parse_mode: "Markdown",
       ...Markup.inlineKeyboard([
@@ -348,7 +370,7 @@ bot.action("my_invite", async (ctx) => {
   const link = inviteLink(botUsername, userId);
   const stats = crewStats(userId);
   await ctx.reply(
-    `🔗 *Invite link*\n\n\`${link}\`\n\nCode: \`${stats.code}\` · Crew: *${stats.total}*`,
+    `🔗 *Invite link*\n\n📊 *Invites: ${stats.total}*\n\n\`${link}\`\n\nCode: \`${stats.code}\``,
     {
       parse_mode: "Markdown",
       ...Markup.inlineKeyboard([[Markup.button.url("📤 Share invite", shareUrl(link))]]),
