@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import WebApp from "@twa-dev/sdk";
-import { parseStartParam, readInvitePayloadFromWindow, registerReferral } from "@/lib/referral";
+import {
+  parseStartParam,
+  readInvitePayloadFromTelegramOnly,
+  registerReferral,
+} from "@/lib/referral";
 
 export interface TelegramUser {
   id: number;
@@ -15,7 +19,7 @@ function devUserFromQuery(): TelegramUser | null {
   const devId = params.get("tg");
   if (devId) {
     const id = parseInt(devId, 10);
-    if (!Number.isNaN(id)) {
+    if (!Number.isNaN(id) && id > 0) {
       return { id, username: "dev_player", firstName: "Dev", isTelegram: false };
     }
   }
@@ -28,8 +32,14 @@ function devUserFromQuery(): TelegramUser | null {
 
 function userFromTelegram(): TelegramUser | null {
   try {
+    // Prefer validated presence of initData (harder to spoof than initDataUnsafe alone)
+    const hasInitData = Boolean(WebApp.initData && WebApp.initData.length > 0);
     const tgUser = WebApp.initDataUnsafe?.user;
     if (!tgUser?.id) return null;
+    if (!hasInitData && import.meta.env.PROD) {
+      // Production: require initData string for Telegram sessions
+      return null;
+    }
     return {
       id: tgUser.id,
       username: tgUser.username,
@@ -53,7 +63,7 @@ export function useTelegram() {
         WebApp.setHeaderColor("#07060c");
         WebApp.setBackgroundColor("#07060c");
       } catch {
-        /* optional theme */
+        /* optional */
       }
     } catch {
       // Outside Telegram
@@ -64,10 +74,19 @@ export function useTelegram() {
 
     if (tgUser) {
       try {
-        const fromSdk = parseStartParam(WebApp.initDataUnsafe?.start_param);
-        const fromUrl = readInvitePayloadFromWindow();
-        const refCode = fromSdk || fromUrl;
-        if (refCode) registerReferral(tgUser.id, refCode);
+        /**
+         * INVITE-ONLY attribution:
+         * - Telegram: only WebApp start_param (from invite deep link / startapp)
+         * - Dev: optional ?ref=TRAP-123 for local testing
+         * Spoofable free-form query is NOT accepted in Telegram sessions.
+         */
+        const refCode = tgUser.isTelegram
+          ? parseStartParam(WebApp.initDataUnsafe?.start_param)
+          : readInvitePayloadFromTelegramOnly(false);
+
+        if (refCode) {
+          registerReferral(tgUser.id, refCode);
+        }
       } catch {
         // optional
       }

@@ -1,3 +1,12 @@
+/**
+ * Client-side invite helpers.
+ *
+ * SECURITY:
+ * - Invite codes must be TRAP-{telegramId} from official invite links only.
+ * - Mini App must NOT attribute referrals from spoofable URL query (?ref=).
+ * - Production attribution is bot-side via Telegram /start deep link.
+ * - Client only mirrors count for display; bot file store is source of truth.
+ */
 import type { CloudSave } from "@/types/cloudSave";
 import { BOT_USERNAME, crewInviteLink } from "@/config/telegram";
 
@@ -10,12 +19,13 @@ export interface ReferralData {
   referrals: string[];
   totalEarnings: number;
   pendingDrip: number;
-  /** Explicit invite counter for this account */
   inviteCount: number;
 }
 
-/** Reversible: TRAP-{telegramId} */
 export function generateReferralCode(telegramId: number): string {
+  if (!Number.isInteger(telegramId) || telegramId <= 0) {
+    throw new Error("invalid telegram id");
+  }
   return `TRAP-${telegramId}`;
 }
 
@@ -23,7 +33,28 @@ export function telegramIdFromCode(code: string): number | null {
   const m = code.toUpperCase().replace(/^REF_/, "").match(/^TRAP-(\d+)$/);
   if (!m) return null;
   const n = parseInt(m[1], 10);
-  return Number.isFinite(n) ? n : null;
+  if (!Number.isInteger(n) || n <= 0) return null;
+  return n;
+}
+
+/** Official invite payload only: ref_TRAP-123 or TRAP-123 from Telegram start_param */
+export function parseStartParam(startParam?: string | null): string | null {
+  if (!startParam) return null;
+  let raw = String(startParam).trim();
+  try {
+    raw = decodeURIComponent(raw);
+  } catch {
+    /* keep raw */
+  }
+  // Accept start_param as TRAP-123 (Telegram sometimes strips ref_ into start_param)
+  // or ref_TRAP-123 from deep links
+  if (/^ref_TRAP-\d+$/i.test(raw)) {
+    return raw.replace(/^ref_/i, "").toUpperCase();
+  }
+  if (/^TRAP-\d+$/i.test(raw)) {
+    return raw.toUpperCase();
+  }
+  return null;
 }
 
 function loadLedger(): Record<string, string[]> {
@@ -61,15 +92,9 @@ export function getReferralData(telegramId: number): ReferralData {
 
   if (stored) {
     const data = JSON.parse(stored) as ReferralData;
-    // Migrate old codes to reversible form
-    if (data.referralCode !== code) {
-      data.referralCode = code;
-    }
-    if (typeof data.inviteCount !== "number") {
-      data.inviteCount = data.referrals?.length ?? 0;
-    }
+    if (data.referralCode !== code) data.referralCode = code;
+    if (typeof data.inviteCount !== "number") data.inviteCount = data.referrals?.length ?? 0;
     if (!Array.isArray(data.referrals)) data.referrals = [];
-    // Merge ledger
     const ledger = loadLedger()[String(telegramId)] || [];
     for (const id of ledger) {
       if (!data.referrals.includes(id)) data.referrals.push(id);
@@ -97,35 +122,26 @@ export function saveReferralData(telegramId: number, data: ReferralData): void {
   localStorage.setItem(`${SAVE_PREFIX}${telegramId}`, JSON.stringify(data));
 }
 
+/**
+ * Client-side mirror only. Call ONLY with code from Telegram start_param
+ * (invite link). Do not call with arbitrary user input.
+ */
 export function registerReferral(newUserId: number, referrerCode: string): boolean {
   const code = referrerCode.toUpperCase().replace(/^REF_/, "");
+  // Invite-only format
+  if (!/^TRAP-\d+$/.test(code)) return false;
+
   const referrerId = telegramIdFromCode(code);
+  if (referrerId === null || referrerId === newUserId) return false;
 
-  if (referrerId === newUserId) return false;
+  bumpLedger(referrerId, newUserId);
 
-  // Always bump global ledger for this referrer id when resolvable
-  if (referrerId !== null) {
-    bumpLedger(referrerId, newUserId);
+  const referrerData = getReferralData(referrerId);
+  if (!referrerData.referrals.includes(String(newUserId))) {
+    referrerData.referrals.push(String(newUserId));
   }
-
-  // Update referrer's local data if present or create skeleton for counter
-  if (referrerId !== null) {
-    const referrerData = getReferralData(referrerId);
-    if (!referrerData.referrals.includes(String(newUserId))) {
-      referrerData.referrals.push(String(newUserId));
-    }
-    referrerData.inviteCount = Math.max(referrerData.inviteCount, referrerData.referrals.length);
-    saveReferralData(referrerId, referrerData);
-  } else {
-    // Legacy non-reversible code: only mark invitee
-    const newUserData = getReferralData(newUserId);
-    if (!newUserData.referredBy) {
-      newUserData.referredBy = code;
-      saveReferralData(newUserId, newUserData);
-      return true;
-    }
-    return false;
-  }
+  referrerData.inviteCount = Math.max(referrerData.inviteCount, referrerData.referrals.length);
+  saveReferralData(referrerId, referrerData);
 
   const newUserData = getReferralData(newUserId);
   if (newUserData.referredBy) return false;
@@ -134,33 +150,36 @@ export function registerReferral(newUserId: number, referrerCode: string): boole
   return true;
 }
 
-export function parseStartParam(startParam?: string | null): string | null {
-  if (!startParam) return null;
-  const raw = decodeURIComponent(String(startParam)).trim();
-  if (raw.toLowerCase().startsWith("ref_")) return raw.slice(4).toUpperCase();
-  if (raw.toUpperCase().startsWith("TRAP-")) return raw.toUpperCase();
-  return null;
-}
-
-export function readInvitePayloadFromWindow(): string | null {
+/**
+ * Only Telegram start_param (from invite deep link).
+ * Does NOT read spoofable ?ref= query in production Telegram sessions.
+ */
+export function readInvitePayloadFromTelegramOnly(isTelegram: boolean): string | null {
   if (typeof window === "undefined") return null;
 
   try {
     const w = window as unknown as {
-      Telegram?: { WebApp?: { initDataUnsafe?: { start_param?: string } } };
+      Telegram?: { WebApp?: { initDataUnsafe?: { start_param?: string }; initData?: string } };
     };
-    const fromTg = parseStartParam(w.Telegram?.WebApp?.initDataUnsafe?.start_param);
+    const startParam = w.Telegram?.WebApp?.initDataUnsafe?.start_param;
+    const fromTg = parseStartParam(startParam);
     if (fromTg) return fromTg;
   } catch {
     /* ignore */
   }
 
-  const params = new URLSearchParams(window.location.search);
-  for (const key of ["tgWebAppStartParam", "startapp", "startApp", "ref", "start"]) {
-    const v = parseStartParam(params.get(key));
-    if (v) return v;
+  // Dev-only: allow explicit ?ref=TRAP-123 for local testing
+  if (!isTelegram) {
+    const params = new URLSearchParams(window.location.search);
+    return parseStartParam(params.get("ref"));
   }
+
   return null;
+}
+
+/** @deprecated use readInvitePayloadFromTelegramOnly */
+export function readInvitePayloadFromWindow(): string | null {
+  return readInvitePayloadFromTelegramOnly(false);
 }
 
 export function getReferralLink(referralCode: string, botUsername = BOT_USERNAME): string {
@@ -168,7 +187,6 @@ export function getReferralLink(referralCode: string, botUsername = BOT_USERNAME
   return crewInviteLink(referralCode);
 }
 
-/** Sync invite counter into cloud save for this account */
 export function applyInviteCountToCloudSave(cloud: CloudSave): CloudSave {
   const data = getReferralData(cloud.telegramId);
   const count = Math.max(data.inviteCount, data.referrals.length, cloud.inviteCount ?? 0);
@@ -190,7 +208,6 @@ export function getReferralStats(telegramId: number, cloudSave?: CloudSave | nul
   const mergedIds = new Set<string>([...data.referrals, ...ledger, ...cloudIds]);
   const totalInvites = Math.max(data.inviteCount, mergedIds.size, cloudCount);
 
-  // Persist merged counter for this account
   if (totalInvites !== data.inviteCount || mergedIds.size !== data.referrals.length) {
     data.referrals = Array.from(mergedIds);
     data.inviteCount = totalInvites;

@@ -18,9 +18,12 @@ import {
   WELCOME,
   comingSoonText,
   helpMenuText,
+  howToPlayPart1,
+  howToPlayPart2,
+  howToPlayPlainParts,
   howToPlayShort,
-  howToPlayText,
 } from "./messages";
+import type { Context } from "telegraf";
 
 const token = process.env.BOT_TOKEN?.trim();
 const webAppUrl = (process.env.WEBAPP_URL || "").replace(/\/$/, "");
@@ -39,6 +42,40 @@ if (!webAppUrl || !webAppUrl.startsWith("https://")) {
 }
 
 const bot = new Telegraf(token);
+
+/** HTML first; plain text fallback if Telegram rejects formatting */
+async function safeReply(
+  ctx: Context,
+  text: string,
+  extra: Record<string, unknown> = {}
+): Promise<void> {
+  try {
+    await ctx.reply(text, { ...extra, parse_mode: "HTML" });
+  } catch (err) {
+    console.warn("HTML reply failed, plain text:", err);
+    const plain = text
+      .replace(/<\/?b>/gi, "")
+      .replace(/<\/?i>/gi, "")
+      .replace(/<\/?code>/gi, "")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&");
+    await ctx.reply(plain, extra);
+  }
+}
+
+async function sendGuide(ctx: Context): Promise<void> {
+  try {
+    await safeReply(ctx, howToPlayPart1(), guideKeyboard());
+    await safeReply(ctx, howToPlayPart2(), guideKeyboard());
+  } catch (err) {
+    console.error("sendGuide failed:", err);
+    const parts = howToPlayPlainParts();
+    for (const p of parts) {
+      await ctx.reply(p, guideKeyboard());
+    }
+  }
+}
 
 function playUrl(startPayload?: string): string {
   const base = webAppUrl || "https://example.com";
@@ -127,16 +164,28 @@ bot.start(async (ctx) => {
   const payload = ctx.startPayload || undefined;
   const userId = ctx.from?.id;
 
+  // INVITE-ONLY: attribute solely from Telegram deep link ?start=ref_TRAP-{id}
+  // (ctx.startPayload is set only by official invite links, not free chat text)
   if (userId && payload) {
     const refCode = parseRefPayload(payload);
     if (refCode) {
-      const ok = attributeReferral(userId, refCode);
-      if (ok) {
-        await ctx.reply(
-          "🤝 *Crew linked!* You're riding with a referrer.\n" +
-            "Their *invite counter* just went up. Everybody Eats when you hustle.",
-          { parse_mode: "Markdown" }
+      const result = attributeReferral(userId, refCode, {
+        username: ctx.from?.username,
+        firstName: ctx.from?.first_name,
+      });
+      if (result.ok) {
+        await safeReply(
+          ctx,
+          "🤝 <b>Crew linked via invite link!</b>\n" +
+            `Their invite counter is now <b>${result.total}</b>.\n` +
+            "Everybody Eats when you hustle."
         );
+      } else if (result.reason === "self_invite") {
+        await safeReply(ctx, "You can't invite yourself.");
+      } else if (result.reason === "already_attributed") {
+        // Silent — already in a crew
+      } else if (result.reason === "invalid_invite_code") {
+        await safeReply(ctx, "That invite link is invalid. Ask your friend for a fresh /invite link.");
       }
     }
   }
@@ -146,49 +195,37 @@ bot.start(async (ctx) => {
   if (requireChannel && channelId && userId) {
     const inCh = await isInChannel(userId);
     if (inCh === false) {
-      await ctx.reply(
-        "📢 *Join the Trap War channel first*, then hit Play.",
-        {
-          parse_mode: "Markdown",
-          ...Markup.inlineKeyboard([
-            ...(channelUrl ? [[Markup.button.url("Join Channel", channelUrl)]] : []),
-            [Markup.button.callback("✅ I joined — check", "check_channel")],
-          ]),
-        }
+      await safeReply(
+        ctx,
+        "📢 <b>Join the Trap War channel first</b>, then hit Play.",
+        Markup.inlineKeyboard([
+          ...(channelUrl ? [[Markup.button.url("Join Channel", channelUrl)]] : []),
+          [Markup.button.callback("✅ I joined — check", "check_channel")],
+        ])
       );
       return;
     }
   }
 
-  await ctx.reply(WELCOME, {
-    parse_mode: "Markdown",
-    ...mainKeyboard(payload, userId),
-  });
-
-  // Short guide blurb right after welcome
-  await ctx.reply(howToPlayShort(), {
-    parse_mode: "Markdown",
-    ...guideKeyboard(),
-  });
+  await safeReply(ctx, WELCOME, mainKeyboard(payload, userId));
+  await safeReply(ctx, howToPlayShort(), guideKeyboard());
 
   if (userId) {
     const link = inviteLink(botUsername, userId);
     const stats = crewStats(userId);
-    await ctx.reply(
-      `🔗 *Your invite*\n\n` +
-        `📊 *Invites: ${stats.total}*\n\n` +
-        `\`${link}\`\n\n` +
-        `Share it — counter goes up for *your* account when they join.\n` +
+    await safeReply(
+      ctx,
+      `🔗 <b>Your invite</b>\n\n` +
+        `📊 <b>Invites: ${stats.total}</b>\n\n` +
+        `<code>${link}</code>\n\n` +
+        `Share it — counter goes up for <b>your</b> account when they join.\n` +
         `/crew for full list · Roadmap → /soon`,
-      {
-        parse_mode: "Markdown",
-        ...Markup.inlineKeyboard([
-          [Markup.button.url("📤 Share to Telegram", shareUrl(link))],
-          ...(webAppUrl.startsWith("https://")
-            ? [[Markup.button.webApp("▶️ Play Trap War", playUrl(payload))]]
-            : []),
-        ]),
-      }
+      Markup.inlineKeyboard([
+        [Markup.button.url("📤 Share to Telegram", shareUrl(link))],
+        ...(webAppUrl.startsWith("https://")
+          ? [[Markup.button.webApp("▶️ Play Trap War", playUrl(payload))]]
+          : []),
+      ])
     );
   }
 });
@@ -198,34 +235,28 @@ bot.command("play", async (ctx) => {
     await ctx.reply("Mini App URL not configured. Set WEBAPP_URL (HTTPS).");
     return;
   }
-  await ctx.reply(
-    "▶️ *Open the hustle*\n\nNew to the game? Read /guide first.",
-    {
-      parse_mode: "Markdown",
-      ...mainKeyboard(undefined, ctx.from?.id),
-    }
+  await safeReply(
+    ctx,
+    "▶️ <b>Open the hustle</b>\n\nNew to the game? Send /guide first.",
+    mainKeyboard(undefined, ctx.from?.id)
   );
 });
 
 bot.command("guide", async (ctx) => {
-  await ctx.reply(howToPlayText(), {
-    parse_mode: "Markdown",
-    ...guideKeyboard(),
-  });
+  try {
+    await ctx.reply("📖 Sending the full how-to-play guide…");
+  } catch {
+    /* ignore */
+  }
+  await sendGuide(ctx);
 });
 
 bot.command("soon", async (ctx) => {
-  await ctx.reply(comingSoonText(), {
-    parse_mode: "Markdown",
-    ...soonKeyboard(),
-  });
+  await safeReply(ctx, comingSoonText(), soonKeyboard());
 });
 
 bot.command("roadmap", async (ctx) => {
-  await ctx.reply(comingSoonText(), {
-    parse_mode: "Markdown",
-    ...soonKeyboard(),
-  });
+  await safeReply(ctx, comingSoonText(), soonKeyboard());
 });
 
 bot.command("invite", async (ctx) => {
@@ -233,44 +264,41 @@ bot.command("invite", async (ctx) => {
   if (!userId) return;
   const link = inviteLink(botUsername, userId);
   const stats = crewStats(userId);
-  await ctx.reply(
-    `🔗 *Your Trap War invite*\n\n` +
-      `📊 *Invites: ${stats.total}*\n` +
+  await safeReply(
+    ctx,
+    `🔗 <b>Your Trap War invite</b>\n\n` +
+      `📊 <b>Invites: ${stats.total}</b>\n` +
       `(accounts that joined with your link)\n\n` +
-      `\`${link}\`\n\n` +
-      `Code: \`${stats.code}\`\n\n` +
-      `Anyone who opens this link is linked to *your* account. Everybody Eats.`,
-    {
-      parse_mode: "Markdown",
-      ...Markup.inlineKeyboard([
-        [Markup.button.url("📤 Share invite", shareUrl(link))],
-        ...(webAppUrl.startsWith("https://")
-          ? [[Markup.button.webApp("▶️ Play Trap War", playUrl())]]
-          : []),
-        ...(channelUrl && !channelUrl.includes("your_")
-          ? [[Markup.button.url("📢 Channel", channelUrl)]]
-          : []),
-      ]),
-    }
+      `<code>${link}</code>\n\n` +
+      `Code: <code>${stats.code}</code>\n\n` +
+      `Anyone who opens this link is linked to <b>your</b> account. Everybody Eats.`,
+    Markup.inlineKeyboard([
+      [Markup.button.url("📤 Share invite", shareUrl(link))],
+      ...(webAppUrl.startsWith("https://")
+        ? [[Markup.button.webApp("▶️ Play Trap War", playUrl())]]
+        : []),
+      ...(channelUrl && !channelUrl.includes("your_")
+        ? [[Markup.button.url("📢 Channel", channelUrl)]]
+        : []),
+    ])
   );
 });
 
 bot.command("channel", async (ctx) => {
   if (!channelUrl || channelUrl.includes("your_") || channelUrl.includes("YourChannel")) {
-    await ctx.reply(
-      "📢 *Channel coming soon*\n\n" +
-        "Official *Word on the Street* channel for drops, NFT rush, and crew calls.\n\n" +
-        "We'll drop the link here when live. Follow /soon for the roadmap.",
-      { parse_mode: "Markdown", ...soonKeyboard() }
+    await safeReply(
+      ctx,
+      "📢 <b>Channel coming soon</b>\n\n" +
+        "Official Word on the Street channel for drops, NFT rush, and crew calls.\n\n" +
+        "Follow /soon for the roadmap.",
+      soonKeyboard()
     );
     return;
   }
-  await ctx.reply(
-    "📢 *Trap War Channel*\n\nUpdates, Word on the Street, NFT drops.\nJoin for news + crew calls.",
-    {
-      parse_mode: "Markdown",
-      ...Markup.inlineKeyboard([[Markup.button.url("Join Channel", channelUrl)]]),
-    }
+  await safeReply(
+    ctx,
+    "📢 <b>Trap War Channel</b>\n\nUpdates, Word on the Street, NFT drops.\nJoin for news + crew calls.",
+    Markup.inlineKeyboard([[Markup.button.url("Join Channel", channelUrl)]])
   );
 });
 
@@ -281,100 +309,93 @@ bot.command("crew", async (ctx) => {
   const stats = crewStats(userId);
   const list =
     stats.invites.length === 0
-      ? "_No invites yet — share your link._"
+      ? "<i>No invites yet — share your link.</i>"
       : stats.invites
           .slice(-10)
           .reverse()
           .map((r, i) => {
-            const name = r.firstName || r.username || r.userId;
+            const name = (r.firstName || r.username || r.userId)
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
             return `${i + 1}. ${name}`;
           })
           .join("\n") +
-        (stats.total > 10 ? `\n_…+${stats.total - 10} more_` : "");
+        (stats.total > 10 ? `\n<i>…+${stats.total - 10} more</i>` : "");
 
-  await ctx.reply(
-    "🤝 *Everybody Eats*\n\n" +
-      `📊 *Your invite count: ${stats.total}*\n\n` +
-      `Your link:\n\`${link}\`\n\n` +
-      `Code: \`${stats.code}\`\n\n` +
-      `*Recent joins*\n${list}\n\n` +
-      "Earn *0.3%* daily on crew yield + *5%* when they finish a run.\n" +
-      "In-game: Mini App → *CREW* tab.",
-    {
-      parse_mode: "Markdown",
-      ...Markup.inlineKeyboard([
-        [Markup.button.url("📤 Share invite", shareUrl(link))],
-        ...(webAppUrl.startsWith("https://")
-          ? [[Markup.button.webApp("▶️ Play Trap War", playUrl())]]
-          : []),
-      ]),
-    }
+  await safeReply(
+    ctx,
+    "🤝 <b>Everybody Eats</b>\n\n" +
+      `📊 <b>Your invite count: ${stats.total}</b>\n\n` +
+      `Your link:\n<code>${link}</code>\n\n` +
+      `Code: <code>${stats.code}</code>\n\n` +
+      `<b>Recent joins</b>\n${list}\n\n` +
+      "Earn <b>0.3%</b> daily on crew yield + <b>5%</b> when they finish a run.\n" +
+      "In-game: Mini App → CREW tab.",
+    Markup.inlineKeyboard([
+      [Markup.button.url("📤 Share invite", shareUrl(link))],
+      ...(webAppUrl.startsWith("https://")
+        ? [[Markup.button.webApp("▶️ Play Trap War", playUrl())]]
+        : []),
+    ])
   );
 });
 
 bot.command("vault", async (ctx) => {
-  await ctx.reply(
-    "🔒 *Protected Vault*\n\n" +
-      "*8%* of every win auto-locks — untouchable gas stash.\n\n" +
-      "Open the app → *VAULT* tab for:\n" +
+  await safeReply(
+    ctx,
+    "🔒 <b>Protected Vault</b>\n\n" +
+      "<b>8%</b> of every win auto-locks — untouchable gas stash.\n\n" +
+      "Open the app → <b>VAULT</b> tab for:\n" +
       "• Locked reserves\n" +
       "• Founder NFT preview\n" +
       "• Pay-to-Earn boost (sim now · real TON week 2)\n\n" +
       "Roadmap → /soon",
-    { parse_mode: "Markdown", ...mainKeyboard(undefined, ctx.from?.id) }
+    mainKeyboard(undefined, ctx.from?.id)
   );
 });
 
 bot.command("help", async (ctx) => {
-  await ctx.reply(helpMenuText(), {
-    parse_mode: "Markdown",
-    ...mainKeyboard(undefined, ctx.from?.id),
-  });
+  await safeReply(ctx, helpMenuText(), mainKeyboard(undefined, ctx.from?.id));
 });
 
 bot.action("help_info", async (ctx) => {
-  await ctx.answerCbQuery();
-  await ctx.reply(helpMenuText(), {
-    parse_mode: "Markdown",
-    ...mainKeyboard(undefined, ctx.from?.id),
-  });
+  await ctx.answerCbQuery().catch(() => undefined);
+  await safeReply(ctx, helpMenuText(), mainKeyboard(undefined, ctx.from?.id));
 });
 
 bot.action("guide_info", async (ctx) => {
-  await ctx.answerCbQuery();
-  // Full guide can be long — send short first, then full
-  await ctx.reply(howToPlayShort(), { parse_mode: "Markdown", ...guideKeyboard() });
-  await ctx.reply(howToPlayText(), { parse_mode: "Markdown", ...guideKeyboard() });
+  await ctx.answerCbQuery("Opening guide…").catch(() => undefined);
+  await sendGuide(ctx);
 });
 
 bot.action("soon_info", async (ctx) => {
-  await ctx.answerCbQuery();
-  await ctx.reply(comingSoonText(), { parse_mode: "Markdown", ...soonKeyboard() });
+  await ctx.answerCbQuery().catch(() => undefined);
+  await safeReply(ctx, comingSoonText(), soonKeyboard());
 });
 
 bot.action("crew_info", async (ctx) => {
-  await ctx.answerCbQuery();
+  await ctx.answerCbQuery().catch(() => undefined);
   const userId = ctx.from?.id;
   if (!userId) return;
   const link = inviteLink(botUsername, userId);
-  await ctx.reply(`🤝 *Your invite*\n\n\`${link}\`\n\nShare it — Everybody Eats.`, {
-    parse_mode: "Markdown",
-    ...Markup.inlineKeyboard([[Markup.button.url("📤 Share invite", shareUrl(link))]]),
-  });
+  await safeReply(
+    ctx,
+    `🤝 <b>Your invite</b>\n\n<code>${link}</code>\n\nShare it — Everybody Eats.`,
+    Markup.inlineKeyboard([[Markup.button.url("📤 Share invite", shareUrl(link))]])
+  );
 });
 
 bot.action("my_invite", async (ctx) => {
-  await ctx.answerCbQuery();
+  await ctx.answerCbQuery().catch(() => undefined);
   const userId = ctx.from?.id;
   if (!userId) return;
   const link = inviteLink(botUsername, userId);
   const stats = crewStats(userId);
-  await ctx.reply(
-    `🔗 *Invite link*\n\n📊 *Invites: ${stats.total}*\n\n\`${link}\`\n\nCode: \`${stats.code}\``,
-    {
-      parse_mode: "Markdown",
-      ...Markup.inlineKeyboard([[Markup.button.url("📤 Share invite", shareUrl(link))]]),
-    }
+  await safeReply(
+    ctx,
+    `🔗 <b>Invite link</b>\n\n📊 <b>Invites: ${stats.total}</b>\n\n<code>${link}</code>\n\nCode: <code>${stats.code}</code>`,
+    Markup.inlineKeyboard([[Markup.button.url("📤 Share invite", shareUrl(link))]])
   );
 });
 
@@ -384,7 +405,7 @@ bot.action("check_channel", async (ctx) => {
   const inCh = await isInChannel(userId);
   if (inCh === true) {
     await ctx.answerCbQuery("You're in. Let's go.");
-    await ctx.reply(WELCOME, { parse_mode: "Markdown", ...mainKeyboard(undefined, userId) });
+    await safeReply(ctx, WELCOME, mainKeyboard(undefined, userId));
   } else if (inCh === false) {
     await ctx.answerCbQuery("Not in the channel yet");
     await ctx.reply(
@@ -396,7 +417,7 @@ bot.action("check_channel", async (ctx) => {
     );
   } else {
     await ctx.answerCbQuery("Can't verify — open Play anyway");
-    await ctx.reply(WELCOME, { parse_mode: "Markdown", ...mainKeyboard(undefined, userId) });
+    await safeReply(ctx, WELCOME, mainKeyboard(undefined, userId));
   }
 });
 
@@ -445,8 +466,25 @@ async function boot() {
     /* optional */
   }
 
+  bot.catch((err, ctx) => {
+    console.error("Bot error on", ctx.updateType, err);
+    ctx.reply("Something glitched. Try /guide or /help again.").catch(() => undefined);
+  });
+
+  // Secure local API (initData HMAC) — bind localhost only
+  const apiPort = parseInt(process.env.API_PORT || "8787", 10);
+  if (Number.isFinite(apiPort) && apiPort > 0) {
+    try {
+      const { startSecureApi } = await import("./api");
+      startSecureApi(token!, apiPort);
+    } catch (e) {
+      console.warn("  Secure API not started:", e);
+    }
+  }
+
   bot.launch({ dropPendingUpdates: true });
   console.log("  Polling for updates…");
+  console.log("  Invites: ONLY via t.me/Bot?start=ref_TRAP-{id}");
 }
 
 boot().catch((e) => {
