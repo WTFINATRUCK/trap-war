@@ -1,5 +1,41 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+jspm_packages/
+
+# Build
+dist/
+.output/
+.vite/
+
+# Env
 .env
+.env.*
+!.env.example
 *.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / IDE
 .DS_Store
+.vscode-test
+
+# TypeScript / caches
+*.tsbuildinfo
+.eslintcache
+.npm
+.cache
+.parcel-cache
+
+# Coverage
+coverage
+*.lcov
+.nyc_output
+
+# Vite timestamps
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
