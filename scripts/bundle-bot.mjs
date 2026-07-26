@@ -1,4 +1,5 @@
 import * as esbuild from "esbuild";
+import fs from "fs";
 
 await esbuild.build({
   entryPoints: ["bot/webhook-entry.ts"],
@@ -11,4 +12,8 @@ await esbuild.build({
   logLevel: "info",
 });
 
-console.log("Bundled bot → api/bot-bundle.cjs");
+for (const dir of ["api/telegram", "api/setup-webhook"]) {
+  fs.mkdirSync(dir, { recursive: true });
+  fs.copyFileSync("api/bot-bundle.cjs", `${dir}/bot-bundle.cjs`);
+}
+console.log("Bundled bot → api/bot-bundle.cjs + function dirs");
