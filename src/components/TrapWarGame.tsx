@@ -6,6 +6,7 @@ import {
   MAX_ACTIONS_PER_DAY,
   MAX_DAYS,
   RANKS,
+  STASH_CAPACITY,
   type CityId,
 } from "@/lib/game/constants";
 import {
@@ -24,6 +25,8 @@ import {
   travel,
   usePlug,
   calculateTotalValue,
+  totalStashUnits,
+  stashSpaceLeft,
 } from "@/lib/game/engine";
 import type { GameMessage, GameState } from "@/lib/game/types";
 import { processCompletionBonus, processDailyReferralDrip } from "@/lib/game/referralDrip";
@@ -76,7 +79,10 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
   const pushMessages = (msgs: GameMessage[]) => {
     if (msgs.length === 0) return;
     setMessages((prev) => [...msgs, ...prev].slice(0, 50));
-    const important = msgs.find((m) => m.type === "street" || m.type === "event" || m.title);
+    // Surface success / warnings / street events so plant failures aren't silent
+    const important = msgs.find(
+      (m) => m.type === "street" || m.type === "event" || m.type === "warning" || m.type === "success" || m.title
+    );
     if (important) setShowModal(important);
   };
 
@@ -130,7 +136,30 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
 
   const handlePlant = async (name: string) => {
     if (!gameState) return;
-    const result = plantStash(gameState, name, quantities[name] || 1);
+    const held = gameState.inventory[name] || 0;
+    if (held <= 0) {
+      pushMessages([
+        {
+          type: "warning",
+          title: "Can't Plant",
+          text: `No ${displayName(name)} in your bag. Buy first, then plant into stash.`,
+        },
+      ]);
+      return;
+    }
+    const qty = Math.min(quantities[name] || 1, held);
+    const result = plantStash(gameState, name, qty);
+    if (!result.blocked) {
+      await applyResult(result.state, result.messages);
+      setSheet("stash");
+    } else {
+      pushMessages(result.messages);
+    }
+  };
+
+  const handleRetrieve = async (city?: CityId, units?: number) => {
+    if (!gameState) return;
+    const result = retrieveStash(gameState, city, units);
     if (!result.blocked) await applyResult(result.state, result.messages);
     else pushMessages(result.messages);
   };
@@ -213,6 +242,12 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
   const g = migrateSavedState(gameState);
   const rankName = RANKS.find((r) => r.id === g.rank)?.name ?? "Corner Boy";
   const planted = g.plantedStashes[g.location];
+  const allStashes = Object.entries(g.plantedStashes).filter(([, s]) => s && s.units > 0) as [
+    CityId,
+    NonNullable<(typeof g.plantedStashes)[CityId]>,
+  ][];
+  const stashUnits = totalStashUnits(g);
+  const stashFree = stashSpaceLeft(g);
   const totalValue = calculateTotalValue(g);
   const invItems = Object.entries(g.inventory).filter(([, q]) => q > 0);
   const bagUnits = invItems.reduce((s, [, q]) => s + q, 0);
@@ -224,10 +259,6 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
     Math.round((g.day / MAX_DAYS) * 35 + bagUnits * 0.5 + (g.inventory["Meth"] || 0) * 3 + (g.inventory["Molly"] || 0) * 2)
   );
   const repPct = Math.min(100, Math.round((totalValue / 50000) * 100));
-
-  const stashValue = planted
-    ? getSellPrice(g, planted.asset) * planted.units
-    : 0;
 
   const held = (assetName: string, category: string) => {
     if (category === "weapon") return g.stickCount;
@@ -481,12 +512,23 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
             <br />
             Sell High → Upgrade → Dominate
           </div>
-          <div className="meta-chip stash">
-            <div className="mc-label">Stash value</div>
+          <button
+            type="button"
+            className="meta-chip stash"
+            style={{ cursor: "pointer", textAlign: "left", font: "inherit", color: "inherit" }}
+            onClick={() => setSheet("stash")}
+          >
+            <div className="mc-label">Stash · {stashUnits}/{STASH_CAPACITY}</div>
             <div className="mc-value">
-              {planted ? `$${stashValue.toLocaleString()}` : "$0"}
+              {planted
+                ? `${planted.units} ${displayName(planted.asset)} @ ${g.location}`
+                : stashUnits > 0
+                  ? `${allStashes.length} city stash${allStashes.length > 1 ? "es" : ""} · $${allStashes
+                      .reduce((s, [, st]) => s + getSellPrice(g, st.asset) * st.units, 0)
+                      .toLocaleString()}`
+                  : "None planted"}
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -567,10 +609,16 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
                                   Sell
                                 </button>
                               )}
-                              {asset.category === "core" && !planted && (
+                              {asset.category === "core" && (
                                 <button
                                   type="button"
                                   className="action-button plant small"
+                                  disabled={h <= 0}
+                                  title={
+                                    h <= 0
+                                      ? "Buy product into your bag first"
+                                      : `Plant ${quantities[asset.name] || 1} into stash (hold ${h})`
+                                  }
                                   onClick={() => handlePlant(asset.name)}
                                 >
                                   Plant
@@ -594,7 +642,10 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
                       );
                     })}
                   </div>
-                  <p className="hint-text">3 actions/day · 4th ends day · plant stash for yield + shield</p>
+                  <p className="hint-text">
+                    Plant moves product from bag → stash (protected). Need hold &gt; 0. Stash free:{" "}
+                    {stashFree}/{STASH_CAPACITY}
+                  </p>
                 </>
               )}
 
@@ -677,41 +728,69 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
 
               {sheet === "stash" && (
                 <>
-                  {planted ? (
-                    <>
-                      <div className="client-row done">
-                        <strong>
-                          {planted.units} {displayName(planted.asset)}
-                        </strong>{" "}
-                        in {g.location}
-                        <br />
-                        Shield {planted.shieldDaysLeft}d · Value ${stashValue.toLocaleString()}
-                      </div>
-                      <button
-                        type="button"
-                        className="action-button sell"
-                        style={{ width: "100%" }}
-                        onClick={async () => {
-                          const r = retrieveStash(g);
-                          if (!r.blocked) {
-                            await applyResult(r.state, r.messages);
-                            setSheet(null);
-                          } else pushMessages(r.messages);
-                        }}
-                      >
-                        Retrieve Stash
-                      </button>
-                    </>
+                  <div className="client-row" style={{ marginBottom: "0.75rem" }}>
+                    <strong>Stash capacity</strong> {stashUnits}/{STASH_CAPACITY} units used · {stashFree} free
+                    <br />
+                    <span style={{ color: "var(--muted)", fontSize: "0.75rem" }}>
+                      Plant from Buy/Sell moves product out of your bag into protected storage on that block.
+                    </span>
+                  </div>
+
+                  {allStashes.length === 0 ? (
+                    <div className="bag-empty" style={{ marginBottom: "0.75rem" }}>
+                      No product planted. Buy into your bag, set qty, hit Plant.
+                    </div>
                   ) : (
-                    <>
-                      <p className="hint-text" style={{ marginBottom: "0.75rem" }}>
-                        Plant product here for yield + raid shield. Open Buy, pick product, hit Plant.
-                      </p>
-                      <button type="button" className="action-button" style={{ width: "100%" }} onClick={() => openMarket("buy")}>
-                        Open Market to Plant
-                      </button>
-                    </>
+                    <div className="inv-list" style={{ marginBottom: "0.85rem" }}>
+                      {allStashes.map(([city, stash]) => {
+                        const value = getSellPrice(g, stash.asset) * stash.units;
+                        const here = city === g.location;
+                        return (
+                          <div key={city} className="inv-row" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
+                            <div style={{ flex: 1, minWidth: "140px" }}>
+                              <div className="inv-name">
+                                {displayName(stash.asset)} ×{stash.units}
+                                {here ? " · HERE" : ""}
+                              </div>
+                              <div className="inv-sub">
+                                {city} · 🛡 {stash.shieldDaysLeft}d · ${value.toLocaleString()}
+                              </div>
+                            </div>
+                            <div className="btn-row">
+                              <button
+                                type="button"
+                                className="action-button sell small"
+                                disabled={!here}
+                                title={here ? "Take all back to bag" : "Travel here to retrieve"}
+                                onClick={() => handleRetrieve(city)}
+                              >
+                                {here ? "Retrieve all" : "Travel first"}
+                              </button>
+                              {here && stash.units > 1 && (
+                                <button
+                                  type="button"
+                                  className="action-button ghost small"
+                                  onClick={() => handleRetrieve(city, 1)}
+                                >
+                                  Take 1
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
+
+                  <button
+                    type="button"
+                    className="action-button"
+                    style={{ width: "100%" }}
+                    onClick={() => openMarket("buy")}
+                  >
+                    Open Market to Plant
+                  </button>
+
                   {!g.payToEarnBoost && (
                     <button
                       type="button"
@@ -731,20 +810,6 @@ export default function TrapWarGame({ telegramId, initialGame, onSave, onGameOve
                       Sim Pay-to-Earn Boost
                     </button>
                   )}
-                  <div className="progress-strip">
-                    <div className={`progress-card ${g.rank === "corner_boy" || g.rank === "runner" ? "active" : ""}`}>
-                      <strong>Day 1</strong>
-                      Broke
-                    </div>
-                    <div className={`progress-card ${g.rank === "hustler" || g.rank === "kingpin" ? "active" : ""}`}>
-                      <strong>Mid</strong>
-                      Hustler
-                    </div>
-                    <div className={`progress-card ${g.rank === "trap_lord" || g.rank === "trap_god" ? "active" : ""}`}>
-                      <strong>Late</strong>
-                      Kingpin
-                    </div>
-                  </div>
                 </>
               )}
             </div>

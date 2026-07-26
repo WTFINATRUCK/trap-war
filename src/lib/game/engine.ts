@@ -14,6 +14,7 @@ import {
   MIN_PLANT_UNITS,
   MIN_PLANT_VALUE,
   PLANT_COST,
+  STASH_CAPACITY,
   RANKS,
   RESERVE_SKIM_RATE,
   SHIELD_DAYS_BASE,
@@ -437,47 +438,133 @@ export function sellAsset(state: GameState, assetName: string, quantity: number)
   return { state: afterAction, messages };
 }
 
+export function totalStashUnits(state: GameState): number {
+  return Object.values(state.plantedStashes).reduce((sum, stash) => sum + (stash?.units || 0), 0);
+}
+
+export function stashSpaceLeft(state: GameState): number {
+  return Math.max(0, STASH_CAPACITY - totalStashUnits(state));
+}
+
+/** Move product from bag → protected city stash (same city can stack same product). */
 export function plantStash(state: GameState, assetName: string, units: number): ActionResult {
   if (!CORE_ASSETS.includes(assetName)) {
-    return { state, messages: [{ type: "warning", text: "Only product can be planted in a stash." }], blocked: true };
+    return {
+      state,
+      messages: [{ type: "warning", title: "Can't Plant", text: "Only product can go in the stash (not gear)." }],
+      blocked: true,
+    };
+  }
+
+  const qty = Math.floor(units);
+  if (qty < MIN_PLANT_UNITS) {
+    return {
+      state,
+      messages: [{ type: "warning", title: "Can't Plant", text: "Set quantity to at least 1." }],
+      blocked: true,
+    };
+  }
+
+  const held = state.inventory[assetName] || 0;
+  if (held <= 0) {
+    return {
+      state,
+      messages: [
+        {
+          type: "warning",
+          title: "Can't Plant",
+          text: `No ${assetName} in your bag. Buy some first, then plant.`,
+        },
+      ],
+      blocked: true,
+    };
+  }
+  if (held < qty) {
+    return {
+      state,
+      messages: [
+        {
+          type: "warning",
+          title: "Can't Plant",
+          text: `Not enough ${assetName} in bag. You hold ${held}, tried to plant ${qty}.`,
+        },
+      ],
+      blocked: true,
+    };
+  }
+
+  if (PLANT_COST > 0 && state.cash < PLANT_COST) {
+    return {
+      state,
+      messages: [{ type: "warning", title: "Can't Plant", text: `Planting costs $${PLANT_COST}.` }],
+      blocked: true,
+    };
+  }
+
+  const existing = state.plantedStashes[state.location];
+  if (existing && existing.asset !== assetName) {
+    return {
+      state,
+      messages: [
+        {
+          type: "warning",
+          title: "Stash Occupied",
+          text: `Already stashing ${existing.units} ${existing.asset} in ${state.location}. Retrieve it first, or plant more ${existing.asset}.`,
+        },
+      ],
+      blocked: true,
+    };
+  }
+
+  const space = stashSpaceLeft(state);
+  if (space <= 0) {
+    return {
+      state,
+      messages: [
+        {
+          type: "warning",
+          title: "Stash Full",
+          text: `Stash capacity is ${STASH_CAPACITY} units. Retrieve product to free space.`,
+        },
+      ],
+      blocked: true,
+    };
+  }
+  if (qty > space) {
+    return {
+      state,
+      messages: [
+        {
+          type: "warning",
+          title: "Stash Full",
+          text: `Only ${space} stash slots free (cap ${STASH_CAPACITY}). Plant fewer units.`,
+        },
+      ],
+      blocked: true,
+    };
   }
 
   const penalty = consumeAction(state);
   if (penalty?.blocked) return penalty;
 
-  const held = state.inventory[assetName] || 0;
-  const value = getSellPrice(state, assetName) * units;
-  if (units < MIN_PLANT_UNITS && value < MIN_PLANT_VALUE) {
-    return {
-      state,
-      messages: [{ type: "warning", text: `Plant at least ${MIN_PLANT_UNITS} units or $${MIN_PLANT_VALUE} value.` }],
-      blocked: true,
-    };
-  }
-  if (held < units) {
-    return { state, messages: [{ type: "warning", text: "Not enough units to plant." }], blocked: true };
-  }
-  if (state.cash < PLANT_COST) {
-    return { state, messages: [{ type: "warning", text: `Planting costs $${PLANT_COST}.` }], blocked: true };
-  }
-  if (state.plantedStashes[state.location]) {
-    return { state, messages: [{ type: "warning", text: "Already have a stash planted here. Retrieve it first." }], blocked: true };
-  }
+  const prevUnits = existing?.units || 0;
+  const shieldDays =
+    existing?.shieldDaysLeft ??
+    (state.extendedShieldPending ? SHIELD_DAYS_BOOSTED : SHIELD_DAYS_BASE);
 
-  const shieldDays = state.extendedShieldPending ? SHIELD_DAYS_BOOSTED : SHIELD_DAYS_BASE;
   const stash: PlantedStash = {
     asset: assetName,
-    units,
-    plantedOnDay: state.day,
+    units: prevUnits + qty,
+    plantedOnDay: existing?.plantedOnDay ?? state.day,
     shieldDaysLeft: shieldDays,
   };
 
   let newState: GameState = {
     ...state,
     cash: state.cash - PLANT_COST,
-    inventory: { ...state.inventory, [assetName]: held - units },
+    inventory: { ...state.inventory, [assetName]: held - qty },
     plantedStashes: { ...state.plantedStashes, [state.location]: stash },
-    extendedShieldPending: false,
+    extendedShieldPending: existing ? state.extendedShieldPending : false,
   };
   if (newState.inventory[assetName] === 0) delete newState.inventory[assetName];
 
@@ -485,14 +572,18 @@ export function plantStash(state: GameState, assetName: string, units: number): 
   checkClientCompletions(newState);
 
   const messages: GameMessage[] = [
-    { type: "success", text: `🌱 Planted ${units} ${assetName} in ${state.location}. Shield: ${shieldDays} days.` },
+    {
+      type: "success",
+      title: "Planted",
+      text: `${assetName} x${qty} planted in stash (${state.location}). Stash now holds ${stash.units} ${assetName}. Shield ${stash.shieldDaysLeft}d.`,
+    },
   ];
   if (!state.firstPlantShown) {
     newState.firstPlantShown = true;
     messages.push({
       type: "street",
       title: "Word on the Street",
-      text: "Touring ain't owning. Plant a stash when you're ready to lock product on the block.",
+      text: "Stash is protected storage — separate from your bag. Plant for yield + raid shield on this block.",
     });
   }
 
@@ -506,24 +597,88 @@ export function plantStash(state: GameState, assetName: string, units: number): 
   return { state: afterAction, messages };
 }
 
-export function retrieveStash(state: GameState): ActionResult {
-  const stash = state.plantedStashes[state.location];
+/** Pull product from a city stash back into the bag. Defaults to current city, all units. */
+export function retrieveStash(
+  state: GameState,
+  city?: CityId,
+  units?: number
+): ActionResult {
+  const targetCity = city ?? state.location;
+  const stash = state.plantedStashes[targetCity];
   if (!stash) {
-    return { state, messages: [{ type: "warning", text: "No stash here to retrieve." }], blocked: true };
+    return {
+      state,
+      messages: [
+        {
+          type: "warning",
+          title: "Empty Stash",
+          text: targetCity === state.location ? "No stash planted here." : `No stash in ${targetCity}.`,
+        },
+      ],
+      blocked: true,
+    };
+  }
+
+  const take = units === undefined ? stash.units : Math.floor(units);
+  if (take <= 0) {
+    return { state, messages: [{ type: "warning", title: "Retrieve", text: "Choose at least 1 unit." }], blocked: true };
+  }
+  if (take > stash.units) {
+    return {
+      state,
+      messages: [
+        {
+          type: "warning",
+          title: "Retrieve",
+          text: `Stash only has ${stash.units} ${stash.asset}.`,
+        },
+      ],
+      blocked: true,
+    };
+  }
+
+  if (inventoryUnits(state) + take > state.coatSpace) {
+    return {
+      state,
+      messages: [
+        {
+          type: "warning",
+          title: "Bag Full",
+          text: `Not enough bag space. Free ${take - (state.coatSpace - inventoryUnits(state))} slots or retrieve fewer.`,
+        },
+      ],
+      blocked: true,
+    };
   }
 
   const penalty = consumeAction(state);
   if (penalty?.blocked) return penalty;
 
+  const remaining = stash.units - take;
+  const plantedStashes = { ...state.plantedStashes };
+  if (remaining <= 0) {
+    delete plantedStashes[targetCity];
+  } else {
+    plantedStashes[targetCity] = { ...stash, units: remaining };
+  }
+
   let newState: GameState = {
     ...state,
-    inventory: { ...state.inventory, [stash.asset]: (state.inventory[stash.asset] || 0) + stash.units },
-    plantedStashes: { ...state.plantedStashes },
+    inventory: {
+      ...state.inventory,
+      [stash.asset]: (state.inventory[stash.asset] || 0) + take,
+    },
+    plantedStashes,
   };
-  delete newState.plantedStashes[state.location];
 
   const { state: afterAction, forcedDayEnd } = tryConsumeAction(newState);
-  const messages: GameMessage[] = [{ type: "info", text: `Retrieved ${stash.units} ${stash.asset} from ${state.location}.` }];
+  const messages: GameMessage[] = [
+    {
+      type: "success",
+      title: "Retrieved",
+      text: `Took ${take} ${stash.asset} from ${targetCity} stash back into your bag.`,
+    },
+  ];
 
   if (forcedDayEnd) {
     const dayResult = advanceDay(afterAction);

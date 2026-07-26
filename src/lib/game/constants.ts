@@ -4,9 +4,11 @@ export const STARTING_CASH = 500;
 export const STARTING_PROTECTED = 40;
 export const RESERVE_SKIM_RATE = 0.08;
 export const COAT_SPACE = 100;
-export const PLANT_COST = 100;
-export const MIN_PLANT_UNITS = 10;
-export const MIN_PLANT_VALUE = 500;
+export const PLANT_COST = 0;
+export const MIN_PLANT_UNITS = 1;
+export const MIN_PLANT_VALUE = 0;
+/** Max total product units across all city stashes (separate from bag) */
+export const STASH_CAPACITY = 100;
 export const SHIELD_DAYS_BASE = 3;
 export const SHIELD_DAYS_BOOSTED = 5;
 export const MAX_STICK = 3;
