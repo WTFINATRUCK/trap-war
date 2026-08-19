@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using TrapWars.Analytics;
@@ -34,6 +35,14 @@ namespace TrapWars.Bootstrap
 #if UNITY_EDITOR
             if (Application.isBatchMode) return;
 #endif
+            var isM83TestBuild = Resources.Load<TextAsset>("M8BuildIdentity") != null;
+            if (isM83TestBuild && Environment.GetCommandLineArgs().Contains("-trapwars-demo-reset"))
+            {
+                PlayerPrefs.DeleteKey("trap_wars.m7.resume.v1");
+                PlayerPrefs.SetInt("trapwars.visual.quality", 2);
+                DemoPresentationPolicy.ResetLocalDemoPresentation();
+                UnityEngine.Debug.Log("[M8_3_DEMO_RESET] standalone local identity, onboarding, and quality reset");
+            }
             if (FindFirstObjectByType<GameBootstrapper>() != null) return;
             var root = new GameObject("TrapWars_Bootstrap");
             DontDestroyOnLoad(root);
