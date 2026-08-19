@@ -137,7 +137,7 @@ namespace TrapWars.EditorTools
         }
 
         [MenuItem("Trap Wars/M8.3/Reset Local Human Test")]
-        private static void ResetM83HumanTest()
+        public static void ResetM83HumanTest()
         {
             if (EditorApplication.isPlaying) return;
             PlayerPrefs.DeleteKey("trap_wars.m7.resume.v1");
