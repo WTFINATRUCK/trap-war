@@ -64,18 +64,23 @@ namespace TrapWars.Phone
         private void Build()
         {
             var canvas = UiFactory.Canvas("TrapPhone", transform, 30);
-            root = UiFactory.PanelRect("PhoneWorldVeil", canvas.transform, new Color(0f, 0f, 0f, 0.16f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            root = UiFactory.PanelRect("PhoneWorldVeil", canvas.transform, new Color(0f, 0f, 0f, 0.06f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             canvasGroup = root.gameObject.AddComponent<CanvasGroup>();
-            phoneBody = UiFactory.PanelRect("PhoneBody", root, new Color(0.035f, 0.04f, 0.042f, 0.985f), new Vector2(0.61f, 0.055f), new Vector2(0.965f, 0.945f), Vector2.zero, Vector2.zero);
+            var shell = UiFactory.PanelRect("PhoneShell", root, new Color(0.01f, 0.012f, 0.013f, 0.995f), new Vector2(0.735f, 0.075f), new Vector2(0.965f, 0.94f), Vector2.zero, Vector2.zero);
+            var shellImage = shell.GetComponent<Image>(); shellImage.sprite = RoundedPhoneSprite(); shellImage.type = Image.Type.Sliced;
+            phoneBody = UiFactory.PanelRect("PhoneBody", shell, new Color(0.035f, 0.04f, 0.042f, 0.995f), new Vector2(0.035f, 0.025f), new Vector2(0.965f, 0.975f), Vector2.zero, Vector2.zero);
+            var bodyImage = phoneBody.GetComponent<Image>(); bodyImage.sprite = RoundedPhoneSprite(); bodyImage.type = Image.Type.Sliced;
             var rail = UiFactory.PanelRect("IdentityRail", phoneBody, UiFactory.Green, new Vector2(0f, 0f), new Vector2(0.012f, 1f), Vector2.zero, Vector2.zero);
             rail.GetComponent<Image>().raycastTarget = false;
-            var brand = UiFactory.Text("Brand", phoneBody, "TRAP PHONE  /  PRIVATE", 18, TextAnchor.MiddleLeft, UiFactory.Green, FontStyle.Bold);
-            UiFactory.SetRect(brand.rectTransform, new Vector2(0.07f, 0.91f), new Vector2(0.7f, 0.97f), Vector2.zero, Vector2.zero);
+            var speaker = UiFactory.PanelRect("Speaker", phoneBody, new Color(0.16f, 0.18f, 0.18f), new Vector2(0.39f, 0.955f), new Vector2(0.61f, 0.965f), Vector2.zero, Vector2.zero);
+            speaker.GetComponent<Image>().raycastTarget = false;
+            var brand = UiFactory.Text("Brand", phoneBody, "TRAP PHONE", 17, TextAnchor.MiddleCenter, UiFactory.Paper, FontStyle.Bold);
+            UiFactory.SetRect(brand.rectTransform, new Vector2(0.07f, 0.90f), new Vector2(0.93f, 0.955f), Vector2.zero, Vector2.zero);
             var notificationPanel = UiFactory.PanelRect("NotificationBadge", phoneBody, UiFactory.Gold, new Vector2(0.75f, 0.915f), new Vector2(0.92f, 0.965f), Vector2.zero, Vector2.zero);
             notification = UiFactory.Text("Notification", notificationPanel, "1 NEW", 16, TextAnchor.MiddleCenter, UiFactory.Ink, FontStyle.Bold);
             title = UiFactory.Text("Title", phoneBody, "HOME", 34, TextAnchor.MiddleLeft, UiFactory.Paper, FontStyle.Bold);
             UiFactory.SetRect(title.rectTransform, new Vector2(0.07f, 0.79f), new Vector2(0.93f, 0.9f), Vector2.zero, Vector2.zero);
-            body = UiFactory.Text("Body", phoneBody, string.Empty, 23, TextAnchor.UpperLeft, UiFactory.Paper);
+            body = UiFactory.Text("Body", phoneBody, string.Empty, 19, TextAnchor.UpperLeft, UiFactory.Paper);
             UiFactory.SetRect(body.rectTransform, new Vector2(0.07f, 0.25f), new Vector2(0.93f, 0.78f), Vector2.zero, Vector2.zero);
 
             var tabLabels = new[] { "HOME", "WORD", "STASH", "CONTACTS" };
@@ -153,7 +158,7 @@ namespace TrapWars.Phone
             {
                 "Home" => run.Day > 1
                     ? $"DAY {run.Day}\n\nCash   ${run.Cash:N0}\nActions   {run.ActionsRemaining}\n\nNEW: Ray sent a location pin. The next opportunity is already moving."
-                    : $"DAY {run.Day}\n\nCash   ${run.Cash:N0}\nActions   {run.ActionsRemaining}\n\nThe block moves when you do. Keep enough cash free to react.",
+                    : $"CASH BALANCE\n${run.Cash:N2}\n\nWORD ON THE STREET\nNeighborhood intel\n\nMARKET\nBuy / Sell opportunities\n\nINVENTORY\nAssets you own\n\nMESSAGES\nNew messages\n\nCONTACTS\nPeople in your network",
                 "Word" => WordCopy(run),
                 "Stash" => StashCopy(run),
                 "Contacts" => ContactsCopy(run),
@@ -214,6 +219,24 @@ namespace TrapWars.Phone
         {
             var contacts = run.Clients.Count == 0 ? "RAY   Street contact" : string.Join("\n", run.Clients.Select(pair => $"{pair.Key.ToUpperInvariant()}   {(pair.Value.Completed ? "Complete" : pair.Value.Accepted ? "Active" : "Available")}"));
             return $"CONTACTS\n\n{contacts}";
+        }
+
+        private static Sprite RoundedPhoneSprite()
+        {
+            const int size = 64;
+            const float radius = 14f;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var pixels = new Color32[size * size];
+            for (var y = 0; y < size; y++)
+            for (var x = 0; x < size; x++)
+            {
+                var cx = Mathf.Clamp(x, radius, size - radius - 1f);
+                var cy = Mathf.Clamp(y, radius, size - radius - 1f);
+                var inside = (new Vector2(x - cx, y - cy)).sqrMagnitude <= radius * radius;
+                pixels[y * size + x] = inside ? new Color32(255, 255, 255, 255) : new Color32(255, 255, 255, 0);
+            }
+            texture.SetPixels32(pixels); texture.Apply(false, true);
+            return Sprite.Create(texture, new Rect(0f, 0f, size, size), Vector2.one * 0.5f, 100f, 0, SpriteMeshType.FullRect, Vector4.one * radius);
         }
 
         private async void EndDay()

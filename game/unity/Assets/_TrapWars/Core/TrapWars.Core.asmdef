@@ -6,6 +6,7 @@
     "Unity.Newtonsoft.Json",
     "Unity.RenderPipelines.Core.Runtime",
     "Unity.RenderPipelines.Universal.Runtime",
+    "UnityEngine.ScreenCaptureModule",
     "UnityEngine.UI"
   ],
   "includePlatforms": [],

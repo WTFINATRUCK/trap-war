@@ -1,14 +1,14 @@
 TRAP WARS M8.4 REFERENCE MATCH BUILD
-Generated UTC: 2026-08-19T06:35:17.9872136Z
+Generated UTC: 2026-08-19T07:15:58.5107852Z
 Unity: 6000.3.20f1
 Milestone: M8.4
 Version: 0.8.4
-Commit: 7b908d944ecd
+Commit: b23c74224a7d
 Branch: main
-Dirty before build: False
+Dirty before build: True
 Development build: False
 Debugging: False
 Result: Succeeded
-Size bytes: 107707222
-Duration: 00:00:08.9475794
+Size bytes: 109811654
+Duration: 00:00:47.6930720
 Output: C:\Users\rjfle\OneDrive\Documents\New project\trap-war\Builds/M8_4/TrapWarsM84.exe

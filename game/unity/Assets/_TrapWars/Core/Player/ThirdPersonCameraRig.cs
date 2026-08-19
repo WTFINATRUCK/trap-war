@@ -12,16 +12,16 @@ namespace TrapWars.Player
 
     public sealed class ThirdPersonCameraRig : MonoBehaviour
     {
-        [SerializeField] private float distance = 3.55f;
-        [SerializeField] private float shoulderOffset = 0.44f;
-        [SerializeField] private float targetHeight = 1.52f;
+        [SerializeField] private float distance = 2.9f;
+        [SerializeField] private float shoulderOffset = 0.58f;
+        [SerializeField] private float targetHeight = 1.48f;
         [SerializeField] private float followSharpness = 18f;
         [SerializeField] private float collisionRadius = 0.22f;
         private Transform target = null!;
         private IPlayerInputSource input = null!;
         private float sensitivity;
-        private float yaw = 12f;
-        private float pitch = 11f;
+        private float yaw = 5f;
+        private float pitch = 7f;
         private Vector3 smoothedPivot;
         private Camera view = null!;
         private CameraContext context;
@@ -91,7 +91,7 @@ namespace TrapWars.Player
                 case CameraContext.Market:
                     targetDistance = 3.35f; targetShoulder = 0.82f; height = 1.5f; fov = 56f; return;
                 default:
-                    targetDistance = distance; targetShoulder = shoulderOffset; height = targetHeight; fov = 55f; return;
+                    targetDistance = distance; targetShoulder = shoulderOffset; height = targetHeight; fov = 48f; return;
             }
         }
     }

@@ -57,7 +57,8 @@ namespace TrapWars.UI
             prompt = UiFactory.Text("InteractionPrompt", promptPanel, string.Empty, 20, TextAnchor.MiddleCenter, UiFactory.Paper, FontStyle.Bold);
             promptPanel.gameObject.SetActive(false);
 
-            var location = UiFactory.PanelRect("LocationPlate", canvas.transform, new Color(0.015f, 0.017f, 0.016f, 0.82f), new Vector2(0.025f, 0.025f), new Vector2(0.23f, 0.115f), Vector2.zero, Vector2.zero);
+            BuildMinimap(canvas.transform);
+            var location = UiFactory.PanelRect("LocationPlate", canvas.transform, new Color(0.015f, 0.017f, 0.016f, 0.82f), new Vector2(0.135f, 0.028f), new Vector2(0.29f, 0.105f), Vector2.zero, Vector2.zero);
             var locationText = UiFactory.Text("Location", location, "THE TRAP\nYOUR SAFEHOUSE", 17, TextAnchor.MiddleLeft, UiFactory.Green, FontStyle.Bold);
             UiFactory.SetRect(locationText.rectTransform, Vector2.zero, Vector2.one, new Vector2(18f, 4f), new Vector2(-8f, -4f));
 
@@ -152,6 +153,32 @@ namespace TrapWars.UI
         {
             yield return new WaitForSecondsRealtime(3.2f);
             toastPanel.gameObject.SetActive(false);
+        }
+
+        private static void BuildMinimap(Transform parent)
+        {
+            const int size = 192;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "M84_SafehouseMinimap" };
+            var pixels = new Color32[size * size];
+            var center = (size - 1) * 0.5f;
+            var radius = size * 0.47f;
+            for (var y = 0; y < size; y++)
+            for (var x = 0; x < size; x++)
+            {
+                var dx = x - center; var dy = y - center;
+                if (dx * dx + dy * dy > radius * radius) { pixels[y * size + x] = new Color32(0, 0, 0, 0); continue; }
+                var road = Mathf.Abs(dx + dy * 0.18f) < 11f || Mathf.Abs(dy - 22f) < 8f || Mathf.Abs(dx - 38f) < 7f;
+                var block = (x / 28 + y / 32) % 2 == 0;
+                pixels[y * size + x] = road ? new Color32(74, 78, 76, 235) : block ? new Color32(31, 35, 34, 245) : new Color32(42, 47, 45, 245);
+            }
+            for (var y = 72; y < 112; y++)
+            for (var x = 88 - (y - 72) / 4; x <= 104 + (y - 72) / 4; x++)
+                if (x >= 0 && x < size) pixels[y * size + x] = new Color32(46, 214, 125, 255);
+            texture.SetPixels32(pixels); texture.Apply(false, true);
+            var map = UiFactory.PanelRect("Minimap", parent, Color.white, new Vector2(0.018f, 0.018f), new Vector2(0.145f, 0.21f), Vector2.zero, Vector2.zero);
+            var image = map.GetComponent<Image>(); image.sprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), Vector2.one * 0.5f); image.preserveAspect = true;
+            var north = UiFactory.Text("MinimapNorth", map, "N", 18, TextAnchor.UpperCenter, UiFactory.Paper, FontStyle.Bold);
+            UiFactory.SetRect(north.rectTransform, new Vector2(0f, 0.76f), Vector2.one, Vector2.zero, Vector2.zero);
         }
 
         public void SetLoading(bool visible, string message = "")

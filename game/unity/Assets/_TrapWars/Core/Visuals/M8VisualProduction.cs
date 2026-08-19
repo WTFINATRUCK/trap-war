@@ -556,9 +556,9 @@ namespace TrapWars.Visuals
             var tone = volume.profile.Add<Tonemapping>();
             tone.mode.Override(TonemappingMode.ACES);
             var color = volume.profile.Add<ColorAdjustments>();
-            color.postExposure.Override(0.62f);
-            color.contrast.Override(4f);
-            color.saturation.Override(-1f);
+            color.postExposure.Override(0.82f);
+            color.contrast.Override(2f);
+            color.saturation.Override(0f);
             var bloom = volume.profile.Add<Bloom>();
             bloom.intensity.Override(0.16f);
             bloom.threshold.Override(1.15f);
