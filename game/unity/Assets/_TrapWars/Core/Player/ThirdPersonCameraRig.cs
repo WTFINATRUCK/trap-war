@@ -12,16 +12,16 @@ namespace TrapWars.Player
 
     public sealed class ThirdPersonCameraRig : MonoBehaviour
     {
-        [SerializeField] private float distance = 4.05f;
-        [SerializeField] private float shoulderOffset = 0.52f;
-        [SerializeField] private float targetHeight = 1.48f;
+        [SerializeField] private float distance = 3.55f;
+        [SerializeField] private float shoulderOffset = 0.44f;
+        [SerializeField] private float targetHeight = 1.52f;
         [SerializeField] private float followSharpness = 18f;
         [SerializeField] private float collisionRadius = 0.22f;
         private Transform target = null!;
         private IPlayerInputSource input = null!;
         private float sensitivity;
-        private float yaw = 25f;
-        private float pitch = 18f;
+        private float yaw = 12f;
+        private float pitch = 11f;
         private Vector3 smoothedPivot;
         private Camera view = null!;
         private CameraContext context;
@@ -57,10 +57,10 @@ namespace TrapWars.Player
             yaw += look.x * sensitivity * mouseScale;
             pitch = Mathf.Clamp(pitch - look.y * sensitivity * mouseScale, -8f, 68f);
             timeSinceLook = look.sqrMagnitude > 0.0001f ? 0f : timeSinceLook + UnityEngine.Time.deltaTime;
-            if (context == CameraContext.Exploration && timeSinceLook > 2.8f && input.Move.y > 0.45f)
+            if (context == CameraContext.Exploration && timeSinceLook > 0.35f && input.Move.y > 0.45f)
             {
                 var targetYaw = target.eulerAngles.y;
-                yaw = Mathf.LerpAngle(yaw, targetYaw, 1f - Mathf.Exp(-0.55f * UnityEngine.Time.deltaTime));
+                yaw = Mathf.LerpAngle(yaw, targetYaw, 1f - Mathf.Exp(-2.4f * UnityEngine.Time.deltaTime));
             }
 
             ContextValues(out var targetDistance, out var targetShoulder, out var height, out var fov);
@@ -91,7 +91,7 @@ namespace TrapWars.Player
                 case CameraContext.Market:
                     targetDistance = 3.35f; targetShoulder = 0.82f; height = 1.5f; fov = 56f; return;
                 default:
-                    targetDistance = distance; targetShoulder = shoulderOffset; height = targetHeight; fov = 60f; return;
+                    targetDistance = distance; targetShoulder = shoulderOffset; height = targetHeight; fov = 55f; return;
             }
         }
     }

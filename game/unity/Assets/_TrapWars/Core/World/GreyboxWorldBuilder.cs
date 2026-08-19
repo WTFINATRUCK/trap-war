@@ -55,7 +55,7 @@ namespace TrapWars.World
                 Sun = sun,
                 Quality = activeQuality,
                 Phone = CreateInteractable<PhoneInteractable>("phone_access_01", root.transform, new Vector3(-3.9f, 1.05f, 1.8f), new Vector3(0.38f, 0.7f, 0.16f), Color.black),
-                Exit = CreateInteractable<SafehouseExitInteractable>("safehouse_exit_01", root.transform, new Vector3(0f, 1.5f, 9.7f), new Vector3(2.2f, 3f, 0.22f), new Color(0.12f, 0.28f, 0.21f)),
+                Exit = CreateInteractable<SafehouseExitInteractable>("safehouse_exit_01", root.transform, new Vector3(4.35f, 1.5f, 9.7f), new Vector3(2.2f, 3f, 0.22f), new Color(0.12f, 0.28f, 0.21f)),
                 Contact = CreateNpc(root.transform, new Vector3(-2.4f, 0f, 42f)),
                 Market = CreateInteractable<MarketInteractable>("market_hub_01", root.transform, new Vector3(0f, 1.2f, 64f), new Vector3(4.5f, 2.4f, 1.1f), new Color(0.14f, 0.42f, 0.3f)),
                 Stash = CreateInteractable<StashInteractable>("stash_01", root.transform, new Vector3(4.1f, 0.7f, 5.4f), new Vector3(1.6f, 1.4f, 0.8f), new Color(0.31f, 0.25f, 0.11f))
@@ -115,7 +115,7 @@ namespace TrapWars.World
             production.Configure("M8/Characters/Processed/PF_Hero_Humanoid_M8_1", "M8/Animation/AC_Hero_M8", rig, CharacterPresentationRole.Hero);
             animation.SetProductionPresenter(production);
             var characterFillObject = new GameObject("hero_character_fill", typeof(Light)); characterFillObject.transform.SetParent(root.transform); characterFillObject.transform.localPosition = new Vector3(0f, 1.65f, -0.65f);
-            var characterFill = characterFillObject.GetComponent<Light>(); characterFill.type = LightType.Point; characterFill.range = 3.4f; characterFill.intensity = 0.8f; characterFill.color = new Color(0.82f, 0.88f, 1f); characterFill.shadows = LightShadows.None;
+            var characterFill = characterFillObject.GetComponent<Light>(); characterFill.type = LightType.Point; characterFill.range = 4.2f; characterFill.intensity = 1.2f; characterFill.color = new Color(1f, 0.82f, 0.64f); characterFill.shadows = LightShadows.None;
             var cameraObject = new GameObject("ThirdPersonCamera", typeof(Camera), typeof(AudioListener), typeof(ThirdPersonCameraRig));
             cameraObject.transform.SetParent(parent);
             var camera = cameraObject.GetComponent<Camera>();
@@ -134,17 +134,18 @@ namespace TrapWars.World
         private static void BuildSafehouse(Transform root)
         {
             var safehouse = new GameObject("safehouse_01").transform; safehouse.SetParent(root);
-            Primitive("floor", PrimitiveType.Cube, safehouse, new Vector3(0f, -0.18f, 3.5f), new Vector3(12f, 0.35f, 13f), M8AssetRuntime.TexturedMaterial("SafehouseConcrete", "M8/Environment/Textures/TX_URB_concrete", new Color(0.36f, 0.36f, 0.34f), new Vector2(4f, 4f), 0.12f));
-            Primitive("back_wall", PrimitiveType.Cube, safehouse, new Vector3(0f, 2.2f, -3f), new Vector3(12f, 4.4f, 0.35f), Mat("plaster", new Color(0.48f, 0.49f, 0.46f)));
-            Primitive("left_wall", PrimitiveType.Cube, safehouse, new Vector3(-6f, 2.2f, 3.5f), new Vector3(0.35f, 4.4f, 13f), Mat("plaster", new Color(0.48f, 0.49f, 0.46f)));
-            Primitive("right_wall", PrimitiveType.Cube, safehouse, new Vector3(6f, 2.2f, 3.5f), new Vector3(0.35f, 4.4f, 13f), Mat("plaster", new Color(0.48f, 0.49f, 0.46f)));
-            Primitive("front_left", PrimitiveType.Cube, safehouse, new Vector3(-4f, 2.2f, 10f), new Vector3(4f, 4.4f, 0.35f), Mat("plaster", new Color(0.42f, 0.43f, 0.4f)));
-            Primitive("front_right", PrimitiveType.Cube, safehouse, new Vector3(4f, 2.2f, 10f), new Vector3(4f, 4.4f, 0.35f), Mat("plaster", new Color(0.42f, 0.43f, 0.4f)));
-            Primitive("bed_frame", PrimitiveType.Cube, safehouse, new Vector3(-3.6f, 0.35f, -0.5f), new Vector3(3.1f, 0.45f, 5f), Mat("bed", new Color(0.13f, 0.17f, 0.17f)));
-            Primitive("bed_sheet", PrimitiveType.Cube, safehouse, new Vector3(-3.6f, 0.62f, -0.5f), new Vector3(2.9f, 0.18f, 4.8f), Mat("sheet", new Color(0.29f, 0.46f, 0.38f)));
+            Primitive("floor", PrimitiveType.Cube, safehouse, new Vector3(0f, -0.18f, 3.5f), new Vector3(12f, 0.35f, 13f), M8AssetRuntime.TexturedMaterial("SafehouseDarkWood", "M8/Environment/Textures/TX_URB_planks", new Color(0.22f, 0.16f, 0.10f), new Vector2(5f, 8f), 0.2f));
+            var safehouseWall = M8AssetRuntime.TexturedMaterial("SafehouseAgedPlaster", "M8/Environment/Textures/TX_URB_wall", new Color(0.31f, 0.27f, 0.21f), new Vector2(4f, 2f), 0.08f);
+            Primitive("back_wall", PrimitiveType.Cube, safehouse, new Vector3(0f, 2.2f, -3f), new Vector3(12f, 4.4f, 0.35f), safehouseWall);
+            Primitive("left_wall", PrimitiveType.Cube, safehouse, new Vector3(-6f, 2.2f, 3.5f), new Vector3(0.35f, 4.4f, 13f), safehouseWall);
+            Primitive("right_wall", PrimitiveType.Cube, safehouse, new Vector3(6f, 2.2f, 3.5f), new Vector3(0.35f, 4.4f, 13f), safehouseWall);
+            Primitive("front_main", PrimitiveType.Cube, safehouse, new Vector3(-1.45f, 2.2f, 10f), new Vector3(9.1f, 4.4f, 0.35f), safehouseWall);
+            Primitive("front_edge", PrimitiveType.Cube, safehouse, new Vector3(5.7f, 2.2f, 10f), new Vector3(0.6f, 4.4f, 0.35f), safehouseWall);
+            Primitive("bed_frame", PrimitiveType.Cube, safehouse, new Vector3(-3.65f, 0.35f, 6.55f), new Vector3(3.1f, 0.45f, 5f), Mat("bed", new Color(0.13f, 0.17f, 0.17f)));
+            Primitive("bed_sheet", PrimitiveType.Cube, safehouse, new Vector3(-3.65f, 0.62f, 6.55f), new Vector3(2.9f, 0.18f, 4.8f), Mat("sheet", new Color(0.075f, 0.18f, 0.13f), 0.08f));
             Primitive("mirror", PrimitiveType.Cube, safehouse, new Vector3(5.75f, 1.8f, 0.6f), new Vector3(0.08f, 2.3f, 1.6f), Mat("mirror", new Color(0.42f, 0.52f, 0.56f), 0.72f));
             Primitive("phone_shelf", PrimitiveType.Cube, safehouse, new Vector3(-4.8f, 0.8f, 1.8f), new Vector3(1.4f, 0.12f, 1f), Mat("shelf", new Color(0.11f, 0.11f, 0.1f)));
-            Primitive("rug", PrimitiveType.Cube, safehouse, new Vector3(0.4f, 0.02f, 3.7f), new Vector3(4.2f, 0.035f, 3.1f), Mat("rug", new Color(0.19f, 0.31f, 0.27f)));
+            Primitive("rug", PrimitiveType.Cube, safehouse, new Vector3(0.4f, 0.02f, 2.9f), new Vector3(5.1f, 0.035f, 4.4f), Mat("rug", new Color(0.075f, 0.26f, 0.16f), 0.06f));
             Primitive("desk", PrimitiveType.Cube, safehouse, new Vector3(3.9f, 0.78f, 7.8f), new Vector3(3f, 0.12f, 1.25f), Mat("wood", new Color(0.25f, 0.17f, 0.11f)));
             Primitive("desk_leg_l", PrimitiveType.Cube, safehouse, new Vector3(2.7f, 0.38f, 7.8f), new Vector3(0.12f, 0.75f, 0.95f), Mat("metal", new Color(0.12f, 0.13f, 0.13f)));
             Primitive("desk_leg_r", PrimitiveType.Cube, safehouse, new Vector3(5.1f, 0.38f, 7.8f), new Vector3(0.12f, 0.75f, 0.95f), Mat("metal", new Color(0.12f, 0.13f, 0.13f)));
@@ -154,15 +155,15 @@ namespace TrapWars.World
             Primitive("charger_cable", PrimitiveType.Cylinder, safehouse, new Vector3(-4.2f, 0.9f, 2.05f), new Vector3(0.025f, 0.34f, 0.025f), Mat("cable", new Color(0.03f, 0.03f, 0.03f)));
             Primitive("wall_art_01", PrimitiveType.Cube, safehouse, new Vector3(-1.8f, 2.5f, -2.79f), new Vector3(2.2f, 1.25f, 0.06f), Mat("art_green", new Color(0.15f, 0.42f, 0.3f)));
             Primitive("wall_art_02", PrimitiveType.Cube, safehouse, new Vector3(1.1f, 2.25f, -2.78f), new Vector3(1.6f, 1.6f, 0.06f), Mat("art_gold", new Color(0.72f, 0.47f, 0.14f)));
-            CreateWorldText("note", "MOVE SMART.\nKEEP AN EXIT.", safehouse, new Vector3(1.1f, 2.25f, -2.7f), Quaternion.identity, 0.075f, new Color(0.95f, 0.93f, 0.84f));
+            CreateWorldText("note", "MOVE SMART.\nKEEP AN EXIT.", safehouse, new Vector3(1.1f, 2.25f, -2.7f), Quaternion.Euler(0f, 180f, 0f), 0.042f, new Color(0.95f, 0.93f, 0.84f));
             M8AssetRuntime.Decal("safehouse_editorial_print", safehouse, new Vector3(-1.8f, 2.5f, -2.74f), Quaternion.identity, new Vector2(2.05f, 1.12f), 10);
-            M8AssetRuntime.Place("M8/Environment/SM_URB_door_type_a", "SM_SafehouseDoorFrame", safehouse, new Vector3(0f, 0f, 9.78f), Quaternion.identity, 3.1f);
+            M8AssetRuntime.Place("M8/Environment/SM_URB_door_type_a", "SM_SafehouseDoorFrame", safehouse, new Vector3(4.35f, 0f, 9.78f), Quaternion.identity, 3.1f);
             M8AssetRuntime.Place("M8/Environment/SM_URB_pallet_small", "SM_DeskCrate", safehouse, new Vector3(4.9f, 0f, 6.7f), Quaternion.Euler(0f, 90f, 0f), 0.62f);
-            var lamp = new GameObject("safehouse_light", typeof(Light)); lamp.transform.SetParent(safehouse); lamp.transform.position = new Vector3(0f, 3.4f, 3f);
-            var light = lamp.GetComponent<Light>(); light.type = LightType.Point; light.range = 16f; light.intensity = 5f; light.color = new Color(1f, 0.76f, 0.52f);
+            var lamp = new GameObject("safehouse_light", typeof(Light)); lamp.transform.SetParent(safehouse); lamp.transform.localPosition = new Vector3(-0.8f, 3.35f, 4.25f);
+            var light = lamp.GetComponent<Light>(); light.type = LightType.Point; light.range = 14f; light.intensity = 4.1f; light.color = new Color(1f, 0.67f, 0.38f); light.shadows = LightShadows.Soft;
             activeQuality.RegisterPractical(light);
             var deskLamp = new GameObject("safehouse_desk_fill", typeof(Light)); deskLamp.transform.SetParent(safehouse); deskLamp.transform.localPosition = new Vector3(4.1f, 2.25f, 6.6f);
-            var deskLight = deskLamp.GetComponent<Light>(); deskLight.type = LightType.Spot; deskLight.range = 7f; deskLight.intensity = 3.2f; deskLight.spotAngle = 58f; deskLight.color = new Color(0.46f, 0.78f, 0.68f); deskLamp.transform.localRotation = Quaternion.Euler(48f, 180f, 0f);
+            var deskLight = deskLamp.GetComponent<Light>(); deskLight.type = LightType.Spot; deskLight.range = 8f; deskLight.intensity = 2.1f; deskLight.spotAngle = 68f; deskLight.color = new Color(1f, 0.64f, 0.34f); deskLamp.transform.localRotation = Quaternion.Euler(48f, 180f, 0f);
             activeQuality.RegisterPractical(deskLight);
             BuildSafehousePolish(safehouse);
         }
@@ -317,10 +318,10 @@ namespace TrapWars.World
             var emerald = Mat("m82b_emerald", new Color(0.08f, 0.34f, 0.24f), 0.22f);
             var brass = Mat("m82b_brass", new Color(0.62f, 0.42f, 0.12f), 0.7f);
 
-            DecorativePrimitive("bed_headboard", PrimitiveType.Cube, safehouse, new Vector3(-3.6f, 1.15f, -2.7f), new Vector3(3.35f, 1.65f, 0.18f), charcoal);
-            DecorativePrimitive("pillow_left", PrimitiveType.Cube, safehouse, new Vector3(-4.28f, 0.8f, -1.85f), new Vector3(1.05f, 0.22f, 0.72f), linen, Quaternion.Euler(4f, -6f, 0f));
-            DecorativePrimitive("pillow_right", PrimitiveType.Cube, safehouse, new Vector3(-2.94f, 0.8f, -1.85f), new Vector3(1.05f, 0.22f, 0.72f), linen, Quaternion.Euler(3f, 8f, 0f));
-            DecorativePrimitive("bed_throw", PrimitiveType.Cube, safehouse, new Vector3(-3.6f, 0.755f, 0.55f), new Vector3(2.96f, 0.055f, 1.1f), emerald, Quaternion.Euler(0f, 0f, -2f));
+            DecorativePrimitive("bed_headboard", PrimitiveType.Cube, safehouse, new Vector3(-3.65f, 1.15f, 4.35f), new Vector3(3.35f, 1.65f, 0.18f), charcoal);
+            DecorativePrimitive("pillow_left", PrimitiveType.Cube, safehouse, new Vector3(-4.33f, 0.8f, 5.2f), new Vector3(1.05f, 0.22f, 0.72f), linen, Quaternion.Euler(4f, -6f, 0f));
+            DecorativePrimitive("pillow_right", PrimitiveType.Cube, safehouse, new Vector3(-2.99f, 0.8f, 5.2f), new Vector3(1.05f, 0.22f, 0.72f), linen, Quaternion.Euler(3f, 8f, 0f));
+            DecorativePrimitive("bed_throw", PrimitiveType.Cube, safehouse, new Vector3(-3.65f, 0.755f, 7.6f), new Vector3(2.96f, 0.055f, 1.1f), emerald, Quaternion.Euler(0f, 0f, -2f));
 
             DecorativePrimitive("window_recess", PrimitiveType.Cube, safehouse, new Vector3(3.75f, 2.45f, -2.79f), new Vector3(3.15f, 2.15f, 0.08f), charcoal);
             DecorativePrimitive("window_glow", PrimitiveType.Cube, safehouse, new Vector3(3.75f, 2.45f, -2.72f), new Vector3(2.75f, 1.75f, 0.035f), EmissiveMat("m82b_window", new Color(0.16f, 0.28f, 0.29f), 0.42f));
@@ -336,6 +337,63 @@ namespace TrapWars.World
             DecorativePrimitive("sneaker_right", PrimitiveType.Cube, safehouse, new Vector3(-4.55f, 0.11f, 5.78f), new Vector3(0.35f, 0.17f, 0.72f), linen, Quaternion.Euler(0f, 7f, 0f));
             M8AssetRuntime.Decal("safehouse_m82b_print", safehouse, new Vector3(-0.02f, 2.45f, -2.72f), Quaternion.identity, new Vector2(1.15f, 1.3f), 9, "M8/Decals/TX_Decal_ZeroBudgetEditorial_Atlas_D");
             CreateWorldText("safehouse_plan_label", "TODAY  /  CASH  /  EXIT", safehouse, new Vector3(4.16f, 1.22f, 7.85f), Quaternion.Euler(82f, 180f, 0f), 0.028f, new Color(0.84f, 0.8f, 0.62f));
+            BuildReferenceSafehouseLayer(safehouse, charcoal, warmWood, linen, emerald, brass);
+        }
+
+        private static void BuildReferenceSafehouseLayer(Transform safehouse, Material charcoal, Material warmWood, Material linen, Material emerald, Material brass)
+        {
+            var black = Mat("m84_black", new Color(0.025f, 0.026f, 0.023f), 0.18f);
+            var glass = EmissiveMat("m84_city_glass", new Color(0.18f, 0.22f, 0.20f), 0.22f);
+            var warmWindow = EmissiveMat("m84_window_warm", new Color(0.58f, 0.36f, 0.14f), 0.5f);
+
+            DecorativePrimitive("m84_ceiling", PrimitiveType.Cube, safehouse, new Vector3(0f, 4.38f, 3.5f), new Vector3(12f, 0.25f, 13f), charcoal);
+            DecorativePrimitive("m84_window_frame", PrimitiveType.Cube, safehouse, new Vector3(0.35f, 2.45f, 9.72f), new Vector3(3.45f, 2.45f, 0.10f), black);
+            DecorativePrimitive("m84_window_city", PrimitiveType.Cube, safehouse, new Vector3(0.35f, 2.45f, 9.60f), new Vector3(3.05f, 2.05f, 0.04f), glass);
+            for (var index = 0; index < 7; index++)
+            {
+                var height = 0.42f + (index % 4) * 0.28f;
+                DecorativePrimitive($"m84_city_block_{index:00}", PrimitiveType.Cube, safehouse, new Vector3(-0.92f + index * 0.43f, 1.55f + height * 0.5f, 9.48f), new Vector3(0.32f, height, 0.08f), index % 3 == 0 ? warmWindow : charcoal);
+            }
+            DecorativePrimitive("m84_window_mullion_v", PrimitiveType.Cube, safehouse, new Vector3(0.35f, 2.45f, 9.35f), new Vector3(0.065f, 2.08f, 0.05f), black);
+            DecorativePrimitive("m84_window_mullion_h", PrimitiveType.Cube, safehouse, new Vector3(0.35f, 2.45f, 9.35f), new Vector3(3.1f, 0.065f, 0.05f), black);
+            for (var index = 0; index < 9; index++)
+                DecorativePrimitive($"m84_blind_{index:00}", PrimitiveType.Cube, safehouse, new Vector3(0.35f, 3.43f - index * 0.21f, 9.28f), new Vector3(3.18f, 0.045f, 0.08f), black, Quaternion.Euler(-8f, 0f, 0f));
+            DecorativePrimitive("m84_radiator", PrimitiveType.Cube, safehouse, new Vector3(0.35f, 0.55f, 9.48f), new Vector3(2.25f, 0.72f, 0.28f), charcoal);
+            for (var index = 0; index < 9; index++)
+                DecorativePrimitive($"m84_radiator_fin_{index:00}", PrimitiveType.Cube, safehouse, new Vector3(-0.53f + index * 0.22f, 0.55f, 9.27f), new Vector3(0.08f, 0.62f, 0.08f), linen);
+
+            DecorativePrimitive("m84_exit_door", PrimitiveType.Cube, safehouse, new Vector3(4.35f, 1.5f, 9.66f), new Vector3(2.1f, 3f, 0.16f), Mat("m84_exit_green", new Color(0.075f, 0.14f, 0.105f), 0.16f));
+            DecorativePrimitive("m84_exit_trim", PrimitiveType.Cube, safehouse, new Vector3(4.35f, 1.5f, 9.52f), new Vector3(2.28f, 3.18f, 0.06f), warmWood);
+            DecorativePrimitive("m84_exit_face", PrimitiveType.Cube, safehouse, new Vector3(4.35f, 1.5f, 9.43f), new Vector3(2.02f, 2.92f, 0.08f), Mat("m84_exit_green", new Color(0.075f, 0.14f, 0.105f), 0.16f));
+            DecorativePrimitive("m84_poster_discipline", PrimitiveType.Cube, safehouse, new Vector3(-4.78f, 2.55f, 9.38f), new Vector3(1.25f, 2.2f, 0.08f), black);
+            CreateWorldText("m84_poster_discipline_text", "DISCIPLINE\nFOCUS\nEXECUTE\nFREEDOM", safehouse, new Vector3(-4.78f, 2.55f, 9.31f), Quaternion.identity, 0.038f, new Color(0.34f, 0.62f, 0.27f));
+            DecorativePrimitive("m84_poster_plan", PrimitiveType.Cube, safehouse, new Vector3(-2.96f, 2.55f, 9.38f), new Vector3(1.25f, 2.2f, 0.08f), linen);
+            CreateWorldText("m84_poster_plan_text", "THE PLAN\n1. LEARN\n2. WATCH\n3. MOVE\n4. BUILD", safehouse, new Vector3(-2.96f, 2.55f, 9.30f), Quaternion.identity, 0.031f, new Color(0.12f, 0.11f, 0.08f));
+
+            DecorativePrimitive("m84_nightstand", PrimitiveType.Cube, safehouse, new Vector3(-5.05f, 0.54f, -1.55f), new Vector3(1.05f, 1.02f, 0.9f), warmWood);
+            DecorativePrimitive("m84_bedside_lamp_base", PrimitiveType.Cylinder, safehouse, new Vector3(-5.05f, 1.11f, -1.55f), new Vector3(0.22f, 0.07f, 0.22f), brass);
+            DecorativePrimitive("m84_bedside_lamp_stem", PrimitiveType.Cylinder, safehouse, new Vector3(-5.05f, 1.39f, -1.55f), new Vector3(0.035f, 0.28f, 0.035f), brass);
+            DecorativePrimitive("m84_bedside_lamp_shade", PrimitiveType.Cylinder, safehouse, new Vector3(-5.05f, 1.66f, -1.55f), new Vector3(0.34f, 0.25f, 0.34f), linen);
+            var bedside = new GameObject("m84_bedside_light", typeof(Light)); bedside.transform.SetParent(safehouse); bedside.transform.localPosition = new Vector3(-5.05f, 1.75f, -1.55f);
+            var bedsideLight = bedside.GetComponent<Light>(); bedsideLight.type = LightType.Point; bedsideLight.range = 7f; bedsideLight.intensity = 3f; bedsideLight.color = new Color(1f, 0.56f, 0.25f); bedsideLight.shadows = LightShadows.Soft; activeQuality.RegisterPractical(bedsideLight);
+
+            DecorativePrimitive("m84_tv_console", PrimitiveType.Cube, safehouse, new Vector3(4.25f, 0.72f, -2.25f), new Vector3(2.55f, 1.25f, 0.72f), warmWood);
+            DecorativePrimitive("m84_tv", PrimitiveType.Cube, safehouse, new Vector3(4.25f, 1.72f, -2.42f), new Vector3(2.35f, 1.35f, 0.20f), black);
+            DecorativePrimitive("m84_tv_screen", PrimitiveType.Cube, safehouse, new Vector3(4.25f, 1.72f, -2.29f), new Vector3(2.08f, 1.08f, 0.035f), EmissiveMat("m84_tv_screen", new Color(0.018f, 0.042f, 0.045f), 0.12f));
+            CreateWorldText("m84_tv_label", "NO SIGNAL", safehouse, new Vector3(4.25f, 1.72f, -2.22f), Quaternion.Euler(0f, 180f, 0f), 0.035f, new Color(0.25f, 0.62f, 0.64f));
+
+            DecorativePrimitive("m84_discipline_backer", PrimitiveType.Cube, safehouse, new Vector3(-5.77f, 2.65f, 0.45f), new Vector3(0.055f, 2.45f, 1.55f), black);
+            CreateWorldText("m84_discipline", "DISCIPLINE\nFOCUS\nEXECUTE\nFREEDOM", safehouse, new Vector3(-5.70f, 2.65f, 0.45f), Quaternion.Euler(0f, -90f, 0f), 0.047f, new Color(0.30f, 0.56f, 0.24f));
+            DecorativePrimitive("m84_plan_backer", PrimitiveType.Cube, safehouse, new Vector3(-5.76f, 2.55f, 2.25f), new Vector3(0.06f, 1.85f, 1.15f), warmWood);
+            CreateWorldText("m84_plan", "THE PLAN\n1. LEARN\n2. WATCH\n3. MOVE\n4. BUILD\n5. ELEVATE", safehouse, new Vector3(-5.68f, 2.55f, 2.25f), Quaternion.Euler(0f, -90f, 0f), 0.034f, new Color(0.88f, 0.82f, 0.66f));
+
+            DecorativePrimitive("m84_desk_chair_seat", PrimitiveType.Cube, safehouse, new Vector3(3.75f, 0.66f, 6.45f), new Vector3(0.95f, 0.18f, 0.92f), charcoal);
+            DecorativePrimitive("m84_desk_chair_back", PrimitiveType.Cube, safehouse, new Vector3(3.75f, 1.22f, 6.85f), new Vector3(0.95f, 1.05f, 0.16f), charcoal, Quaternion.Euler(-8f, 0f, 0f));
+            for (var index = 0; index < 3; index++)
+                DecorativePrimitive($"m84_desk_drawer_{index:00}", PrimitiveType.Cube, safehouse, new Vector3(5.12f, 0.34f + index * 0.31f, 7.8f), new Vector3(0.92f, 0.26f, 0.94f), warmWood);
+
+            var windowKey = new GameObject("m84_window_key", typeof(Light)); windowKey.transform.SetParent(safehouse); windowKey.transform.localPosition = new Vector3(0.35f, 2.85f, 8.65f);
+            var key = windowKey.GetComponent<Light>(); key.type = LightType.Point; key.range = 9.5f; key.intensity = 3.6f; key.color = new Color(0.98f, 0.73f, 0.48f); key.shadows = LightShadows.Soft; activeQuality.RegisterPractical(key);
         }
 
         private static void BuildFacadeRhythm(Transform district)

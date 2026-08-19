@@ -19,21 +19,24 @@ namespace TrapWars.EditorTools
         private static readonly string M81Trigger = Path.GetFullPath(Path.Combine(Application.dataPath, "../M8_1Evidence.trigger"));
         private static readonly string M82BTrigger = Path.GetFullPath(Path.Combine(Application.dataPath, "../M8_2BEvidence.trigger"));
         private static readonly string M83Trigger = Path.GetFullPath(Path.Combine(Application.dataPath, "../M8_3Evidence.trigger"));
+        private static readonly string M84Trigger = Path.GetFullPath(Path.Combine(Application.dataPath, "../M8_4Evidence.trigger"));
+        private static bool IsM84 => File.Exists(M84Trigger);
         private static bool IsM83 => File.Exists(M83Trigger);
         private static bool IsM82B => File.Exists(M82BTrigger);
-        private static string Trigger => IsM83 ? M83Trigger : IsM82B ? M82BTrigger : M81Trigger;
-        private static string EvidenceDirectory => Path.GetFullPath(Path.Combine(Application.dataPath, IsM83 ? "../../../docs/evidence/m8_3/screenshots" : IsM82B ? "../../../docs/evidence/m8_2b/screenshots" : "../../../docs/evidence/m8_1/screenshots"));
-        private static string EvidenceLabel => IsM83 ? "M8_3_EVIDENCE" : IsM82B ? "M8_2B_EVIDENCE" : "M8_1_EVIDENCE";
+        private static string Trigger => IsM84 ? M84Trigger : IsM83 ? M83Trigger : IsM82B ? M82BTrigger : M81Trigger;
+        private static string EvidenceDirectory => Path.GetFullPath(Path.Combine(Application.dataPath, IsM84 ? "../../../docs/evidence/m8_4/screenshots" : IsM83 ? "../../../docs/evidence/m8_3/screenshots" : IsM82B ? "../../../docs/evidence/m8_2b/screenshots" : "../../../docs/evidence/m8_1/screenshots"));
+        private static string EvidenceLabel => IsM84 ? "M8_4_EVIDENCE" : IsM83 ? "M8_3_EVIDENCE" : IsM82B ? "M8_2B_EVIDENCE" : "M8_1_EVIDENCE";
         private static int step;
         private static int dialogueAdvances;
         private static double nextActionAt;
         private static bool requestedPlay;
         private static bool openingObjectiveCompleted;
+        private static bool m84OpeningCaptured;
         private static double nextHeartbeatAt;
 
         static M8EvidenceRunner()
         {
-            if (Application.isBatchMode || (!File.Exists(M81Trigger) && !File.Exists(M82BTrigger) && !File.Exists(M83Trigger))) return;
+            if (Application.isBatchMode || (!File.Exists(M81Trigger) && !File.Exists(M82BTrigger) && !File.Exists(M83Trigger) && !File.Exists(M84Trigger))) return;
             if (SessionState.GetBool(ActiveSessionKey, false)) ResumeAfterReload();
             else Begin();
         }
@@ -48,6 +51,7 @@ namespace TrapWars.EditorTools
             step = 0;
             dialogueAdvances = 0;
             openingObjectiveCompleted = false;
+            m84OpeningCaptured = false;
             SessionState.SetBool(ActiveSessionKey, true);
             requestedPlay = !EditorApplication.isPlaying;
             nextActionAt = EditorApplication.timeSinceStartup + (requestedPlay ? 1d : 5d);
@@ -61,6 +65,9 @@ namespace TrapWars.EditorTools
 
         [MenuItem("Trap Wars/M8.3/Run Screenshot Composition Route")]
         public static void BeginM83() => Begin();
+
+        [MenuItem("Trap Wars/M8.4/Run Screenshot Composition Route")]
+        public static void BeginM84() => Begin();
 
         private static void ResumeAfterReload()
         {
@@ -106,6 +113,14 @@ namespace TrapWars.EditorTools
             }
             if (!openingObjectiveCompleted)
             {
+                if (IsM84 && !m84OpeningCaptured)
+                {
+                    Capture("01-hero-safehouse.png");
+                    m84OpeningCaptured = true;
+                    step = 1;
+                    nextActionAt = EditorApplication.timeSinceStartup + 1.2d;
+                    return;
+                }
                 Menu("Trap Wars/M7 Acceptance/Show Word");
                 Menu("Trap Wars/M7 Acceptance/Close Overlay");
                 openingObjectiveCompleted = true;
