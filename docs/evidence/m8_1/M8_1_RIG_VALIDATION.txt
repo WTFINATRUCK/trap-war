@@ -1,5 +1,5 @@
 M8.1 PRODUCTION CHARACTER RIG VALIDATION
-Generated UTC: 2026-08-19T04:18:01.6212358Z
+Generated UTC: 2026-08-19T05:36:08.9647956Z
 Unity: 6000.3.20f1
 
 PASS | model=SK_Hero_Casual2 runtime=PF_Hero_Humanoid_M8_1 avatar_valid=True humanoid=True missing=[] source_humanoid=True scale=(1.000, 1.000, 1.000) mesh_height=3.165 root=PF_Hero_Humanoid_M8_1 > CharacterArmature > Bone

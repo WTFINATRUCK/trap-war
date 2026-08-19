@@ -251,7 +251,7 @@ namespace TrapWars.EditorTools
             var commit = Git(repositoryRoot, "rev-parse --short=12 HEAD");
             var branch = Git(repositoryRoot, "branch --show-current");
             var dirtyBeforeBuild = !string.IsNullOrWhiteSpace(Git(repositoryRoot, "status --porcelain"));
-            BuildAll();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
 
             const string identityAsset = "Assets/_TrapWars/Resources/M8BuildIdentity.txt";
             var identityPath = Path.GetFullPath(identityAsset);

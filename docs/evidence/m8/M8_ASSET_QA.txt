@@ -1,12 +1,12 @@
 M8 ASSET QA
-Generated UTC: 2026-08-19T04:18:01.6627782Z
+Generated UTC: 2026-08-19T05:36:08.9852531Z
 Unity: 6000.3.20f1
 
-PASS | 10237 bytes | Assets/_TrapWars/Resources/M8/Animation/AC_Crowd_A_M8.controller
-PASS | 10242 bytes | Assets/_TrapWars/Resources/M8/Animation/AC_Crowd_B_M8.controller
-PASS | 10239 bytes | Assets/_TrapWars/Resources/M8/Animation/AC_Crowd_C_M8.controller
-PASS | 10222 bytes | Assets/_TrapWars/Resources/M8/Animation/AC_Hero_M8.controller
-PASS | 10230 bytes | Assets/_TrapWars/Resources/M8/Animation/AC_Ray_M8.controller
+PASS | 10228 bytes | Assets/_TrapWars/Resources/M8/Animation/AC_Crowd_A_M8.controller
+PASS | 10239 bytes | Assets/_TrapWars/Resources/M8/Animation/AC_Crowd_B_M8.controller
+PASS | 10234 bytes | Assets/_TrapWars/Resources/M8/Animation/AC_Crowd_C_M8.controller
+PASS | 10224 bytes | Assets/_TrapWars/Resources/M8/Animation/AC_Hero_M8.controller
+PASS | 10237 bytes | Assets/_TrapWars/Resources/M8/Animation/AC_Ray_M8.controller
 PASS | 2399964 bytes | Assets/_TrapWars/Resources/M8/Animation/AN_Quaternius_Human_M8.fbx
 PASS | 608 bytes | Assets/_TrapWars/Resources/M8/Audio/LICENSE_KENNEY_IMPACT_CC0.txt
 PASS | 574 bytes | Assets/_TrapWars/Resources/M8/Audio/LICENSE_KENNEY_INTERFACE_CC0.txt
@@ -31,11 +31,11 @@ PASS | 45267 bytes | Assets/_TrapWars/Resources/M8/Characters/Processed/AV_PF_Cr
 PASS | 45230 bytes | Assets/_TrapWars/Resources/M8/Characters/Processed/AV_PF_Crowd_C_Humanoid_M8_1.asset
 PASS | 45272 bytes | Assets/_TrapWars/Resources/M8/Characters/Processed/AV_PF_Hero_Humanoid_M8_1.asset
 PASS | 45222 bytes | Assets/_TrapWars/Resources/M8/Characters/Processed/AV_PF_Ray_Humanoid_M8_1.asset
-PASS | 38006 bytes | Assets/_TrapWars/Resources/M8/Characters/Processed/PF_Crowd_A_Humanoid_M8_1.prefab
-PASS | 38019 bytes | Assets/_TrapWars/Resources/M8/Characters/Processed/PF_Crowd_B_Humanoid_M8_1.prefab
-PASS | 37983 bytes | Assets/_TrapWars/Resources/M8/Characters/Processed/PF_Crowd_C_Humanoid_M8_1.prefab
-PASS | 38019 bytes | Assets/_TrapWars/Resources/M8/Characters/Processed/PF_Hero_Humanoid_M8_1.prefab
-PASS | 38005 bytes | Assets/_TrapWars/Resources/M8/Characters/Processed/PF_Ray_Humanoid_M8_1.prefab
+PASS | 38024 bytes | Assets/_TrapWars/Resources/M8/Characters/Processed/PF_Crowd_A_Humanoid_M8_1.prefab
+PASS | 38005 bytes | Assets/_TrapWars/Resources/M8/Characters/Processed/PF_Crowd_B_Humanoid_M8_1.prefab
+PASS | 38002 bytes | Assets/_TrapWars/Resources/M8/Characters/Processed/PF_Crowd_C_Humanoid_M8_1.prefab
+PASS | 38008 bytes | Assets/_TrapWars/Resources/M8/Characters/Processed/PF_Hero_Humanoid_M8_1.prefab
+PASS | 38007 bytes | Assets/_TrapWars/Resources/M8/Characters/Processed/PF_Ray_Humanoid_M8_1.prefab
 PASS | 1615612 bytes | Assets/_TrapWars/Resources/M8/Characters/SK_Crowd_Female_A.fbx
 PASS | 1617484 bytes | Assets/_TrapWars/Resources/M8/Characters/SK_Crowd_Female_B.fbx
 PASS | 1664876 bytes | Assets/_TrapWars/Resources/M8/Characters/SK_Crowd_Female_C.fbx
