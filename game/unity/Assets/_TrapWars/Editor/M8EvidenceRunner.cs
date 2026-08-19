@@ -57,6 +57,7 @@ namespace TrapWars.EditorTools
             nextActionAt = EditorApplication.timeSinceStartup + (requestedPlay ? 1d : 5d);
             EditorApplication.update -= Tick;
             EditorApplication.update += Tick;
+            FocusGameView();
             Debug.Log($"[M8_EVIDENCE] route_requested playing={EditorApplication.isPlaying} trigger={Trigger}");
         }
 
@@ -75,6 +76,7 @@ namespace TrapWars.EditorTools
             nextActionAt = EditorApplication.timeSinceStartup + 5d;
             EditorApplication.update -= Tick;
             EditorApplication.update += Tick;
+            FocusGameView();
             Debug.Log($"[M8_EVIDENCE] route_resumed playing={EditorApplication.isPlaying} will_change={EditorApplication.isPlayingOrWillChangePlaymode}");
         }
 
@@ -294,6 +296,15 @@ namespace TrapWars.EditorTools
         private static void SetField(object target, string field, object value) =>
             (target.GetType().GetField(field, BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new MissingFieldException(target.GetType().Name, field)).SetValue(target, value);
+
+        private static void FocusGameView()
+        {
+            var type = Type.GetType("UnityEditor.GameView,UnityEditor");
+            if (type == null) return;
+            var window = EditorWindow.GetWindow(type);
+            window.maximized = true;
+            window.Focus();
+        }
 
         private static void Finish(int exitCode)
         {

@@ -301,6 +301,63 @@ namespace TrapWars.EditorTools
             if (report.summary.result != BuildResult.Succeeded) throw new InvalidOperationException($"M8.3 human test build failed: {report.summary.result}");
         }
 
+        [MenuItem("Trap Wars/M8.4/Build Reference Match Player")]
+        public static void BuildM84ReferenceMatchPlayer()
+        {
+            var repositoryRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "../../.."));
+            var commit = Git(repositoryRoot, "rev-parse --short=12 HEAD");
+            var branch = Git(repositoryRoot, "branch --show-current");
+            var dirtyBeforeBuild = !string.IsNullOrWhiteSpace(Git(repositoryRoot, "status --porcelain"));
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+
+            const string identityAsset = "Assets/_TrapWars/Resources/M8BuildIdentity.txt";
+            var identityPath = Path.GetFullPath(identityAsset);
+            var identity = $"milestone=M8.4 version={PlayerSettings.bundleVersion} commit={commit} branch={branch} dirty_before_build={dirtyBeforeBuild.ToString().ToLowerInvariant()}";
+            File.WriteAllText(identityPath, identity);
+            AssetDatabase.ImportAsset(identityAsset, ImportAssetOptions.ForceSynchronousImport);
+
+            var output = Path.Combine(repositoryRoot, "Builds/M8_4/TrapWarsM84.exe");
+            Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+            BuildReport report;
+            try
+            {
+                report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                {
+                    scenes = new[] { "Assets/Scenes/SampleScene.unity" },
+                    locationPathName = output,
+                    target = BuildTarget.StandaloneWindows64,
+                    options = BuildOptions.None
+                });
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(identityAsset);
+                AssetDatabase.Refresh();
+            }
+
+            var evidenceDirectory = Path.Combine(repositoryRoot, "docs/evidence/m8_4");
+            Directory.CreateDirectory(evidenceDirectory);
+            File.WriteAllLines(Path.Combine(evidenceDirectory, "M8_4_BUILD_MANIFEST.txt"), new[]
+            {
+                "TRAP WARS M8.4 REFERENCE MATCH BUILD",
+                $"Generated UTC: {DateTime.UtcNow:O}",
+                $"Unity: {Application.unityVersion}",
+                "Milestone: M8.4",
+                $"Version: {PlayerSettings.bundleVersion}",
+                $"Commit: {commit}",
+                $"Branch: {branch}",
+                $"Dirty before build: {dirtyBeforeBuild}",
+                $"Development build: {report.summary.options.HasFlag(BuildOptions.Development)}",
+                $"Debugging: {report.summary.options.HasFlag(BuildOptions.AllowDebugging)}",
+                $"Result: {report.summary.result}",
+                $"Size bytes: {report.summary.totalSize}",
+                $"Duration: {report.summary.totalTime}",
+                $"Output: {output}"
+            });
+            Debug.Log($"[M8_4_BUILD] result={report.summary.result} size_bytes={report.summary.totalSize} commit={commit} development=false debugging=false output={output}");
+            if (report.summary.result != BuildResult.Succeeded) throw new InvalidOperationException($"M8.4 reference match build failed: {report.summary.result}");
+        }
+
         private static string Git(string repositoryRoot, string arguments)
         {
             var info = new System.Diagnostics.ProcessStartInfo("git", arguments)

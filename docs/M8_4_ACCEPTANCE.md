@@ -33,6 +33,10 @@ This pass achieves reference-directed composition, lighting, HUD hierarchy, and 
 - PlayMode: 10 passed, 0 failed (`docs/evidence/m8_4/M8_4_PLAYMODE_RESULTS.xml`)
 - Unity editor: 6000.3.20f1
 
+## Unity CLI Adoption
+
+The official Unity CLI is now the preferred project discovery, status, authentication, Editor registration, and open-project interface. `Tools/Unity/TrapWars-Unity.ps1` combines that interface with the pinned direct Editor CLI for tests, builds, validation, and the repeatable 12-frame M8.4 capture route. The validated M8.4 release build reports version `0.8.4`, development false, and debugging false.
+
 ## Visual Gap
 
 The scene now follows the reference's composition and readability, but its final perceived quality is constrained by the existing stylized fallback Hero and code-built primitive environment. Closing the remaining gap requires production-quality Hero, furniture, surface, prop, and city-view assets; those dependencies should be treated as asset production work, not hidden inside a technical acceptance claim.

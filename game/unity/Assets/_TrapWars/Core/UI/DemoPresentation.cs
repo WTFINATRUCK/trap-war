@@ -7,7 +7,7 @@ namespace TrapWars.UI
 {
     public static class DemoPresentationPolicy
     {
-        public const string Milestone = "M8.3";
+        public const string Milestone = "M8.4";
         public const string ConnectionUnavailable = "Connection unavailable. Try again.";
         public const string ControlsSeenKey = "trapwars.m8_3.controls_seen";
 
