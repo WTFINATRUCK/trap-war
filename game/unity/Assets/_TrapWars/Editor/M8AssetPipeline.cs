@@ -244,6 +244,81 @@ namespace TrapWars.EditorTools
             if (report.summary.result != BuildResult.Succeeded) throw new InvalidOperationException($"M8.2B review build failed: {report.summary.result}");
         }
 
+        [MenuItem("Trap Wars/M8.3/Build Clean Human Test Player")]
+        public static void BuildM83HumanTestPlayer()
+        {
+            var repositoryRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "../../.."));
+            var commit = Git(repositoryRoot, "rev-parse --short=12 HEAD");
+            var branch = Git(repositoryRoot, "branch --show-current");
+            var dirtyBeforeBuild = !string.IsNullOrWhiteSpace(Git(repositoryRoot, "status --porcelain"));
+            BuildAll();
+
+            const string identityAsset = "Assets/_TrapWars/Resources/M8BuildIdentity.txt";
+            var identityPath = Path.GetFullPath(identityAsset);
+            var identity = $"milestone=M8.3 version={PlayerSettings.bundleVersion} commit={commit} branch={branch} dirty_before_build={dirtyBeforeBuild.ToString().ToLowerInvariant()}";
+            File.WriteAllText(identityPath, identity);
+            AssetDatabase.ImportAsset(identityAsset, ImportAssetOptions.ForceSynchronousImport);
+
+            var output = Path.Combine(repositoryRoot, "Builds/M8_3/TrapWarsM83.exe");
+            Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+            BuildReport report;
+            try
+            {
+                report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                {
+                    scenes = new[] { "Assets/Scenes/SampleScene.unity" },
+                    locationPathName = output,
+                    target = BuildTarget.StandaloneWindows64,
+                    options = BuildOptions.None
+                });
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(identityAsset);
+                AssetDatabase.Refresh();
+            }
+
+            var evidenceDirectory = Path.Combine(repositoryRoot, "docs/evidence/m8_3");
+            Directory.CreateDirectory(evidenceDirectory);
+            File.WriteAllLines(Path.Combine(evidenceDirectory, "M8_3_BUILD_MANIFEST.txt"), new[]
+            {
+                "TRAP WARS M8.3 CLEAN HUMAN TEST BUILD",
+                $"Generated UTC: {DateTime.UtcNow:O}",
+                $"Unity: {Application.unityVersion}",
+                $"Milestone: M8.3",
+                $"Version: {PlayerSettings.bundleVersion}",
+                $"Commit: {commit}",
+                $"Branch: {branch}",
+                $"Dirty before build: {dirtyBeforeBuild}",
+                $"Development build: {report.summary.options.HasFlag(BuildOptions.Development)}",
+                $"Debugging: {report.summary.options.HasFlag(BuildOptions.AllowDebugging)}",
+                $"Result: {report.summary.result}",
+                $"Size bytes: {report.summary.totalSize}",
+                $"Duration: {report.summary.totalTime}",
+                $"Output: {output}"
+            });
+            Debug.Log($"[M8_3_BUILD] result={report.summary.result} size_bytes={report.summary.totalSize} commit={commit} development=false debugging=false output={output}");
+            if (report.summary.result != BuildResult.Succeeded) throw new InvalidOperationException($"M8.3 human test build failed: {report.summary.result}");
+        }
+
+        private static string Git(string repositoryRoot, string arguments)
+        {
+            var info = new System.Diagnostics.ProcessStartInfo("git", arguments)
+            {
+                WorkingDirectory = repositoryRoot,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var process = System.Diagnostics.Process.Start(info) ?? throw new InvalidOperationException("Unable to start git for build identity.");
+            var output = process.StandardOutput.ReadToEnd().Trim();
+            var error = process.StandardError.ReadToEnd().Trim();
+            process.WaitForExit();
+            if (process.ExitCode != 0) throw new InvalidOperationException($"git {arguments} failed: {error}");
+            return output;
+        }
+
         private static void BuildController(CharacterSpec spec)
         {
             var modelPath = $"{CharacterRoot}/{spec.Model}.fbx";

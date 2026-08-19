@@ -153,8 +153,8 @@ namespace TrapWars.Market
             animationDriver.PulseInteract();
             var cashDelta = state.Current!.Cash - beforeCash;
             analytics.Track("market.trade_completed", new Dictionary<string, object> { ["asset_id"] = selectedAsset, ["side"] = isBuy ? "buy" : "sell", ["state_version"] = result.Value!.Run.StateVersion });
-            hud.Toast($"{(isBuy ? "Bought" : "Sold")} 1 {selectedAsset}. Server confirmed.", UiFactory.Green);
-            feedback.text = $"MOVE CONFIRMED\n{(cashDelta >= 0 ? "+" : "-")}${Mathf.Abs(cashDelta):N0} CASH  /  VERSION {state.Current.StateVersion}";
+            hud.Toast($"{(isBuy ? "Bought" : "Sold")} 1 {selectedAsset}. Cash and inventory updated.", UiFactory.Green);
+            feedback.text = DemoPresentationPolicy.TradeFeedback(cashDelta, state.Current.Owned(selectedAsset), state.Current.ActionsRemaining);
             StopCoroutine(nameof(HideFeedback));
             StartCoroutine(nameof(HideFeedback));
             objectives.AdvanceFrom(GreyboxObjective.MakeYourMove);

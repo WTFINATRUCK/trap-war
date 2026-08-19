@@ -18,10 +18,12 @@ namespace TrapWars.EditorTools
         private const string ActiveSessionKey = "trapwars.m8.evidence.active";
         private static readonly string M81Trigger = Path.GetFullPath(Path.Combine(Application.dataPath, "../M8_1Evidence.trigger"));
         private static readonly string M82BTrigger = Path.GetFullPath(Path.Combine(Application.dataPath, "../M8_2BEvidence.trigger"));
+        private static readonly string M83Trigger = Path.GetFullPath(Path.Combine(Application.dataPath, "../M8_3Evidence.trigger"));
+        private static bool IsM83 => File.Exists(M83Trigger);
         private static bool IsM82B => File.Exists(M82BTrigger);
-        private static string Trigger => IsM82B ? M82BTrigger : M81Trigger;
-        private static string EvidenceDirectory => Path.GetFullPath(Path.Combine(Application.dataPath, IsM82B ? "../../../docs/evidence/m8_2b/screenshots" : "../../../docs/evidence/m8_1/screenshots"));
-        private static string EvidenceLabel => IsM82B ? "M8_2B_EVIDENCE" : "M8_1_EVIDENCE";
+        private static string Trigger => IsM83 ? M83Trigger : IsM82B ? M82BTrigger : M81Trigger;
+        private static string EvidenceDirectory => Path.GetFullPath(Path.Combine(Application.dataPath, IsM83 ? "../../../docs/evidence/m8_3/screenshots" : IsM82B ? "../../../docs/evidence/m8_2b/screenshots" : "../../../docs/evidence/m8_1/screenshots"));
+        private static string EvidenceLabel => IsM83 ? "M8_3_EVIDENCE" : IsM82B ? "M8_2B_EVIDENCE" : "M8_1_EVIDENCE";
         private static int step;
         private static int dialogueAdvances;
         private static double nextActionAt;
@@ -31,7 +33,7 @@ namespace TrapWars.EditorTools
 
         static M8EvidenceRunner()
         {
-            if (Application.isBatchMode || (!File.Exists(M81Trigger) && !File.Exists(M82BTrigger))) return;
+            if (Application.isBatchMode || (!File.Exists(M81Trigger) && !File.Exists(M82BTrigger) && !File.Exists(M83Trigger))) return;
             if (SessionState.GetBool(ActiveSessionKey, false)) ResumeAfterReload();
             else Begin();
         }
@@ -56,6 +58,9 @@ namespace TrapWars.EditorTools
 
         [MenuItem("Trap Wars/M8.2B/Run Screenshot Composition Route")]
         public static void BeginM82B() => Begin();
+
+        [MenuItem("Trap Wars/M8.3/Run Screenshot Composition Route")]
+        public static void BeginM83() => Begin();
 
         private static void ResumeAfterReload()
         {

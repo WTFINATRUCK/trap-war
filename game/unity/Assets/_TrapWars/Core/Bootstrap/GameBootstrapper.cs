@@ -57,7 +57,7 @@ namespace TrapWars.Bootstrap
                 if (failureHud != null)
                 {
                     failureHud.SetLoading(false);
-                    failureHud.Toast($"Connection required: {exception.Message}", UiFactory.Red);
+                    failureHud.Toast(DemoPresentationPolicy.ConnectionUnavailable, UiFactory.Red);
                 }
             }
         }
@@ -86,6 +86,8 @@ namespace TrapWars.Bootstrap
             DontDestroyOnLoad(uiHost);
             var hud = uiHost.AddComponent<GreyboxHud>();
             hud.Configure(state, objectives, network);
+            var controls = uiHost.AddComponent<ControlIntroductionPresenter>();
+            controls.Build();
             hud.SetLoading(true, "Authenticating and loading your run...");
             analytics.Track("session.started", new Dictionary<string, object> { ["entry_source"] = "m7_greybox", ["returning_player"] = persistence.Load() != null });
 
@@ -116,6 +118,7 @@ namespace TrapWars.Bootstrap
             devTools.Configure(config, state, runService, world.PlayerMotor, objectives, phone, world.InteractionScanner, world.TeleportPoints, hud);
 #endif
             hud.SetLoading(false);
+            controls.ShowOnce();
             hud.Toast(
                 objectives.Current == GreyboxObjective.DayTwoHook
                     ? "Run restored. New Word is waiting."
@@ -125,6 +128,7 @@ namespace TrapWars.Bootstrap
             analytics.Track("rumor.received", new Dictionary<string, object> { ["rumor_id"] = "m7_market_hub_chatter" });
             analytics.Track("player.spawned", new Dictionary<string, object> { ["location_id"] = "safehouse_01", ["spawn_id"] = "bed_spawn_01", ["load_duration_ms"] = bootTimer.ElapsedMilliseconds });
             analytics.Track("player.control_acquired", new Dictionary<string, object> { ["location_id"] = "safehouse_01", ["time_from_session_start_ms"] = bootTimer.ElapsedMilliseconds });
+            UnityEngine.Debug.Log($"[TRAP_WARS_BUILD] {DemoPresentationPolicy.BuildIdentity()}");
         }
 
         private async void OnDestroy()

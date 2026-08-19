@@ -6,6 +6,7 @@ using TrapWars.Interaction;
 using TrapWars.Objectives;
 using TrapWars.Player;
 using TrapWars.Services;
+using TrapWars.UI;
 using TrapWars.Visuals;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -184,6 +185,19 @@ namespace TrapWars.Tests.PlayMode
             quality.Apply(M8QualityTier.High);
             Assert.That(high.activeSelf, Is.True);
             Assert.That(QualitySettings.lodBias, Is.EqualTo(1.5f));
+        }
+
+        [Test]
+        public void M83PlayerFacingFeedback_HidesBackendLanguageAndExplainsOutcome()
+        {
+            var feedback = DemoPresentationPolicy.TradeFeedback(-80, 1, 2);
+
+            Assert.That(feedback, Does.Contain("-$80 CASH"));
+            Assert.That(feedback, Does.Contain("1 OWNED"));
+            Assert.That(feedback, Does.Contain("2 ACTIONS LEFT"));
+            Assert.That(feedback, Does.Not.Contain("SERVER").IgnoreCase);
+            Assert.That(feedback, Does.Not.Contain("VERSION").IgnoreCase);
+            Assert.That(DemoPresentationPolicy.ConnectionUnavailable, Is.EqualTo("Connection unavailable. Try again."));
         }
 
         private PlayModeTestInteractable CreateInteractable(string id, Vector3 position)

@@ -130,9 +130,22 @@ namespace TrapWars.EditorTools
             if (EditorApplication.isPlaying) return;
             PlayerPrefs.DeleteKey("trap_wars.m7.resume.v1");
             PlayerPrefs.DeleteKey("trapwars.visual.quality");
+            DemoPresentationPolicy.ResetLocalDemoPresentation();
             PlayerPrefs.Save();
             m8CaptureIndex = 0;
             Debug.Log("[M8_DEMO] local projection and quality preference reset; authoritative backend records preserved");
+        }
+
+        [MenuItem("Trap Wars/M8.3/Reset Local Human Test")]
+        private static void ResetM83HumanTest()
+        {
+            if (EditorApplication.isPlaying) return;
+            PlayerPrefs.DeleteKey("trap_wars.m7.resume.v1");
+            PlayerPrefs.SetInt("trapwars.visual.quality", (int)M8QualityTier.High);
+            DemoPresentationPolicy.ResetLocalDemoPresentation();
+            PlayerPrefs.Save();
+            m8CaptureIndex = 0;
+            Debug.Log("[M8_3_DEMO_RESET] local guest, onboarding, and quality reset; backend records and production configuration preserved");
         }
 
         [MenuItem("Trap Wars/M7.5/Reset Local Guest %&g")]

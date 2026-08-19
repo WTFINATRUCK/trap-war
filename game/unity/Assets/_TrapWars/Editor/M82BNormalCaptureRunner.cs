@@ -12,7 +12,10 @@ namespace TrapWars.EditorTools
     public static class M82BNormalCaptureRunner
     {
         private const string ActiveSessionKey = "trapwars.m8_2b.normal_capture.active";
-        private static readonly string Trigger = Path.GetFullPath(Path.Combine(Application.dataPath, "../M8_2BNormalCapture.trigger"));
+        private static readonly string M82BTrigger = Path.GetFullPath(Path.Combine(Application.dataPath, "../M8_2BNormalCapture.trigger"));
+        private static readonly string M83Trigger = Path.GetFullPath(Path.Combine(Application.dataPath, "../M8_3NormalCapture.trigger"));
+        private static string Trigger => File.Exists(M83Trigger) ? M83Trigger : M82BTrigger;
+        private static string EvidenceLabel => File.Exists(M83Trigger) ? "M8_3_NORMAL_CAPTURE" : "M8_2B_NORMAL_CAPTURE";
         private static int actionIndex;
         private static double routeStartedAt;
         private static double nextHeartbeatAt;
@@ -74,7 +77,7 @@ namespace TrapWars.EditorTools
             requestedPlay = !EditorApplication.isPlaying;
             EditorApplication.update -= Tick;
             EditorApplication.update += Tick;
-            Debug.Log($"[M8_2B_NORMAL_CAPTURE] requested trigger={Trigger}");
+            Debug.Log($"[{EvidenceLabel}] requested trigger={Trigger}");
         }
 
         private static void ResumeAfterReload()
@@ -104,25 +107,25 @@ namespace TrapWars.EditorTools
                 routeStartedAt = EditorApplication.timeSinceStartup;
                 nextHeartbeatAt = routeStartedAt;
                 FocusGameView();
-                Debug.Log("[M8_2B_NORMAL_CAPTURE] route_started target_duration_s=538 classification=paced_instrumented_reviewer_route fresh_day_1=true");
+                Debug.Log($"[{EvidenceLabel}] route_started target_duration_s=538 classification=paced_instrumented_reviewer_route fresh_day_1=true");
             }
 
             var elapsed = EditorApplication.timeSinceStartup - routeStartedAt;
             if (elapsed >= nextHeartbeatAt - routeStartedAt)
             {
                 nextHeartbeatAt = EditorApplication.timeSinceStartup + 30d;
-                Debug.Log($"[M8_2B_NORMAL_CAPTURE] heartbeat elapsed_s={elapsed:F1} action={actionIndex}/{Route.Length}");
+                Debug.Log($"[{EvidenceLabel}] heartbeat elapsed_s={elapsed:F1} action={actionIndex}/{Route.Length}");
             }
             while (actionIndex < Route.Length && elapsed >= Route[actionIndex].At + 10d)
             {
                 var action = Route[actionIndex++];
                 if (!EditorApplication.ExecuteMenuItem(action.Menu))
                 {
-                    Debug.LogError($"[M8_2B_NORMAL_CAPTURE] unavailable menu={action.Menu}");
+                    Debug.LogError($"[{EvidenceLabel}] unavailable menu={action.Menu}");
                     Finish(2, elapsed);
                     return;
                 }
-                Debug.Log($"[M8_2B_NORMAL_CAPTURE] elapsed_s={elapsed:F1} menu={action.Menu}");
+                Debug.Log($"[{EvidenceLabel}] elapsed_s={elapsed:F1} menu={action.Menu}");
             }
             if (elapsed >= 538d) Finish(0, elapsed);
         }
@@ -141,7 +144,7 @@ namespace TrapWars.EditorTools
 
         private static void Finish(int exitCode, double elapsed)
         {
-            Debug.Log($"[M8_2B_NORMAL_CAPTURE] complete exit_code={exitCode} duration_s={elapsed:F1}");
+            Debug.Log($"[{EvidenceLabel}] complete exit_code={exitCode} duration_s={elapsed:F1}");
             SessionState.EraseBool(ActiveSessionKey);
             if (File.Exists(Trigger)) File.Delete(Trigger);
             EditorApplication.update -= Tick;
