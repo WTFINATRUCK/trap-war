@@ -26,4 +26,6 @@ Hub displays the exact project path and editor version. The row label is cosmeti
 - No project upgrade: PASS
 - No duplicate project: PASS
 - Assets/scripts preserved: PASS
-- Open from Hub after Git checkpoint: pending final post-push verification
+- Open from Hub after local Git checkpoint: PASS
+- Editor window identity: `Unity 6.3 LTS (6000.3.20f1) <DX11>`
+- Paced Play Mode route from Hub launch: PASS (`538` seconds, runner exit code `0`)

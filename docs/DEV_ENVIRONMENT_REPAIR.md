@@ -40,11 +40,13 @@ The controlled checkpoint includes Unity source and metadata, backend source, ec
 
 ## Git Status After
 
-Final post-push status is recorded after remote verification.
+- Local checkpoint commit: `108c88563062c030d9860cf27a5366fe45974ada`
+- Local branch after checkpoint: `main`, one commit ahead of `origin/main`
+- Remote publication: pending GitHub authentication and remote verification
 
 ## Remote Commit
 
-Recorded after the controlled checkpoint push.
+Pending the controlled checkpoint push. M8.3 remains blocked until the remote SHA is verified.
 
 ## Test Results
 
@@ -52,6 +54,8 @@ Recorded after the controlled checkpoint push.
 - Unity PlayMode: 9/9 passed
 - Clean Windows x64 build: succeeded, non-development, no debugging, 107,697,121 bytes
 - Real PostgreSQL/API: boot, buy, idempotency replay, stale conflict/reconciliation, sell, rejection, save/resume, and network failure passed
+- Unity Hub open: passed at the exact project path with Unity `6000.3.20f1`
+- Paced Play Mode route: passed in `538` seconds; phone, clue, Ray dialogue, market buy, end-day, Day 2 reveal, and performance logging completed with runner exit code `0`
 
 ## Remaining Risks
 
