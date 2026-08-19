@@ -1,0 +1,12 @@
+{
+  "agents": [
+    "client_seeker",
+    "information_aware_opportunist",
+    "aggressive",
+    "conservative"
+  ],
+  "runsPerAgent": 10000,
+  "workers": 4,
+  "wallDurationMs": 559090.48,
+  "output": "experiment-2.json"
+}

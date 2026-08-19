@@ -1,0 +1,10 @@
+Asset: Ultimate Animated Character Pack
+Creator: Quaternius
+Source: https://opengameart.org/content/animated-characters-pack
+License: CC0 1.0 Universal / public-domain dedication
+Acquired: 2026-08-17
+Project use: selected hero, Ray, and crowd production-candidate FBX exports
+Modification: selected, renamed, imported, material-upgraded, and controller-bound for Unity URP
+Redistribution restrictions: none under CC0; provenance retained as project policy
+Classification: PRODUCTION CANDIDATE
+

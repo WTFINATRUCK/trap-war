@@ -1,0 +1,8 @@
+Asset: Street Editorial Decal Atlas
+Source: generated for Trap Wars with OpenAI image generation
+Generated: 2026-08-17
+Content: original abstract contemporary street/editorial marks; no real logos, artists, brands, or copyrighted characters requested
+Modification: imported as a 4x4 runtime atlas and sampled by M8AssetRuntime decals
+Intended use: safehouse print, street posters, markings, and controlled surface variation
+Classification: PRODUCTION CANDIDATE pending art-direction approval
+

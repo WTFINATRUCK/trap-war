@@ -1,0 +1,29 @@
+M8.2B CAPTURE MANIFEST
+
+Continuous video:
+file=M8_2B_CONTINUOUS_PACED_ROUTE.mp4
+codec=h264 pixel_format=yuv420p
+resolution=1920x1200 nominal_frame_rate=30 duration_seconds=560.000000
+size_bytes=78773953
+sha256=1A0BA3EFDA7F0AE05F7AC5904A2951267E47BDC39DAA7F893A5E47967A5859A9
+classification=single continuous fresh-Day-1 paced instrumented reviewer route; not an unfamiliar-human playtest
+route_duration_after_control_seconds=538.0
+recorded_gameplay_window_approx_seconds=520
+tail_note=approximately 40 seconds of post-route desktop remain after Unity exits; gameplay is continuous and uncut
+
+Screenshots (12 real 881x435 Unity Game-view frames):
+01-hero-safehouse.png
+02-hero-street-exit.png
+03-street-wide.png
+04-ray.png
+05-ray-conversation.png
+06-phone.png
+07-the-hub.png
+08-market-flow.png
+09-market-consequence.png
+10-liquidity-reveal.png
+11-night-street.png
+12-day-two-hook.png
+
+Capture tool:
+imageio-ffmpeg bundled binary, FFmpeg 7.1, capture-only, not shipped with the game.

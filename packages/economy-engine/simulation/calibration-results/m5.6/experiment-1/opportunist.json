@@ -1,0 +1,868 @@
+{
+  "generatedAt": "2026-08-11T03:32:11.056Z",
+  "versions": {
+    "economyVersion": "economy-v2.m5.6",
+    "contentVersion": "content-v2.m5.6.1",
+    "balanceVersion": "balance-v2.m5.6.1",
+    "randomStrategyVersion": "hmac-sha256-streams.1"
+  },
+  "runsPerAgent": 10000,
+  "totalRuns": 10000,
+  "agents": [
+    {
+      "agent": "opportunist",
+      "runs": 10000,
+      "netWorth": {
+        "min": 79,
+        "p1": 517,
+        "p5": 1315,
+        "p10": 1847,
+        "p25": 3196,
+        "median": 5403,
+        "p75": 9150,
+        "p90": 13978,
+        "p95": 17658,
+        "p99": 25968,
+        "max": 43680,
+        "mean": 6938.44,
+        "standardDeviation": 5380.19
+      },
+      "gameScore": {
+        "min": 79,
+        "p1": 517,
+        "p5": 1315,
+        "p10": 1847,
+        "p25": 3196,
+        "median": 5403,
+        "p75": 9150,
+        "p90": 13978,
+        "p95": 17658,
+        "p99": 25968,
+        "max": 43680,
+        "mean": 6938.44,
+        "standardDeviation": 5380.19
+      },
+      "liquidCash": {
+        "min": 39,
+        "p1": 73,
+        "p5": 89,
+        "p10": 98,
+        "p25": 122,
+        "median": 183,
+        "p75": 1128,
+        "p90": 4988,
+        "p95": 7812,
+        "p99": 14576,
+        "max": 31322,
+        "mean": 1475.37,
+        "standardDeviation": 3009.45
+      },
+      "inventoryValue": {
+        "min": 0,
+        "p1": 0,
+        "p5": 40,
+        "p10": 875,
+        "p25": 1824,
+        "median": 3240,
+        "p75": 5164,
+        "p90": 7734,
+        "p95": 9680,
+        "p99": 13600,
+        "max": 24593,
+        "mean": 3856.91,
+        "standardDeviation": 2945.74
+      },
+      "stashValue": {
+        "min": 0,
+        "p1": 0,
+        "p5": 0,
+        "p10": 0,
+        "p25": 0,
+        "median": 0,
+        "p75": 0,
+        "p90": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0,
+        "mean": 0,
+        "standardDeviation": 0
+      },
+      "gearValue": {
+        "min": 0,
+        "p1": 0,
+        "p5": 0,
+        "p10": 0,
+        "p25": 0,
+        "median": 0,
+        "p75": 0,
+        "p90": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0,
+        "mean": 0,
+        "standardDeviation": 0
+      },
+      "yieldContribution": {
+        "min": 1,
+        "p1": 34,
+        "p5": 89,
+        "p10": 127,
+        "p25": 216,
+        "median": 364,
+        "p75": 587,
+        "p90": 869,
+        "p95": 1086,
+        "p99": 1646,
+        "max": 3114,
+        "mean": 445.76,
+        "standardDeviation": 329.42
+      },
+      "bankruptcyRate": 0,
+      "positiveRunRate": 0.9896,
+      "completionRate": 1,
+      "averageFinalDay": 30,
+      "firstBankruptcyDay": {
+        "min": 0,
+        "p1": 0,
+        "p5": 0,
+        "p10": 0,
+        "p25": 0,
+        "median": 0,
+        "p75": 0,
+        "p90": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0,
+        "mean": 0,
+        "standardDeviation": 0
+      },
+      "rankDistribution": {
+        "corner_boy": 1
+      },
+      "clientCompletionRate": {
+        "pearl": 0,
+        "ray": 0,
+        "dispatcher": 0
+      },
+      "clientCompletionDay": {
+        "pearl": {
+          "min": 0,
+          "p1": 0,
+          "p5": 0,
+          "p10": 0,
+          "p25": 0,
+          "median": 0,
+          "p75": 0,
+          "p90": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "mean": 0,
+          "standardDeviation": 0
+        },
+        "ray": {
+          "min": 0,
+          "p1": 0,
+          "p5": 0,
+          "p10": 0,
+          "p25": 0,
+          "median": 0,
+          "p75": 0,
+          "p90": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "mean": 0,
+          "standardDeviation": 0
+        },
+        "dispatcher": {
+          "min": 0,
+          "p1": 0,
+          "p5": 0,
+          "p10": 0,
+          "p25": 0,
+          "median": 0,
+          "p75": 0,
+          "p90": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "mean": 0,
+          "standardDeviation": 0
+        }
+      },
+      "robbery": {
+        "opportunities": 300000,
+        "events": 21483,
+        "probabilityPerOpportunity": 0.0716,
+        "runsWithZero": 0.1027,
+        "runsWithOne": 0.2397,
+        "runsWithTwo": 0.2908,
+        "runsWithThreeOrMore": 0.3668,
+        "lossPerEvent": {
+          "min": 7,
+          "p1": 58,
+          "p5": 86,
+          "p10": 117,
+          "p25": 182,
+          "median": 388,
+          "p75": 831,
+          "p90": 1448,
+          "p95": 1940,
+          "p99": 3194,
+          "max": 6735,
+          "mean": 628.77,
+          "standardDeviation": 663.85
+        },
+        "lossPerAffectedRun": {
+          "min": 16,
+          "p1": 77,
+          "p5": 147,
+          "p10": 214,
+          "p25": 453,
+          "median": 1016,
+          "p75": 2025,
+          "p90": 3441,
+          "p95": 4494,
+          "p99": 7364,
+          "max": 15541,
+          "mean": 1505.39,
+          "standardDeviation": 1536.39
+        },
+        "lossAsFinalNetWorth": {
+          "min": 0,
+          "p1": 0,
+          "p5": 0,
+          "p10": 0,
+          "p25": 0.07023907666941467,
+          "median": 0.18214285714285713,
+          "p75": 0.3317262830482115,
+          "p90": 0.5141385472511301,
+          "p95": 0.6612768330080847,
+          "p99": 1.1262135922330097,
+          "max": 5.178571428571429,
+          "mean": 0.24,
+          "standardDeviation": 0.28
+        },
+        "dayDistribution": {
+          "1": 0.0142,
+          "2": 0.0167,
+          "3": 0.0176,
+          "4": 0.0196,
+          "5": 0.0179,
+          "6": 0.0202,
+          "7": 0.0203,
+          "8": 0.0228,
+          "9": 0.0228,
+          "10": 0.0239,
+          "11": 0.0258,
+          "12": 0.0279,
+          "13": 0.0267,
+          "14": 0.0314,
+          "15": 0.0324,
+          "16": 0.0322,
+          "17": 0.0367,
+          "18": 0.0383,
+          "19": 0.0395,
+          "20": 0.0406,
+          "21": 0.0392,
+          "22": 0.0422,
+          "23": 0.0453,
+          "24": 0.0451,
+          "25": 0.046,
+          "26": 0.0486,
+          "27": 0.0495,
+          "28": 0.0511,
+          "29": 0.0502,
+          "30": 0.0554
+        },
+        "cityDistribution": {
+          "compton": 0.5291,
+          "inglewood": 0.4709
+        }
+      },
+      "raid": {
+        "opportunities": 300000,
+        "events": 13121,
+        "probabilityPerOpportunity": 0.0437,
+        "runsWithZero": 0.2488,
+        "runsWithOne": 0.37,
+        "runsWithTwo": 0.2438,
+        "runsWithThreeOrMore": 0.1374,
+        "lossPerEvent": {
+          "min": 0,
+          "p1": 0,
+          "p5": 68,
+          "p10": 100,
+          "p25": 176,
+          "median": 400,
+          "p75": 852,
+          "p90": 1500,
+          "p95": 2017,
+          "p99": 3169,
+          "max": 7640,
+          "mean": 633.62,
+          "standardDeviation": 668.12
+        },
+        "lossPerAffectedRun": {
+          "min": 41,
+          "p1": 76,
+          "p5": 119,
+          "p10": 159,
+          "p25": 339,
+          "median": 730,
+          "p75": 1446,
+          "p90": 2579,
+          "p95": 3533,
+          "p99": 5917,
+          "max": 14186,
+          "mean": 1127.43,
+          "standardDeviation": 1221.93
+        },
+        "lossAsFinalNetWorth": {
+          "min": 0,
+          "p1": 0,
+          "p5": 0,
+          "p10": 0,
+          "p25": 0,
+          "median": 0.09785407725321889,
+          "p75": 0.21936616083410757,
+          "p90": 0.36751837591879594,
+          "p95": 0.47869134739560915,
+          "p99": 0.8260869565217391,
+          "max": 5.466666666666667,
+          "mean": 0.15,
+          "standardDeviation": 0.23
+        },
+        "dayDistribution": {
+          "1": 0.021,
+          "2": 0.0237,
+          "3": 0.0241,
+          "4": 0.0231,
+          "5": 0.0238,
+          "6": 0.0245,
+          "7": 0.0255,
+          "8": 0.026,
+          "9": 0.0284,
+          "10": 0.0265,
+          "11": 0.0275,
+          "12": 0.029,
+          "13": 0.0309,
+          "14": 0.0316,
+          "15": 0.0315,
+          "16": 0.0329,
+          "17": 0.0343,
+          "18": 0.0349,
+          "19": 0.0348,
+          "20": 0.0382,
+          "21": 0.0357,
+          "22": 0.0401,
+          "23": 0.0399,
+          "24": 0.0418,
+          "25": 0.0412,
+          "26": 0.042,
+          "27": 0.0492,
+          "28": 0.045,
+          "29": 0.0454,
+          "30": 0.0474
+        },
+        "cityDistribution": {
+          "compton": 0.5742,
+          "inglewood": 0.4258
+        }
+      },
+      "tradesPerRun": 25.31,
+      "cityUsage": {
+        "compton": {
+          "visitRate": 1,
+          "averageEntryDay": 9.97,
+          "averageStayDaysPerEntry": 7.41,
+          "tradesPerRun": 14.26,
+          "realizedTradeProfitPerRun": 4331.21,
+          "robberiesPerRun": 1.14,
+          "raidsPerRun": 0.75,
+          "stashActionsPerRun": 0,
+          "clientObjectiveIds": [
+            "pearl:weed_deposited"
+          ]
+        },
+        "inglewood": {
+          "visitRate": 0.9608,
+          "averageEntryDay": 13.28,
+          "averageStayDaysPerEntry": 7.38,
+          "tradesPerRun": 11.06,
+          "realizedTradeProfitPerRun": 3396.6,
+          "robberiesPerRun": 1.01,
+          "raidsPerRun": 0.56,
+          "stashActionsPerRun": 0,
+          "clientObjectiveIds": [
+            "ray:coke_deposited",
+            "ray:molly_deposited"
+          ]
+        },
+        "long_beach": {
+          "visitRate": 0,
+          "averageEntryDay": 0,
+          "averageStayDaysPerEntry": 0,
+          "tradesPerRun": 0,
+          "realizedTradeProfitPerRun": 0,
+          "robberiesPerRun": 0,
+          "raidsPerRun": 0,
+          "stashActionsPerRun": 0,
+          "clientObjectiveIds": []
+        },
+        "south_central": {
+          "visitRate": 0,
+          "averageEntryDay": 0,
+          "averageStayDaysPerEntry": 0,
+          "tradesPerRun": 0,
+          "realizedTradeProfitPerRun": 0,
+          "robberiesPerRun": 0,
+          "raidsPerRun": 0,
+          "stashActionsPerRun": 0,
+          "clientObjectiveIds": []
+        },
+        "watts": {
+          "visitRate": 0,
+          "averageEntryDay": 0,
+          "averageStayDaysPerEntry": 0,
+          "tradesPerRun": 0,
+          "realizedTradeProfitPerRun": 0,
+          "robberiesPerRun": 0,
+          "raidsPerRun": 0,
+          "stashActionsPerRun": 0,
+          "clientObjectiveIds": [
+            "dispatcher:meth_sold"
+          ]
+        },
+        "east_la": {
+          "visitRate": 0,
+          "averageEntryDay": 0,
+          "averageStayDaysPerEntry": 0,
+          "tradesPerRun": 0,
+          "realizedTradeProfitPerRun": 0,
+          "robberiesPerRun": 0,
+          "raidsPerRun": 0,
+          "stashActionsPerRun": 0,
+          "clientObjectiveIds": []
+        }
+      },
+      "assetUsage": {
+        "weed": {
+          "purchaseRunRate": 0.9903,
+          "saleRunRate": 0.964,
+          "purchaseTransactionsPerRun": 6.456,
+          "saleTransactionsPerRun": 2.255,
+          "averagePurchasedUnits": 82.8,
+          "averageSoldUnits": 52.73,
+          "realizedReturnMean": 0.65,
+          "realizedReturnStandardDeviation": 0.27,
+          "averageContributionWinningRuns": 1683.4,
+          "averageContributionLosingRuns": 80.31,
+          "activityByCity": {
+            "compton": 2.922,
+            "inglewood": 5.789,
+            "long_beach": 0,
+            "south_central": 0,
+            "watts": 0,
+            "east_la": 0
+          }
+        },
+        "coke": {
+          "purchaseRunRate": 0.9301,
+          "saleRunRate": 0.904,
+          "purchaseTransactionsPerRun": 3.058,
+          "saleTransactionsPerRun": 2.032,
+          "averagePurchasedUnits": 30.28,
+          "averageSoldUnits": 23.18,
+          "realizedReturnMean": 0.46,
+          "realizedReturnStandardDeviation": 0.14,
+          "averageContributionWinningRuns": 1500.43,
+          "averageContributionLosingRuns": 62.57,
+          "activityByCity": {
+            "compton": 3.187,
+            "inglewood": 1.902,
+            "long_beach": 0,
+            "south_central": 0,
+            "watts": 0,
+            "east_la": 0
+          }
+        },
+        "molly": {
+          "purchaseRunRate": 0.9931,
+          "saleRunRate": 0.9826,
+          "purchaseTransactionsPerRun": 5.369,
+          "saleTransactionsPerRun": 2.62,
+          "averagePurchasedUnits": 52.54,
+          "averageSoldUnits": 34.35,
+          "realizedReturnMean": 0.91,
+          "realizedReturnStandardDeviation": 0.38,
+          "averageContributionWinningRuns": 2996.15,
+          "averageContributionLosingRuns": 113.71,
+          "activityByCity": {
+            "compton": 6.13,
+            "inglewood": 1.859,
+            "long_beach": 0,
+            "south_central": 0,
+            "watts": 0,
+            "east_la": 0
+          }
+        },
+        "meth": {
+          "purchaseRunRate": 0.8427,
+          "saleRunRate": 0.7943,
+          "purchaseTransactionsPerRun": 2.062,
+          "saleTransactionsPerRun": 1.46,
+          "averagePurchasedUnits": 17.36,
+          "averageSoldUnits": 12.77,
+          "realizedReturnMean": 0.67,
+          "realizedReturnStandardDeviation": 0.21,
+          "averageContributionWinningRuns": 2134.25,
+          "averageContributionLosingRuns": 7.78,
+          "activityByCity": {
+            "compton": 2.016,
+            "inglewood": 1.506,
+            "long_beach": 0,
+            "south_central": 0,
+            "watts": 0,
+            "east_la": 0
+          }
+        },
+        "stick": {
+          "purchaseRunRate": 0,
+          "saleRunRate": 0,
+          "purchaseTransactionsPerRun": 0,
+          "saleTransactionsPerRun": 0,
+          "averagePurchasedUnits": 0,
+          "averageSoldUnits": 0,
+          "realizedReturnMean": 0,
+          "realizedReturnStandardDeviation": 0,
+          "averageContributionWinningRuns": 0,
+          "averageContributionLosingRuns": 0,
+          "activityByCity": {
+            "compton": 0,
+            "inglewood": 0,
+            "long_beach": 0,
+            "south_central": 0,
+            "watts": 0,
+            "east_la": 0
+          }
+        },
+        "chopper": {
+          "purchaseRunRate": 0,
+          "saleRunRate": 0,
+          "purchaseTransactionsPerRun": 0,
+          "saleTransactionsPerRun": 0,
+          "averagePurchasedUnits": 0,
+          "averageSoldUnits": 0,
+          "realizedReturnMean": 0,
+          "realizedReturnStandardDeviation": 0,
+          "averageContributionWinningRuns": 0,
+          "averageContributionLosingRuns": 0,
+          "activityByCity": {
+            "compton": 0,
+            "inglewood": 0,
+            "long_beach": 0,
+            "south_central": 0,
+            "watts": 0,
+            "east_la": 0
+          }
+        },
+        "whip": {
+          "purchaseRunRate": 0,
+          "saleRunRate": 0,
+          "purchaseTransactionsPerRun": 0,
+          "saleTransactionsPerRun": 0,
+          "averagePurchasedUnits": 0,
+          "averageSoldUnits": 0,
+          "realizedReturnMean": 0,
+          "realizedReturnStandardDeviation": 0,
+          "averageContributionWinningRuns": 0,
+          "averageContributionLosingRuns": 0,
+          "activityByCity": {
+            "compton": 0,
+            "inglewood": 0,
+            "long_beach": 0,
+            "south_central": 0,
+            "watts": 0,
+            "east_la": 0
+          }
+        },
+        "plug": {
+          "purchaseRunRate": 0,
+          "saleRunRate": 0,
+          "purchaseTransactionsPerRun": 0,
+          "saleTransactionsPerRun": 0,
+          "averagePurchasedUnits": 0,
+          "averageSoldUnits": 0,
+          "realizedReturnMean": 0,
+          "realizedReturnStandardDeviation": 0,
+          "averageContributionWinningRuns": 0,
+          "averageContributionLosingRuns": 0,
+          "activityByCity": {
+            "compton": 0,
+            "inglewood": 0,
+            "long_beach": 0,
+            "south_central": 0,
+            "watts": 0,
+            "east_la": 0
+          }
+        }
+      },
+      "actions": {
+        "meanConsumed": 25.31,
+        "byCategoryPerRun": {
+          "buy": 16.945,
+          "sell": 8.366
+        },
+        "commandCategoryPerRun": {
+          "EndDay": 26.723,
+          "BuyAsset": 16.945,
+          "Travel": 3.055,
+          "SellAsset": 8.366
+        },
+        "meanUnusedAtEndDay": 2.08,
+        "endDayPerRun": 26.72,
+        "rejectedPolicyCommandRate": 0,
+        "rejectionCodes": {}
+      },
+      "pacing": [
+        {
+          "day": 5,
+          "netWorth": {
+            "min": 114,
+            "p1": 334,
+            "p5": 461,
+            "p10": 524,
+            "p25": 654,
+            "median": 839,
+            "p75": 1101,
+            "p90": 1402,
+            "p95": 1641,
+            "p99": 2211,
+            "max": 3514,
+            "mean": 920.01,
+            "standardDeviation": 383.52
+          },
+          "bankruptcyRate": 0,
+          "rankDistribution": {
+            "corner_boy": 1
+          },
+          "meanRobberies": 0.18,
+          "meanRaids": 0.15,
+          "meanCityMovements": 0.5,
+          "meanClientsCompleted": 0
+        },
+        {
+          "day": 10,
+          "netWorth": {
+            "min": 84,
+            "p1": 347,
+            "p5": 539,
+            "p10": 652,
+            "p25": 904,
+            "median": 1287,
+            "p75": 1878,
+            "p90": 2666,
+            "p95": 3300,
+            "p99": 4825,
+            "max": 10898,
+            "mean": 1522.52,
+            "standardDeviation": 927.87
+          },
+          "bankruptcyRate": 0,
+          "rankDistribution": {
+            "corner_boy": 1
+          },
+          "meanRobberies": 0.42,
+          "meanRaids": 0.32,
+          "meanCityMovements": 1.1,
+          "meanClientsCompleted": 0
+        },
+        {
+          "day": 15,
+          "netWorth": {
+            "min": 84,
+            "p1": 369,
+            "p5": 658,
+            "p10": 838,
+            "p25": 1272,
+            "median": 1972,
+            "p75": 3080,
+            "p90": 4572,
+            "p95": 5852,
+            "p99": 8962,
+            "max": 18102,
+            "mean": 2446.31,
+            "standardDeviation": 1773.22
+          },
+          "bankruptcyRate": 0,
+          "rankDistribution": {
+            "corner_boy": 1
+          },
+          "meanRobberies": 0.73,
+          "meanRaids": 0.52,
+          "meanCityMovements": 1.66,
+          "meanClientsCompleted": 0
+        },
+        {
+          "day": 20,
+          "netWorth": {
+            "min": 79,
+            "p1": 407,
+            "p5": 823,
+            "p10": 1102,
+            "p25": 1779,
+            "median": 2956,
+            "p75": 4812,
+            "p90": 7347,
+            "p95": 9363,
+            "p99": 14710,
+            "max": 34818,
+            "mean": 3755.97,
+            "standardDeviation": 2960.21
+          },
+          "bankruptcyRate": 0,
+          "rankDistribution": {
+            "corner_boy": 1
+          },
+          "meanRobberies": 1.13,
+          "meanRaids": 0.75,
+          "meanCityMovements": 2.17,
+          "meanClientsCompleted": 0
+        },
+        {
+          "day": 25,
+          "netWorth": {
+            "min": 79,
+            "p1": 479,
+            "p5": 1062,
+            "p10": 1470,
+            "p25": 2495,
+            "median": 4243,
+            "p75": 7104,
+            "p90": 10944,
+            "p95": 13781,
+            "p99": 21648,
+            "max": 42601,
+            "mean": 5461.69,
+            "standardDeviation": 4334.34
+          },
+          "bankruptcyRate": 0,
+          "rankDistribution": {
+            "corner_boy": 1
+          },
+          "meanRobberies": 1.6,
+          "meanRaids": 1.01,
+          "meanCityMovements": 2.63,
+          "meanClientsCompleted": 0
+        },
+        {
+          "day": 30,
+          "netWorth": {
+            "min": 79,
+            "p1": 517,
+            "p5": 1315,
+            "p10": 1847,
+            "p25": 3196,
+            "median": 5403,
+            "p75": 9150,
+            "p90": 13978,
+            "p95": 17658,
+            "p99": 25968,
+            "max": 43680,
+            "mean": 6938.44,
+            "standardDeviation": 5380.19
+          },
+          "bankruptcyRate": 0,
+          "rankDistribution": {
+            "corner_boy": 1
+          },
+          "meanRobberies": 2.15,
+          "meanRaids": 1.31,
+          "meanCityMovements": 3.05,
+          "meanClientsCompleted": 0
+        }
+      ],
+      "snowballCorrelation": {
+        "day5": 0.3522,
+        "day10": 0.4849,
+        "day15": 0.6176
+      },
+      "maximumDrawdown": {
+        "min": 154,
+        "p1": 272,
+        "p5": 382,
+        "p10": 489,
+        "p25": 795,
+        "median": 1356,
+        "p75": 2243,
+        "p90": 3404,
+        "p95": 4303,
+        "p99": 6653,
+        "max": 13449,
+        "mean": 1720.84,
+        "standardDeviation": 1337.64
+      },
+      "forecasts": {
+        "generatedPerRun": 0,
+        "realizationRate": 0,
+        "ageDays": {
+          "min": 0,
+          "p1": 0,
+          "p5": 0,
+          "p10": 0,
+          "p25": 0,
+          "median": 0,
+          "p75": 0,
+          "p90": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "mean": 0,
+          "standardDeviation": 0
+        },
+        "absolutePercentError": {
+          "min": 0,
+          "p1": 0,
+          "p5": 0,
+          "p10": 0,
+          "p25": 0,
+          "median": 0,
+          "p75": 0,
+          "p90": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "mean": 0,
+          "standardDeviation": 0
+        },
+        "directionAccuracyRate": 0,
+        "profitableRate": 0,
+        "falsePositiveRate": 0,
+        "falseNegativeRate": 0,
+        "expectedMovement": 0,
+        "predictedUpExpectedMovement": 0,
+        "predictedDownExpectedMovement": 0,
+        "highConfidenceExpectedMovement": 0
+      },
+      "sourcesAndSinks": {
+        "startingCapital": 540,
+        "yieldSourcePerRun": 445.76,
+        "clientRewardSourcePerRun": 0,
+        "marketTradeRevaluationGainPerRun": 11583.44,
+        "robberySinkPerRun": 1350.79,
+        "raidSinkPerRun": 831.37,
+        "marketTradeRevaluationLossPerRun": 3448.6,
+        "reconciliationErrorPerRun": 0
+      },
+      "performance": {
+        "durationMs": 466542.78,
+        "runsPerSecond": 21.43,
+        "commandsPerSecond": 1202.21,
+        "engineCommands": 560883,
+        "peakRssMb": 440.03
+      }
+    }
+  ]
+}

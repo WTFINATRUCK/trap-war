@@ -1,0 +1,10 @@
+{
+  "name": "TrapWars.EditModeTests",
+  "rootNamespace": "TrapWars.Tests.EditMode",
+  "references": ["TrapWars.Core"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false,
+  "overrideReferences": true,
+  "precompiledReferences": ["Newtonsoft.Json.dll"]
+}

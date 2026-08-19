@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build && node scripts/bundle-bot.mjs",
@@ -12,17 +16,30 @@
     "bot:guard": "tsx bot/guardBot.ts",
     "bot:all": "tsx bot/run-all.ts",
     "bot:setup": "tsx bot/setup-menu.ts",
-    "bot:personas": "tsx bot/setup-personas.ts"
+    "bot:personas": "tsx bot/setup-personas.ts",
+    "api:dev": "npm --workspace @trap-wars/api run dev",
+    "api:start": "npm --workspace @trap-wars/api run start",
+    "api:typecheck": "npm --workspace @trap-wars/api run typecheck",
+    "api:test": "npm --workspace @trap-wars/api test",
+    "api:benchmark": "npm --workspace @trap-wars/api run benchmark",
+    "db:migrate": "npm --workspace @trap-wars/api run db:migrate",
+    "outbox:poll": "npm --workspace @trap-wars/api run outbox:poll"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.4",
     "@twa-dev/sdk": "^8.0.2",
     "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "fastify": "^5.11.3",
+    "pg": "^8.23.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "telegraf": "^4.16.3"
+    "telegraf": "^4.16.3",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
+    "@types/pg": "^8.20.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vercel/node": "^5.3.6",

@@ -1,0 +1,8 @@
+{
+  "name": "TrapWars.PlayModeTests",
+  "rootNamespace": "TrapWars.Tests.PlayMode",
+  "references": ["TrapWars.Core"],
+  "includePlatforms": [],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false
+}

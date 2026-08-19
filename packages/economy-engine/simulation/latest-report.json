@@ -1,0 +1,350 @@
+{
+  "generatedAt": "2026-08-11T01:50:10.862Z",
+  "engineVersion": "economy-v2.m5.1",
+  "runsPerAgent": 1000,
+  "totalRuns": 5000,
+  "agents": [
+    {
+      "agent": "random",
+      "runs": 1000,
+      "netWorth": {
+        "min": 44,
+        "p10": 81,
+        "p25": 111,
+        "median": 190,
+        "p75": 332,
+        "p90": 521,
+        "max": 1898,
+        "mean": 256.51,
+        "standardDeviation": 200.53
+      },
+      "gameScore": {
+        "min": 44,
+        "p10": 81,
+        "p25": 111,
+        "median": 190,
+        "p75": 332,
+        "p90": 521,
+        "max": 1898,
+        "mean": 256.51,
+        "standardDeviation": 200.53
+      },
+      "liquidCash": {
+        "min": 0,
+        "p10": 8,
+        "p25": 19,
+        "median": 45,
+        "p75": 88,
+        "p90": 158,
+        "max": 887,
+        "mean": 67.48,
+        "standardDeviation": 79.74
+      },
+      "stashValue": {
+        "min": 0,
+        "p10": 0,
+        "p25": 0,
+        "median": 0,
+        "p75": 0,
+        "p90": 0,
+        "max": 0,
+        "mean": 0,
+        "standardDeviation": 0
+      },
+      "gearValue": {
+        "min": 0,
+        "p10": 0,
+        "p25": 0,
+        "median": 0,
+        "p75": 0,
+        "p90": 0,
+        "max": 0,
+        "mean": 0,
+        "standardDeviation": 0
+      },
+      "completedDay30Rate": 1,
+      "bankruptcyRate": 0.003,
+      "robberyRunRate": 0.891,
+      "raidRunRate": 0.774,
+      "meanClientsCompleted": 0,
+      "meanActionsUsed": 10.47,
+      "rankDistribution": {
+        "corner_boy": 1
+      }
+    },
+    {
+      "agent": "conservative",
+      "runs": 1000,
+      "netWorth": {
+        "min": 84,
+        "p10": 248,
+        "p25": 933,
+        "median": 2226,
+        "p75": 4510,
+        "p90": 8092,
+        "max": 23472,
+        "mean": 3362.14,
+        "standardDeviation": 3460.22
+      },
+      "gameScore": {
+        "min": 84,
+        "p10": 248,
+        "p25": 933,
+        "median": 2366,
+        "p75": 5182,
+        "p90": 9209,
+        "max": 24472,
+        "mean": 3680.14,
+        "standardDeviation": 3832.6
+      },
+      "liquidCash": {
+        "min": 38,
+        "p10": 136,
+        "p25": 187,
+        "median": 223,
+        "p75": 310,
+        "p90": 1157,
+        "max": 10605,
+        "mean": 529.47,
+        "standardDeviation": 1031.97
+      },
+      "stashValue": {
+        "min": 0,
+        "p10": 0,
+        "p25": 0,
+        "median": 0,
+        "p75": 1340,
+        "p90": 3560,
+        "max": 11640,
+        "mean": 1040.56,
+        "standardDeviation": 1793.29
+      },
+      "gearValue": {
+        "min": 0,
+        "p10": 0,
+        "p25": 0,
+        "median": 0,
+        "p75": 0,
+        "p90": 0,
+        "max": 0,
+        "mean": 0,
+        "standardDeviation": 0
+      },
+      "completedDay30Rate": 1,
+      "bankruptcyRate": 0,
+      "robberyRunRate": 0.876,
+      "raidRunRate": 0.775,
+      "meanClientsCompleted": 0,
+      "meanActionsUsed": 20.74,
+      "rankDistribution": {
+        "runner": 0.26,
+        "corner_boy": 0.711,
+        "hustler": 0.029
+      }
+    },
+    {
+      "agent": "aggressive",
+      "runs": 1000,
+      "netWorth": {
+        "min": 67,
+        "p10": 205,
+        "p25": 472,
+        "median": 1206,
+        "p75": 2172,
+        "p90": 3377,
+        "max": 15262,
+        "mean": 1581.93,
+        "standardDeviation": 1568.58
+      },
+      "gameScore": {
+        "min": 67,
+        "p10": 205,
+        "p25": 472,
+        "median": 1206,
+        "p75": 2172,
+        "p90": 3377,
+        "max": 15262,
+        "mean": 1581.93,
+        "standardDeviation": 1568.58
+      },
+      "liquidCash": {
+        "min": 0,
+        "p10": 10,
+        "p25": 21,
+        "median": 45,
+        "p75": 112,
+        "p90": 715,
+        "max": 4060,
+        "mean": 213.31,
+        "standardDeviation": 470.22
+      },
+      "stashValue": {
+        "min": 0,
+        "p10": 0,
+        "p25": 0,
+        "median": 0,
+        "p75": 0,
+        "p90": 0,
+        "max": 0,
+        "mean": 0,
+        "standardDeviation": 0
+      },
+      "gearValue": {
+        "min": 0,
+        "p10": 0,
+        "p25": 0,
+        "median": 0,
+        "p75": 0,
+        "p90": 0,
+        "max": 0,
+        "mean": 0,
+        "standardDeviation": 0
+      },
+      "completedDay30Rate": 1,
+      "bankruptcyRate": 0.001,
+      "robberyRunRate": 0.878,
+      "raidRunRate": 0.777,
+      "meanClientsCompleted": 0,
+      "meanActionsUsed": 43.15,
+      "rankDistribution": {
+        "corner_boy": 1
+      }
+    },
+    {
+      "agent": "rumor_follower",
+      "runs": 1000,
+      "netWorth": {
+        "min": 169,
+        "p10": 234,
+        "p25": 261,
+        "median": 295,
+        "p75": 330,
+        "p90": 378,
+        "max": 973,
+        "mean": 305.84,
+        "standardDeviation": 79.48
+      },
+      "gameScore": {
+        "min": 169,
+        "p10": 234,
+        "p25": 261,
+        "median": 295,
+        "p75": 330,
+        "p90": 378,
+        "max": 973,
+        "mean": 305.84,
+        "standardDeviation": 79.48
+      },
+      "liquidCash": {
+        "min": 0,
+        "p10": 36,
+        "p25": 63,
+        "median": 91,
+        "p75": 115,
+        "p90": 143,
+        "max": 598,
+        "mean": 92.91,
+        "standardDeviation": 50.4
+      },
+      "stashValue": {
+        "min": 0,
+        "p10": 0,
+        "p25": 0,
+        "median": 0,
+        "p75": 0,
+        "p90": 0,
+        "max": 0,
+        "mean": 0,
+        "standardDeviation": 0
+      },
+      "gearValue": {
+        "min": 0,
+        "p10": 132,
+        "p25": 142,
+        "median": 161,
+        "p75": 181,
+        "p90": 191,
+        "max": 199,
+        "mean": 161.15,
+        "standardDeviation": 23.35
+      },
+      "completedDay30Rate": 1,
+      "bankruptcyRate": 0,
+      "robberyRunRate": 0.886,
+      "raidRunRate": 0.795,
+      "meanClientsCompleted": 0,
+      "meanActionsUsed": 11.38,
+      "rankDistribution": {
+        "corner_boy": 1
+      }
+    },
+    {
+      "agent": "opportunist",
+      "runs": 1000,
+      "netWorth": {
+        "min": 79,
+        "p10": 1318,
+        "p25": 2767,
+        "median": 6189,
+        "p75": 12434,
+        "p90": 21082,
+        "max": 48067,
+        "mean": 9090.12,
+        "standardDeviation": 8583.38
+      },
+      "gameScore": {
+        "min": 79,
+        "p10": 1318,
+        "p25": 2767,
+        "median": 6189,
+        "p75": 12434,
+        "p90": 21082,
+        "max": 48067,
+        "mean": 9090.12,
+        "standardDeviation": 8583.38
+      },
+      "liquidCash": {
+        "min": 39,
+        "p10": 94,
+        "p25": 123,
+        "median": 222,
+        "p75": 3088,
+        "p90": 9329,
+        "max": 33462,
+        "mean": 2753.19,
+        "standardDeviation": 5003.3
+      },
+      "stashValue": {
+        "min": 0,
+        "p10": 0,
+        "p25": 0,
+        "median": 0,
+        "p75": 0,
+        "p90": 0,
+        "max": 0,
+        "mean": 0,
+        "standardDeviation": 0
+      },
+      "gearValue": {
+        "min": 0,
+        "p10": 0,
+        "p25": 0,
+        "median": 0,
+        "p75": 0,
+        "p90": 0,
+        "max": 0,
+        "mean": 0,
+        "standardDeviation": 0
+      },
+      "completedDay30Rate": 1,
+      "bankruptcyRate": 0,
+      "robberyRunRate": 0.881,
+      "raidRunRate": 0.819,
+      "meanClientsCompleted": 0,
+      "meanActionsUsed": 25.22,
+      "rankDistribution": {
+        "corner_boy": 1
+      }
+    }
+  ]
+}

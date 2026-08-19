@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-08-11T04:56:38.482Z",
+  "runtime": "PGlite 0.5.4 in-process PostgreSQL/WASM development baseline",
+  "node": "v22.17.1",
+  "platform": "win32-x64",
+  "warmupExcluded": true,
+  "runCreation": {
+    "samples": 20,
+    "p50Ms": 8.156,
+    "p95Ms": 41.042,
+    "maxMs": 41.042
+  },
+  "command": {
+    "samples": 20,
+    "p50Ms": 10.624,
+    "p95Ms": 18.113,
+    "maxMs": 18.113
+  },
+  "databaseTransaction": {
+    "samples": 100,
+    "p50Ms": 0.444,
+    "p95Ms": 1.348,
+    "maxMs": 1.963
+  },
+  "replay": {
+    "samples": 50,
+    "p50Ms": 6.774,
+    "p95Ms": 9.463,
+    "maxMs": 11.149
+  },
+  "stateSerializationBytes": 1891
+}

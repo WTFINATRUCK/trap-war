@@ -1,0 +1,6 @@
+﻿<Solution>
+  <Project Path="TrapWars.Core.csproj" />
+  <Project Path="TrapWars.PlayModeTests.csproj" />
+  <Project Path="TrapWars.EditModeTests.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
+</Solution>

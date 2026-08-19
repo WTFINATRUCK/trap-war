@@ -43,7 +43,28 @@ coverage
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# Unity generated state
+game/unity/[Ll]ibrary/
+game/unity/[Tt]emp/
+game/unity/[Oo]bj/
+game/unity/[Bb]uild/
+game/unity/[Bb]uilds/
+game/unity/[Ll]ogs/
+game/unity/[Uu]ser[Ss]ettings/
+game/unity/MemoryCaptures/
+game/unity/Recordings/
+game/unity/*.csproj
+game/unity/*.sln
+game/unity/*.user
+
+# Local player builds and editable high-resolution art sources
+/Builds/
+/SourceArt/
+/artifacts/
+/docs/evidence/dev_environment/MOVEMENT_ACCEPTANCE_UNINTERRUPTED.mp4
+
 .vercel
 .env*
+!.env.example
 
 

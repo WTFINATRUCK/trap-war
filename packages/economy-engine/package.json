@@ -1,0 +1,17 @@
+{
+  "name": "@trap-wars/economy-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "simulate": "tsx simulation/cli.ts",
+    "calibrate": "tsx simulation/cli.ts",
+    "calibrate:batch": "tsx simulation/batch.ts",
+    "combine": "tsx simulation/combine.ts"
+  }
+}

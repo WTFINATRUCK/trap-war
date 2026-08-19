@@ -1,0 +1,12 @@
+{
+  "agents": [
+    "client_seeker",
+    "information_aware_opportunist",
+    "aggressive",
+    "gear_strategist"
+  ],
+  "runsPerAgent": 1000,
+  "workers": 4,
+  "wallDurationMs": 182025.19,
+  "output": "smoke-final.json"
+}

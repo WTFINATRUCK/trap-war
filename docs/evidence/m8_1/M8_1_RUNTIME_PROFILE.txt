@@ -1,0 +1,17 @@
+M8.1 FINAL DEVELOPMENT PLAYER PROFILE
+Unity: 6000.3.20f1
+Target: Windows Development Player, 1280x720, High quality, Intel Iris Xe
+Sample: 20 seconds after 3-second warmup
+
+M8 baseline:
+fps=123.1 avg_ms=8.13 p95_ms=10.51 max_ms=15.57
+
+M8.1 final:
+fps=132.1 avg_ms=7.57 p95_ms=9.52 max_ms=11.70
+triangles=34834 renderers=165 skinned=5
+allocated_mb=91.2 managed_mb=5.2 allocated_growth_mb=23.6 gc_collections=30
+shadow_atlas_warning=false
+
+Build result: Succeeded
+Build size: 171744479 bytes
+

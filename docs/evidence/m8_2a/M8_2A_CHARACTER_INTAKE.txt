@@ -1,0 +1,25 @@
+M8.2A CHARACTER INTAKE VALIDATION
+Generated UTC: 2026-08-19T02:43:28.7044592Z
+Unity: 6000.3.20f1
+Purpose: technical intake only; owner visual approval remains mandatory.
+
+HERO | automated_gate=FAIL | asset=Assets/_TrapWars/Resources/M8/Characters/Processed/PF_Hero_Humanoid_M8_1.prefab name=PF_Hero_Humanoid_M8_1
+rig_type=ProcessedPrefab/Humanoid avatar_valid=True is_human=True missing_humanoid_bones=[]
+mesh_count=1 skinned_renderer_count=1 renderers_in_budget=True triangles=3216 geometry_in_budget=False materials=6 materials_in_budget=True
+texture_count=0 textures_in_budget=False texture_sizes=[none]
+blend_shape_count=0 facial_minimum_present=False blend_shape_names=[]
+animator_present=True animator_compatibility=Humanoid-ready; verify four vendor test clips
+lod_group_count=0 authored_lods_present=False lod_levels=[]
+root_scale=(1.000, 1.000, 1.000) mesh_height_m=3.165 height_in_budget=False root_transform_problem=False non_uniform_scale_present=False
+
+RAY | automated_gate=FAIL | asset=Assets/_TrapWars/Resources/M8/Characters/Processed/PF_Ray_Humanoid_M8_1.prefab name=PF_Ray_Humanoid_M8_1
+rig_type=ProcessedPrefab/Humanoid avatar_valid=True is_human=True missing_humanoid_bones=[]
+mesh_count=1 skinned_renderer_count=1 renderers_in_budget=True triangles=4920 geometry_in_budget=False materials=6 materials_in_budget=True
+texture_count=0 textures_in_budget=False texture_sizes=[none]
+blend_shape_count=0 facial_minimum_present=False blend_shape_names=[]
+animator_present=True animator_compatibility=Humanoid-ready; verify four vendor test clips
+lod_group_count=0 authored_lods_present=False lod_levels=[]
+root_scale=(1.000, 1.000, 1.000) mesh_height_m=3.165 height_in_budget=False root_transform_problem=False non_uniform_scale_present=False
+
+REQUIRED VISUAL REVIEW: Hero front/three-quarter/side/day/night/phone; Ray front/three-quarter/day/night/dialogue.
+REQUIRED MOTION TESTS: walk, stop, phone draw, Ray explaining gesture.
