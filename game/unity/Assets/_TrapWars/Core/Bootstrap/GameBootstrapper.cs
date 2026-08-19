@@ -129,6 +129,7 @@ namespace TrapWars.Bootstrap
             analytics.Track("player.spawned", new Dictionary<string, object> { ["location_id"] = "safehouse_01", ["spawn_id"] = "bed_spawn_01", ["load_duration_ms"] = bootTimer.ElapsedMilliseconds });
             analytics.Track("player.control_acquired", new Dictionary<string, object> { ["location_id"] = "safehouse_01", ["time_from_session_start_ms"] = bootTimer.ElapsedMilliseconds });
             UnityEngine.Debug.Log($"[TRAP_WARS_BUILD] {DemoPresentationPolicy.BuildIdentity()}");
+            UnityEngine.Debug.Log($"[TRAP_WARS_DISPLAY] width={Screen.width} height={Screen.height} fullscreen={Screen.fullScreenMode} quality={QualitySettings.names[QualitySettings.GetQualityLevel()]}");
         }
 
         private async void OnDestroy()
