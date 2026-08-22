@@ -57,6 +57,9 @@ game/unity/*.csproj
 game/unity/*.sln
 game/unity/*.user
 
+# Generated serverless bundle (rebuilt by npm run build)
+api/v1/api-v1-bundle.cjs
+
 # Local player builds and editable high-resolution art sources
 /Builds/
 /SourceArt/
@@ -66,5 +69,4 @@ game/unity/*.user
 .vercel
 .env*
 !.env.example
-
 

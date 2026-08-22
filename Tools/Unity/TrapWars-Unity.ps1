@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('status', 'open', 'test-editmode', 'test-playmode', 'build-dev', 'build-release', 'run-validation', 'capture-m84')]
+    [ValidateSet('status', 'open', 'test-editmode', 'test-playmode', 'build-dev', 'build-release', 'build-webgl', 'run-validation', 'capture-m84')]
     [string]$Command = 'status'
 )
 
@@ -94,6 +94,9 @@ switch ($Command) {
     }
     'build-release' {
         Invoke-UnityEditor @('-batchmode', '-projectPath', $ProjectPath, '-executeMethod', 'TrapWars.EditorTools.M8AssetPipeline.BuildM84ReferenceMatchPlayer', '-quit', '-logFile', (Join-Path $ArtifactRoot 'build-release.log'))
+    }
+    'build-webgl' {
+        Invoke-UnityEditor @('-batchmode', '-projectPath', $ProjectPath, '-executeMethod', 'TrapWars.EditorTools.M8AssetPipeline.BuildPublicWebDemo', '-quit', '-logFile', (Join-Path $ArtifactRoot 'build-webgl.log'))
     }
     'run-validation' {
         Show-Status

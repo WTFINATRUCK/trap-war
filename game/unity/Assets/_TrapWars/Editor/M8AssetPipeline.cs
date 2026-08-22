@@ -373,6 +373,40 @@ namespace TrapWars.EditorTools
             if (report.summary.result != BuildResult.Succeeded) throw new InvalidOperationException($"M8.4 reference match build failed: {report.summary.result}");
         }
 
+        [MenuItem("Trap Wars/Public Demo/Build WebGL")]
+        public static void BuildPublicWebDemo()
+        {
+            var repositoryRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "../../.."));
+            var output = Path.Combine(repositoryRoot, "public/play/game");
+            var evidenceDirectory = Path.Combine(repositoryRoot, "docs/evidence/public_demo");
+            Directory.CreateDirectory(output);
+            Directory.CreateDirectory(evidenceDirectory);
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            PlayerSettings.WebGL.template = "PROJECT:TrapWars";
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
+            PlayerSettings.WebGL.decompressionFallback = true;
+            PlayerSettings.WebGL.dataCaching = true;
+            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            {
+                scenes = new[] { "Assets/Scenes/SampleScene.unity" },
+                locationPathName = output,
+                target = BuildTarget.WebGL,
+                options = BuildOptions.None
+            });
+            File.WriteAllLines(Path.Combine(evidenceDirectory, "WEBGL_BUILD_MANIFEST.txt"), new[]
+            {
+                "TRAP WARS PUBLIC WEBGL DEMO",
+                $"Generated UTC: {DateTime.UtcNow:O}",
+                $"Unity: {Application.unityVersion}",
+                $"Commit: {Git(repositoryRoot, "rev-parse HEAD")}",
+                $"Result: {report.summary.result}",
+                $"Size bytes: {report.summary.totalSize}",
+                $"Duration: {report.summary.totalTime}",
+                $"Output: {output}"
+            });
+            if (report.summary.result != BuildResult.Succeeded) throw new InvalidOperationException($"Public WebGL build failed: {report.summary.result}");
+        }
+
         private static string Git(string repositoryRoot, string arguments)
         {
             var info = new System.Diagnostics.ProcessStartInfo("git", arguments)

@@ -1,0 +1,12 @@
+.git/
+.agents/
+.codex/
+.env*
+/Builds/
+/SourceArt/
+/artifacts/
+/docs/
+/game/
+/Tools/
+/coverage/
+*.log

@@ -5,11 +5,13 @@ import TrapWarGame from "@/components/TrapWarGame";
 import CrewPanel from "@/components/CrewPanel";
 import VaultPanel from "@/components/VaultPanel";
 import LandingPage from "@/components/LandingPage";
+import PlayDemoPage from "@/components/PlayDemoPage";
 import { BOT_LINK, CHANNEL_URL, COMMUNITY_URL, isLiveTelegramUrl } from "@/config/telegram";
 
 type Tab = "game" | "crew" | "vault";
 
 export default function App() {
+  if (window.location.pathname === "/play" || window.location.pathname === "/play/") return <PlayDemoPage />;
   const { user, ready } = useTelegram();
   const { save, loading, saveGame, persist } = useCloudSave(user);
   const [tab, setTab] = useState<Tab>("game");

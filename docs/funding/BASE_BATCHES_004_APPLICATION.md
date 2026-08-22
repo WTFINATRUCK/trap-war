@@ -1,5 +1,23 @@
 # Trap Wars - Base Batches 004 Application Draft
 
+## Links
+
+- **PUBLIC PLAYABLE DEMO:** https://trap-war.com/play
+- **TRAILER:** `docs/funding/TRAP_WARS_BASE_INVESTOR_TRAILER.mp4` (replacement V2 pending final capture validation)
+- **GITHUB:** https://github.com/WTFINATRUCK/trap-war
+
+### Working Now
+
+Public Unity WebGL client, pseudonymous guest sessions, authoritative Fastify runs, hosted PostgreSQL persistence, Trap Phone, market route, save/resume architecture, and the investor website.
+
+### Demo / Testnet
+
+Optional Base Sepolia (`84532`) wallet, network, and valueless signature proof. No token, value transfer, private-key storage, or seed-phrase handling.
+
+### Planned
+
+Backend-verified wallet linking, wider external playtesting, production content expansion, security review, and value-bearing features only after legal and security approval.
+
 ## One-Liner
 
 Trap Wars turns financial literacy and onchain finance into a playable street-economy strategy game where players learn by making moves, living with the consequences, and progressing through the world.

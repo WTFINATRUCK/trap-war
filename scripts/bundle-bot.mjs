@@ -13,6 +13,17 @@ await esbuild.build({
 });
 
 await esbuild.build({
+  entryPoints: ["serverless/api-v1-entry.ts"],
+  bundle: true,
+  platform: "node",
+  target: "node20",
+  format: "cjs",
+  outfile: "api/v1/api-v1-bundle.cjs",
+  sourcemap: false,
+  logLevel: "info",
+});
+
+await esbuild.build({
   entryPoints: ["bot/public-api-entry.ts"],
   bundle: true,
   platform: "node",
@@ -27,4 +38,4 @@ for (const dir of ["api/telegram", "api/setup-webhook"]) {
   fs.mkdirSync(dir, { recursive: true });
   fs.copyFileSync("api/bot-bundle.cjs", `${dir}/bot-bundle.cjs`);
 }
-console.log("Bundled bot → api/bot-bundle.cjs + public-api-bundle.cjs + function dirs");
+console.log("Bundled bot and authoritative API serverless entrypoints");

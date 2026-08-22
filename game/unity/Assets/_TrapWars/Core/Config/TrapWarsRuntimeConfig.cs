@@ -28,13 +28,22 @@ namespace TrapWars.Config
         public int TransportRetryCount => transportRetryCount;
         public float LookSensitivity => lookSensitivity;
 
-        public string ApiBaseUrl => environment switch
+        public string ApiBaseUrl => WebApiBaseUrl();
+
+        private string WebApiBaseUrl()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (Uri.TryCreate(Application.absoluteURL, UriKind.Absolute, out var current))
+                return current.GetLeftPart(UriPartial.Authority);
+#endif
+            return environment switch
         {
             ApiEnvironment.Local => localApiBaseUrl,
             ApiEnvironment.Staging => stagingApiBaseUrl,
             ApiEnvironment.Production => productionApiBaseUrl,
             _ => throw new ArgumentOutOfRangeException()
         };
+        }
 
         public static TrapWarsRuntimeConfig LoadOrCreate()
         {

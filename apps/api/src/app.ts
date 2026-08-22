@@ -31,10 +31,19 @@ export function buildApp(options: BuildAppOptions): FastifyInstance {
   registerRunRoutes(app, authService, runService);
 
   app.get("/health", async () => ({ status: "ok" }));
+  app.get("/api/v1/health", async () => ({ status: "ok", environment: "demo" }));
   app.get("/ready", async (_request, reply) => {
     try {
       await options.db.execute(sql`select 1`);
       return { status: "ready" };
+    } catch {
+      return reply.status(503).send({ status: "not_ready" });
+    }
+  });
+  app.get("/api/v1/ready", async (_request, reply) => {
+    try {
+      await options.db.execute(sql`select 1`);
+      return { status: "ready", database: "postgresql" };
     } catch {
       return reply.status(503).send({ status: "not_ready" });
     }
