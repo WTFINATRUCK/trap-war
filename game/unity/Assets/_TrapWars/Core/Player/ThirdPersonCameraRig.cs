@@ -12,9 +12,9 @@ namespace TrapWars.Player
 
     public sealed class ThirdPersonCameraRig : MonoBehaviour
     {
-        [SerializeField] private float distance = 2.9f;
+        [SerializeField] private float distance = 3.05f;
         [SerializeField] private float shoulderOffset = 0.58f;
-        [SerializeField] private float targetHeight = 1.48f;
+        [SerializeField] private float targetHeight = 1.53f;
         [SerializeField] private float followSharpness = 18f;
         [SerializeField] private float collisionRadius = 0.22f;
         private Transform target = null!;

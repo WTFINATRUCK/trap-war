@@ -50,40 +50,43 @@ namespace TrapWars.Player
             hips = Joint("Hips", visualRoot, new Vector3(0f, 0.9f, 0f));
             chest = Joint("Chest", hips, new Vector3(0f, 0.39f, 0f));
             TorsoPart("HoodieBody", chest, jacket);
-            Part("Hood", PrimitiveType.Sphere, chest, new Vector3(0f, 0.355f, -0.055f), new Vector3(0.27f, 0.26f, 0.19f), jacket * 0.82f);
-            Part("CrossbodyStrap", PrimitiveType.Cylinder, chest, new Vector3(-0.04f, 0.04f, -0.305f), new Vector3(0.032f, 0.39f, 0.022f), new Color(0.025f, 0.028f, 0.028f), Quaternion.Euler(0f, 0f, -34f));
-            Part("CrossbodyBag", PrimitiveType.Capsule, chest, new Vector3(0.23f, -0.16f, -0.23f), new Vector3(0.19f, 0.14f, 0.075f), new Color(0.03f, 0.035f, 0.035f), Quaternion.Euler(0f, 0f, -8f));
-            var neck = Joint("Neck", chest, new Vector3(0f, 0.4f, 0f));
-            head = Joint("Head", neck, new Vector3(0f, 0.12f, 0f));
-            Part("HeadMesh", PrimitiveType.Sphere, head, Vector3.zero, new Vector3(0.205f, 0.255f, 0.215f), skin);
+            Part("Hood", PrimitiveType.Sphere, chest, new Vector3(0f, 0.32f, -0.045f), new Vector3(0.245f, 0.20f, 0.18f), jacket * 0.82f);
+            Part("HoodOpening", PrimitiveType.Capsule, chest, new Vector3(0f, 0.31f, -0.155f), new Vector3(0.17f, 0.055f, 0.13f), jacket * 0.7f, Quaternion.Euler(90f, 0f, 0f));
+            Part("CrossbodyStrap", PrimitiveType.Cylinder, chest, new Vector3(-0.035f, 0.02f, -0.19f), new Vector3(0.027f, 0.36f, 0.018f), new Color(0.018f, 0.022f, 0.021f), Quaternion.Euler(0f, 0f, -34f));
+            Part("CrossbodyBag", PrimitiveType.Capsule, chest, new Vector3(0.22f, -0.19f, -0.17f), new Vector3(0.16f, 0.18f, 0.07f), new Color(0.026f, 0.035f, 0.032f), Quaternion.Euler(0f, 0f, -8f));
+            Part("ShirtHem", PrimitiveType.Capsule, chest, new Vector3(0f, -0.285f, 0f), new Vector3(0.255f, 0.055f, 0.145f), new Color(0.10f, 0.105f, 0.10f));
+            var neck = Joint("Neck", chest, new Vector3(0f, 0.37f, 0f));
+            Part("NeckMesh", PrimitiveType.Capsule, neck, new Vector3(0f, 0.035f, 0f), new Vector3(0.085f, 0.09f, 0.08f), skin);
+            head = Joint("Head", neck, new Vector3(0f, 0.14f, 0f));
+            Part("HeadMesh", PrimitiveType.Sphere, head, Vector3.zero, new Vector3(0.175f, 0.225f, 0.185f), skin);
             var hairColor = new Color(0.018f, 0.016f, 0.014f);
-            Part("HairBase", PrimitiveType.Sphere, head, new Vector3(0f, 0.085f, -0.012f), new Vector3(0.215f, 0.135f, 0.215f), hairColor);
-            for (var index = 0; index < 12; index++)
+            Part("HairBase", PrimitiveType.Sphere, head, new Vector3(0f, 0.09f, -0.012f), new Vector3(0.184f, 0.12f, 0.19f), hairColor);
+            for (var index = 0; index < 8; index++)
             {
-                var angle = index * Mathf.PI * 2f / 12f;
-                Part($"HairCurl_{index:00}", PrimitiveType.Sphere, head, new Vector3(Mathf.Cos(angle) * 0.125f, 0.135f + (index % 3) * 0.012f, Mathf.Sin(angle) * 0.105f), Vector3.one * 0.042f, hairColor);
+                var angle = index * Mathf.PI * 2f / 8f;
+                Part($"HairCurl_{index:00}", PrimitiveType.Sphere, head, new Vector3(Mathf.Cos(angle) * 0.09f, 0.155f + (index % 2) * 0.018f, Mathf.Sin(angle) * 0.075f), Vector3.one * 0.034f, hairColor);
             }
 
-            Part("Pelvis", PrimitiveType.Capsule, hips, new Vector3(0f, 0.025f, 0f), new Vector3(0.38f, 0.2f, 0.23f), trousers);
-            leftUpperArm = Limb("LeftUpperArm", chest, new Vector3(-0.31f, 0.27f, 0f), 0.34f, 0.095f, jacket);
-            rightUpperArm = Limb("RightUpperArm", chest, new Vector3(0.31f, 0.27f, 0f), 0.34f, 0.095f, jacket);
-            Part("LeftShoulder", PrimitiveType.Sphere, chest, new Vector3(-0.29f, 0.27f, 0f), new Vector3(0.16f, 0.16f, 0.16f), jacket);
-            Part("RightShoulder", PrimitiveType.Sphere, chest, new Vector3(0.29f, 0.27f, 0f), new Vector3(0.16f, 0.16f, 0.16f), jacket);
-            leftForearm = Limb("LeftForearm", leftUpperArm, new Vector3(0f, -0.34f, 0f), 0.32f, 0.082f, jacket * 0.92f);
-            rightForearm = Limb("RightForearm", rightUpperArm, new Vector3(0f, -0.34f, 0f), 0.32f, 0.082f, jacket * 0.92f);
-            Part("LeftElbow", PrimitiveType.Sphere, leftUpperArm, new Vector3(0f, -0.34f, 0f), new Vector3(0.105f, 0.105f, 0.105f), jacket * 0.92f);
-            Part("RightElbow", PrimitiveType.Sphere, rightUpperArm, new Vector3(0f, -0.34f, 0f), new Vector3(0.105f, 0.105f, 0.105f), jacket * 0.92f);
-            Part("LeftHand", PrimitiveType.Capsule, leftForearm, new Vector3(0f, -0.35f, 0f), new Vector3(0.07f, 0.085f, 0.065f), skin);
-            var rightHand = Part("RightHand", PrimitiveType.Capsule, rightForearm, new Vector3(0f, -0.35f, 0f), new Vector3(0.07f, 0.085f, 0.065f), skin).transform;
+            Part("Pelvis", PrimitiveType.Capsule, hips, new Vector3(0f, 0.015f, 0f), new Vector3(0.305f, 0.15f, 0.19f), trousers);
+            leftUpperArm = Limb("LeftUpperArm", chest, new Vector3(-0.30f, 0.255f, 0f), 0.37f, 0.112f, jacket);
+            rightUpperArm = Limb("RightUpperArm", chest, new Vector3(0.30f, 0.255f, 0f), 0.37f, 0.112f, jacket);
+            Part("LeftShoulder", PrimitiveType.Sphere, chest, new Vector3(-0.285f, 0.25f, 0f), new Vector3(0.122f, 0.135f, 0.125f), jacket);
+            Part("RightShoulder", PrimitiveType.Sphere, chest, new Vector3(0.285f, 0.25f, 0f), new Vector3(0.122f, 0.135f, 0.125f), jacket);
+            leftForearm = Limb("LeftForearm", leftUpperArm, new Vector3(0f, -0.365f, 0f), 0.35f, 0.096f, jacket * 0.9f);
+            rightForearm = Limb("RightForearm", rightUpperArm, new Vector3(0f, -0.365f, 0f), 0.35f, 0.096f, jacket * 0.9f);
+            Part("LeftElbow", PrimitiveType.Sphere, leftUpperArm, new Vector3(0f, -0.365f, 0f), new Vector3(0.112f, 0.12f, 0.112f), jacket * 0.9f);
+            Part("RightElbow", PrimitiveType.Sphere, rightUpperArm, new Vector3(0f, -0.365f, 0f), new Vector3(0.112f, 0.12f, 0.112f), jacket * 0.9f);
+            Part("LeftHand", PrimitiveType.Capsule, leftForearm, new Vector3(0f, -0.37f, 0f), new Vector3(0.068f, 0.095f, 0.064f), skin);
+            var rightHand = Part("RightHand", PrimitiveType.Capsule, rightForearm, new Vector3(0f, -0.37f, 0f), new Vector3(0.068f, 0.095f, 0.064f), skin).transform;
 
-            leftThigh = Limb("LeftThigh", hips, new Vector3(-0.145f, -0.01f, 0f), 0.45f, 0.115f, trousers);
-            rightThigh = Limb("RightThigh", hips, new Vector3(0.145f, -0.01f, 0f), 0.45f, 0.115f, trousers);
-            leftCalf = Limb("LeftCalf", leftThigh, new Vector3(0f, -0.45f, 0f), 0.42f, 0.095f, trousers * 0.82f);
-            rightCalf = Limb("RightCalf", rightThigh, new Vector3(0f, -0.45f, 0f), 0.42f, 0.095f, trousers * 0.82f);
-            Part("LeftKnee", PrimitiveType.Sphere, leftThigh, new Vector3(0f, -0.45f, 0f), new Vector3(0.125f, 0.13f, 0.125f), trousers * 0.82f);
-            Part("RightKnee", PrimitiveType.Sphere, rightThigh, new Vector3(0f, -0.45f, 0f), new Vector3(0.125f, 0.13f, 0.125f), trousers * 0.82f);
-            Part("LeftShoe", PrimitiveType.Sphere, leftCalf, new Vector3(0f, -0.44f, 0.105f), new Vector3(0.14f, 0.09f, 0.25f), new Color(0.025f, 0.03f, 0.03f));
-            Part("RightShoe", PrimitiveType.Sphere, rightCalf, new Vector3(0f, -0.44f, 0.105f), new Vector3(0.14f, 0.09f, 0.25f), new Color(0.025f, 0.03f, 0.03f));
+            leftThigh = Limb("LeftThigh", hips, new Vector3(-0.135f, -0.02f, 0f), 0.48f, 0.14f, trousers);
+            rightThigh = Limb("RightThigh", hips, new Vector3(0.135f, -0.02f, 0f), 0.48f, 0.14f, trousers);
+            leftCalf = Limb("LeftCalf", leftThigh, new Vector3(0f, -0.475f, 0f), 0.45f, 0.108f, trousers * 0.8f);
+            rightCalf = Limb("RightCalf", rightThigh, new Vector3(0f, -0.475f, 0f), 0.45f, 0.108f, trousers * 0.8f);
+            Part("LeftKnee", PrimitiveType.Sphere, leftThigh, new Vector3(0f, -0.475f, 0f), new Vector3(0.137f, 0.14f, 0.135f), trousers * 0.82f);
+            Part("RightKnee", PrimitiveType.Sphere, rightThigh, new Vector3(0f, -0.475f, 0f), new Vector3(0.137f, 0.14f, 0.135f), trousers * 0.82f);
+            Part("LeftShoe", PrimitiveType.Sphere, leftCalf, new Vector3(0f, -0.47f, 0.115f), new Vector3(0.145f, 0.105f, 0.27f), new Color(0.018f, 0.024f, 0.022f));
+            Part("RightShoe", PrimitiveType.Sphere, rightCalf, new Vector3(0f, -0.47f, 0.115f), new Vector3(0.145f, 0.105f, 0.27f), new Color(0.018f, 0.024f, 0.022f));
 
             phone = Part("PhoneProp", PrimitiveType.Cube, rightHand, new Vector3(0f, -0.01f, 0.12f), new Vector3(0.12f, 0.22f, 0.035f), new Color(0.025f, 0.03f, 0.03f));
             phone.SetActive(false);
@@ -208,17 +211,22 @@ namespace TrapWars.Player
             if (collider != null) Object.Destroy(collider);
             var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
             var material = new Material(shader) { color = color };
-            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.2f);
+            var smoothness = name.Contains("Head") || name.Contains("Hand") || name.Contains("Neck") ? 0.32f
+                : name.Contains("Shoe") ? 0.24f
+                : name.Contains("Bag") || name.Contains("Strap") ? 0.12f
+                : name.Contains("Hair") ? 0.08f
+                : 0.14f;
+            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", smoothness);
             item.GetComponent<Renderer>().material = material;
             return item;
         }
 
         private static GameObject TorsoPart(string name, Transform parent, Color color)
         {
-            const int segments = 16;
-            var heights = new[] { -0.28f, 0.04f, 0.31f };
-            var radiiX = new[] { 0.23f, 0.285f, 0.34f };
-            var radiiZ = new[] { 0.135f, 0.165f, 0.17f };
+            const int segments = 24;
+            var heights = new[] { -0.30f, -0.18f, 0.04f, 0.22f, 0.31f, 0.35f };
+            var radiiX = new[] { 0.255f, 0.27f, 0.30f, 0.325f, 0.30f, 0.19f };
+            var radiiZ = new[] { 0.145f, 0.15f, 0.17f, 0.18f, 0.17f, 0.13f };
             var vertices = new Vector3[segments * heights.Length + 2];
             var uvs = new Vector2[vertices.Length];
             for (var ring = 0; ring < heights.Length; ring++)

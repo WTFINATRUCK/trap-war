@@ -14,11 +14,12 @@ namespace TrapWars.EditorTools
         private void OnPreprocessModel()
         {
             var isCharacter = assetPath.Contains("/_TrapWars/Resources/M8/Characters/", StringComparison.Ordinal);
+            var isM85Hero = assetPath.Contains("/_TrapWars/Resources/M8/Characters/M85/M85_Hero_", StringComparison.Ordinal);
             if (isCharacter
                 || assetPath.Contains("/_TrapWars/Resources/M8/Animation/", StringComparison.Ordinal) && assetPath.EndsWith(".fbx", StringComparison.OrdinalIgnoreCase))
             {
                 var importer = (ModelImporter)assetImporter;
-                importer.animationType = isCharacter ? ModelImporterAnimationType.Generic : ModelImporterAnimationType.Human;
+                importer.animationType = !isCharacter || isM85Hero ? ModelImporterAnimationType.Human : ModelImporterAnimationType.Generic;
                 importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
                 importer.importAnimation = true;
                 importer.importBlendShapes = true;
@@ -61,6 +62,20 @@ namespace TrapWars.EditorTools
         private const string ProcessedCharacterRoot = "Assets/_TrapWars/Resources/M8/Characters/Processed";
         private const string ControllerRoot = "Assets/_TrapWars/Resources/M8/Animation";
         private const string AnimationSource = "Assets/_TrapWars/Resources/M8/Animation/AN_Quaternius_Human_M8.fbx";
+        private const string M85HeroSource = "Assets/_TrapWars/Resources/M8/Characters/M85/M85_Hero_RealisticMan.fbx";
+
+        [MenuItem("Trap Wars/M8.5/Prepare Accepted Hero")]
+        public static void PrepareM85AcceptedHero()
+        {
+            var importer = AssetImporter.GetAtPath(M85HeroSource) as ModelImporter
+                ?? throw new InvalidOperationException($"Missing accepted M8.5 hero: {M85HeroSource}");
+            const string textureDirectory = "Assets/_TrapWars/Resources/M8/Characters/M85/Textures";
+            Directory.CreateDirectory(textureDirectory);
+            importer.ExtractTextures(textureDirectory);
+            importer.SaveAndReimport();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            Debug.Log($"[M8_5_HERO] prepared={M85HeroSource} humanoid={importer.animationType == ModelImporterAnimationType.Human} textures={textureDirectory}");
+        }
 
         private sealed class CharacterSpec
         {

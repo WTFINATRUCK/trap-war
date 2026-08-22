@@ -29,6 +29,7 @@ function devUserFromQuery(): TelegramUser | null {
   if (!isLocalDevHost() && !import.meta.env.DEV) return null;
 
   const params = new URLSearchParams(window.location.search);
+  if (params.get("site") === "1") return null;
   const devId = params.get("tg");
   if (devId) {
     const id = parseInt(devId, 10);

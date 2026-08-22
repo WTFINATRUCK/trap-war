@@ -74,6 +74,7 @@ namespace TrapWars.Visuals
             FitToCharacterHeight(instance.transform, role == CharacterPresentationRole.Crowd ? 1.76f : 1.82f);
             M8AssetRuntime.UpgradeMaterials(instance);
             M8AssetRuntime.TuneCharacterMaterials(instance, role);
+            if (role == CharacterPresentationRole.Hero) M8AssetRuntime.ApplyHeroWardrobe(instance);
 
             animator = instance.GetComponentInChildren<Animator>(true);
             if (animator != null)
@@ -258,8 +259,11 @@ namespace TrapWars.Visuals
 
             if (Role == CharacterPresentationRole.Hero)
             {
-                Accessory("AC_Hero_CrossbodyBag", PrimitiveType.Cube, hipsBone, transform.right * 0.18f + transform.up * 0.22f + transform.forward * 0.12f, new Vector3(0.26f, 0.22f, 0.09f), Quaternion.Euler(0f, 0f, -8f), M8AssetRuntime.CharacterAccentMaterial("HeroBag", new Color(0.055f, 0.075f, 0.07f), 0.3f));
-                CreateStrap("AC_Hero_CrossbodyStrap", new Vector3(-0.18f, 1.46f, 0.13f), new Vector3(0.22f, 0.91f, 0.14f), M8AssetRuntime.CharacterAccentMaterial("HeroStrap", new Color(0.08f, 0.12f, 0.1f), 0.2f));
+                var gold = M8AssetRuntime.CharacterAccentMaterial("HeroGoldChain", new Color(0.92f, 0.61f, 0.08f), 0.72f);
+                var latex = M8AssetRuntime.CharacterAccentMaterial("HeroLatexGloves", new Color(0.008f, 0.01f, 0.012f), 0.88f);
+                CreateLongChain(gold);
+                BuildGlove(source, true, latex);
+                BuildGlove(source, false, latex);
             }
             else if (Role == CharacterPresentationRole.Ray)
             {
@@ -295,6 +299,60 @@ namespace TrapWars.Visuals
             line.endWidth = line.startWidth;
             line.numCornerVertices = 3;
             line.sharedMaterial = material;
+        }
+
+        private void CreateLongChain(Material material)
+        {
+            var chain = new GameObject("AC_Hero_LongGoldChain", typeof(LineRenderer));
+            chain.transform.SetParent(transform, false);
+            var line = chain.GetComponent<LineRenderer>();
+            line.useWorldSpace = false;
+            line.positionCount = 7;
+            line.SetPositions(new[]
+            {
+                new Vector3(-0.13f, 1.51f, 0.19f),
+                new Vector3(-0.16f, 1.39f, 0.22f),
+                new Vector3(-0.09f, 1.19f, 0.24f),
+                new Vector3(0f, 1.11f, 0.25f),
+                new Vector3(0.09f, 1.19f, 0.24f),
+                new Vector3(0.16f, 1.39f, 0.22f),
+                new Vector3(0.13f, 1.51f, 0.19f)
+            });
+            line.startWidth = 0.018f;
+            line.endWidth = 0.018f;
+            line.numCornerVertices = 5;
+            line.numCapVertices = 4;
+            line.sharedMaterial = material;
+        }
+
+        private static void BuildGlove(Animator source, bool left, Material material)
+        {
+            var hand = source.GetBoneTransform(left ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand);
+            if (hand == null) return;
+            GloveShell($"AC_Hero_{(left ? "Left" : "Right")}_GlovePalm", hand, PrimitiveType.Sphere, Vector3.zero, Quaternion.identity, new Vector3(0.12f, 0.055f, 0.09f), material);
+            GloveShell($"AC_Hero_{(left ? "Left" : "Right")}_GloveCuff", hand, PrimitiveType.Cylinder, new Vector3(left ? 0.005f : -0.005f, -0.055f, 0f), Quaternion.identity, new Vector3(0.065f, 0.045f, 0.065f), material);
+            var fingers = left
+                ? new[] { HumanBodyBones.LeftThumbProximal, HumanBodyBones.LeftIndexProximal, HumanBodyBones.LeftMiddleProximal, HumanBodyBones.LeftRingProximal, HumanBodyBones.LeftLittleProximal }
+                : new[] { HumanBodyBones.RightThumbProximal, HumanBodyBones.RightIndexProximal, HumanBodyBones.RightMiddleProximal, HumanBodyBones.RightRingProximal, HumanBodyBones.RightLittleProximal };
+            foreach (var finger in fingers)
+            {
+                var bone = source.GetBoneTransform(finger);
+                if (bone != null) GloveShell($"AC_Hero_Glove_{finger}", bone, PrimitiveType.Capsule, new Vector3(left ? -0.022f : 0.022f, 0f, 0f), Quaternion.Euler(0f, 0f, 90f), new Vector3(0.018f, 0.035f, 0.018f), material);
+            }
+        }
+
+        private static void GloveShell(string name, Transform anchor, PrimitiveType type, Vector3 localPosition, Quaternion localRotation, Vector3 worldScale, Material material)
+        {
+            var shell = GameObject.CreatePrimitive(type);
+            shell.name = name;
+            shell.transform.SetParent(anchor, false);
+            shell.transform.localPosition = localPosition;
+            shell.transform.localRotation = localRotation;
+            var scale = anchor.lossyScale;
+            shell.transform.localScale = new Vector3(worldScale.x / Mathf.Max(0.001f, Mathf.Abs(scale.x)), worldScale.y / Mathf.Max(0.001f, Mathf.Abs(scale.y)), worldScale.z / Mathf.Max(0.001f, Mathf.Abs(scale.z)));
+            var collider = shell.GetComponent<Collider>();
+            if (collider != null) Destroy(collider);
+            shell.GetComponent<Renderer>().sharedMaterial = material;
         }
 
         private Transform CreateTarget(string name, Vector3 localPosition, Quaternion localRotation)
@@ -456,6 +514,34 @@ namespace TrapWars.Visuals
             }
         }
 
+        public static void ApplyHeroWardrobe(GameObject root)
+        {
+            foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                var part = renderer.name.ToLowerInvariant();
+                Color? color = null;
+                var smoothness = 0.2f;
+                if (part.Contains("jacket")) { color = new Color(0.012f, 0.014f, 0.016f); smoothness = 0.18f; }
+                else if (part.Contains("vest")) { color = new Color(0.02f, 0.022f, 0.025f); smoothness = 0.14f; }
+                else if (part.Contains("pants")) { color = new Color(0.009f, 0.011f, 0.014f); smoothness = 0.22f; }
+                else if (part.Contains("sneaker") || part.Contains("shoe")) { color = new Color(0.006f, 0.007f, 0.009f); smoothness = 0.48f; }
+                else if (part.Contains("buzz_cut") || part.Contains("hair")) { color = new Color(0.008f, 0.009f, 0.011f); smoothness = 0.24f; }
+                if (!color.HasValue) continue;
+                var materials = renderer.sharedMaterials;
+                for (var index = 0; index < materials.Length; index++)
+                {
+                    if (materials[index] == null) continue;
+                    var material = new Material(materials[index]) { name = $"M8_5_Hero_{renderer.name}_{index}" };
+                    material.color = color.Value;
+                    if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color.Value);
+                    if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", smoothness);
+                    if (material.HasProperty("_Metallic")) material.SetFloat("_Metallic", 0f);
+                    materials[index] = material;
+                }
+                renderer.sharedMaterials = materials;
+            }
+        }
+
         public static Material PhoneMaterial(bool screen)
         {
             var key = screen ? "M8_1_PhoneScreen" : "M8_1_PhoneBody";
@@ -556,15 +642,15 @@ namespace TrapWars.Visuals
             var tone = volume.profile.Add<Tonemapping>();
             tone.mode.Override(TonemappingMode.ACES);
             var color = volume.profile.Add<ColorAdjustments>();
-            color.postExposure.Override(0.82f);
-            color.contrast.Override(2f);
+            color.postExposure.Override(0.68f);
+            color.contrast.Override(8f);
             color.saturation.Override(0f);
             var bloom = volume.profile.Add<Bloom>();
             bloom.intensity.Override(0.16f);
             bloom.threshold.Override(1.15f);
             bloom.scatter.Override(0.55f);
             var vignette = volume.profile.Add<Vignette>();
-            vignette.intensity.Override(0.12f);
+            vignette.intensity.Override(0.16f);
             vignette.smoothness.Override(0.32f);
 
             var dustObject = new GameObject("VFX_AmbientDust", typeof(ParticleSystem));
