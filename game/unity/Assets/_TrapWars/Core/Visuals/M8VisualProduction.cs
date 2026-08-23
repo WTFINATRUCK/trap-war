@@ -72,6 +72,7 @@ namespace TrapWars.Visuals
             instance.transform.localPosition = Vector3.zero;
             instance.transform.localRotation = Quaternion.identity;
             FitToCharacterHeight(instance.transform, role == CharacterPresentationRole.Crowd ? 1.76f : 1.82f);
+            RemovePhysicsDrivenCharacterComponents(instance);
             M8AssetRuntime.UpgradeMaterials(instance);
             M8AssetRuntime.TuneCharacterMaterials(instance, role);
             if (role == CharacterPresentationRole.Hero) M8AssetRuntime.ApplyHeroWardrobe(instance);
@@ -82,6 +83,8 @@ namespace TrapWars.Visuals
                 var controller = Resources.Load<RuntimeAnimatorController>(controllerResource);
                 if (controller != null) animator.runtimeAnimatorController = controller;
                 animator.applyRootMotion = false;
+                animator.updateMode = AnimatorUpdateMode.Normal;
+                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 if (animator.isHuman)
                 {
                     head = animator.GetBoneTransform(HumanBodyBones.Head);
@@ -131,7 +134,7 @@ namespace TrapWars.Visuals
         {
             phoneActive = active;
             if (active && phoneProp != null) phoneProp.gameObject.SetActive(true);
-            if (animator != null) animator.SetBool(PhoneHash, active);
+            if (animator != null) animator.SetBool(PhoneHash, Role == CharacterPresentationRole.Hero ? false : active);
         }
 
         public void SetDialogue(bool active, Transform? target = null)
@@ -261,7 +264,7 @@ namespace TrapWars.Visuals
             {
                 var gold = M8AssetRuntime.CharacterAccentMaterial("HeroGoldChain", new Color(0.92f, 0.61f, 0.08f), 0.72f);
                 var latex = M8AssetRuntime.CharacterAccentMaterial("HeroLatexGloves", new Color(0.008f, 0.01f, 0.012f), 0.88f);
-                CreateLongChain(gold);
+                CreateLongChain(gold, upperChest != null ? upperChest : chestBone);
                 BuildGlove(source, true, latex);
                 BuildGlove(source, false, latex);
             }
@@ -301,14 +304,14 @@ namespace TrapWars.Visuals
             line.sharedMaterial = material;
         }
 
-        private void CreateLongChain(Material material)
+        private void CreateLongChain(Material material, Transform chestAnchor)
         {
             var chain = new GameObject("AC_Hero_LongGoldChain", typeof(LineRenderer));
-            chain.transform.SetParent(transform, false);
+            chain.transform.SetParent(chestAnchor, false);
             var line = chain.GetComponent<LineRenderer>();
             line.useWorldSpace = false;
             line.positionCount = 7;
-            line.SetPositions(new[]
+            var rootSpacePoints = new[]
             {
                 new Vector3(-0.13f, 1.51f, 0.19f),
                 new Vector3(-0.16f, 1.39f, 0.22f),
@@ -317,12 +320,19 @@ namespace TrapWars.Visuals
                 new Vector3(0.09f, 1.19f, 0.24f),
                 new Vector3(0.16f, 1.39f, 0.22f),
                 new Vector3(0.13f, 1.51f, 0.19f)
-            });
+            };
+            line.SetPositions(rootSpacePoints.Select(point => chestAnchor.InverseTransformPoint(transform.TransformPoint(point))).ToArray());
             line.startWidth = 0.018f;
             line.endWidth = 0.018f;
             line.numCornerVertices = 5;
             line.numCapVertices = 4;
             line.sharedMaterial = material;
+        }
+
+        private static void RemovePhysicsDrivenCharacterComponents(GameObject instance)
+        {
+            foreach (var joint in instance.GetComponentsInChildren<Joint>(true)) Destroy(joint);
+            foreach (var body in instance.GetComponentsInChildren<Rigidbody>(true)) Destroy(body);
         }
 
         private static void BuildGlove(Animator source, bool left, Material material)
@@ -437,6 +447,7 @@ namespace TrapWars.Visuals
     public static class M8AssetRuntime
     {
         private static readonly Dictionary<string, Material> RuntimeMaterials = new();
+        private static Mesh? decalQuad;
 
         public static GameObject? Place(string resourcePath, string name, Transform parent, Vector3 position, Quaternion rotation, float targetHeight = 0f)
         {
@@ -588,14 +599,12 @@ namespace TrapWars.Visuals
 
         public static GameObject Decal(string name, Transform parent, Vector3 position, Quaternion rotation, Vector2 size, int atlasIndex, string atlasResource)
         {
-            var item = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            item.name = name;
+            var item = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
+            item.GetComponent<MeshFilter>().sharedMesh = DecalQuad();
             item.transform.SetParent(parent);
             item.transform.localPosition = position;
             item.transform.localRotation = rotation;
             item.transform.localScale = new Vector3(size.x, size.y, 1f);
-            var collider = item.GetComponent<Collider>();
-            if (collider != null) UnityEngine.Object.Destroy(collider);
             var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
             var material = new Material(shader) { name = $"M8_Decal_{atlasIndex:00}" };
             var texture = Resources.Load<Texture2D>(atlasResource);
@@ -609,6 +618,22 @@ namespace TrapWars.Visuals
             if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.05f);
             item.GetComponent<Renderer>().sharedMaterial = material;
             return item;
+        }
+
+        private static Mesh DecalQuad()
+        {
+            if (decalQuad != null) return decalQuad;
+            decalQuad = new Mesh { name = "M8_RuntimeDecalQuad" };
+            decalQuad.vertices = new[]
+            {
+                new Vector3(-0.5f, -0.5f, 0f), new Vector3(0.5f, -0.5f, 0f),
+                new Vector3(-0.5f, 0.5f, 0f), new Vector3(0.5f, 0.5f, 0f)
+            };
+            decalQuad.uv = new[] { Vector2.zero, Vector2.right, Vector2.up, Vector2.one };
+            decalQuad.normals = new[] { Vector3.back, Vector3.back, Vector3.back, Vector3.back };
+            decalQuad.triangles = new[] { 0, 2, 1, 2, 3, 1 };
+            decalQuad.RecalculateBounds();
+            return decalQuad;
         }
 
         public static long TriangleCount(Mesh? mesh)

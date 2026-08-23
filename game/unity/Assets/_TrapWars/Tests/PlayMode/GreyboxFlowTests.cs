@@ -151,6 +151,34 @@ namespace TrapWars.Tests.PlayMode
             Assert.That(prefab.GetComponentInChildren<Animator>(true)!.applyRootMotion, Is.False);
         }
 
+        [UnityTest]
+        public IEnumerator M8HeroRuntime_ChainFollowsAnimatedChestAndHasNoPhysicsAuthority()
+        {
+            var root = Track(new GameObject("hero", typeof(HumanoidGreyboxRig), typeof(ProductionCharacterPresenter)));
+            var fallback = root.GetComponent<HumanoidGreyboxRig>();
+            fallback.Build(new Color(0.4f, 0.25f, 0.18f), Color.black, Color.gray, Color.green);
+            var presenter = root.GetComponent<ProductionCharacterPresenter>();
+
+            Assert.That(presenter.Configure("M8/Characters/Processed/PF_Hero_Humanoid_M8_1", "M8/Animation/AC_Hero_M8", fallback, CharacterPresentationRole.Hero), Is.True);
+            yield return null;
+
+            var animator = root.GetComponentInChildren<Animator>(true);
+            var chest = animator.GetBoneTransform(HumanBodyBones.UpperChest) ?? animator.GetBoneTransform(HumanBodyBones.Chest);
+            var chain = root.GetComponentsInChildren<Transform>(true).FirstOrDefault(value => value.name == "AC_Hero_LongGoldChain");
+            Assert.That(chain, Is.Not.Null);
+            Assert.That(chain!.IsChildOf(chest), Is.True, "The chain must be driven by the animated torso bone.");
+            presenter.SetPhone(true);
+            yield return null;
+            Assert.That(animator.GetBool("PhoneOpen"), Is.False, "The imported Hero phone clip must not drive the full body into a crouch; phone presentation is IK-only.");
+            Assert.That(chain.GetComponentsInChildren<Rigidbody>(true), Is.Empty);
+            Assert.That(chain.GetComponentsInChildren<Collider>(true), Is.Empty);
+            Assert.That(root.GetComponentsInChildren<Joint>(true), Is.Empty);
+            Assert.That(root.GetComponentsInChildren<Rigidbody>(true), Is.Empty);
+            Assert.That(animator.applyRootMotion, Is.False);
+            Assert.That(animator.updateMode, Is.EqualTo(AnimatorUpdateMode.Normal));
+            Assert.That(animator.cullingMode, Is.EqualTo(AnimatorCullingMode.AlwaysAnimate));
+        }
+
         [Test]
         public void M8_1AuthoredAudio_AllRequiredCuesArePackaged()
         {

@@ -151,6 +151,18 @@ namespace TrapWars.Phone
         {
             if (root == null || state.Current == null) return;
             var run = state.Current;
+            if (objectives.Current == GreyboxObjective.Complete)
+            {
+                title.text = "DAY 1 COMPLETE";
+                body.text = "YOU JUST EXPERIENCED\n\nMarket information\nRisk and reward\nLiquidity\nPrice movement\nCapital allocation\n\nTRAP WARS IS JUST GETTING STARTED.";
+                notification.gameObject.SetActive(false);
+                foreach (var pair in tabButtons) pair.Value.gameObject.SetActive(false);
+                endDayButton.gameObject.SetActive(false);
+                return;
+            }
+
+            foreach (var pair in tabButtons) pair.Value.gameObject.SetActive(true);
+            endDayButton.gameObject.SetActive(true);
             title.text = currentTab.ToUpperInvariant();
             foreach (var pair in tabButtons)
                 pair.Value.image.color = string.Equals(pair.Key, currentTab, System.StringComparison.OrdinalIgnoreCase) ? UiFactory.Green : UiFactory.Panel;

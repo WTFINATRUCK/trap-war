@@ -40,7 +40,9 @@ namespace TrapWars.UI
         private static void EnsureEventSystem()
         {
             if (UnityEngine.Object.FindFirstObjectByType<EventSystem>() != null) return;
-            new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
+            var eventSystem = new GameObject("EventSystem", typeof(EventSystem));
+            var inputModule = eventSystem.AddComponent<InputSystemUIInputModule>();
+            inputModule.AssignDefaultActions();
         }
 
         public static RectTransform PanelRect(string name, Transform parent, Color color, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)

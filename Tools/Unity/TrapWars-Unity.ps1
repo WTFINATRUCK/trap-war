@@ -96,7 +96,7 @@ switch ($Command) {
         Invoke-UnityEditor @('-batchmode', '-projectPath', $ProjectPath, '-executeMethod', 'TrapWars.EditorTools.M8AssetPipeline.BuildM84ReferenceMatchPlayer', '-quit', '-logFile', (Join-Path $ArtifactRoot 'build-release.log'))
     }
     'build-webgl' {
-        Invoke-UnityEditor @('-batchmode', '-projectPath', $ProjectPath, '-executeMethod', 'TrapWars.EditorTools.M8AssetPipeline.BuildPublicWebDemo', '-quit', '-logFile', (Join-Path $ArtifactRoot 'build-webgl.log'))
+        Invoke-UnityEditor @('-batchmode', '-nographics', '-job-worker-count', '1', '-projectPath', $ProjectPath, '-executeMethod', 'TrapWars.EditorTools.M8AssetPipeline.BuildPublicWebDemo', '-quit', '-logFile', (Join-Path $ArtifactRoot 'build-webgl.log'))
     }
     'run-validation' {
         Show-Status
