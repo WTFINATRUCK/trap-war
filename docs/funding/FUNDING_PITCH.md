@@ -1,25 +1,34 @@
 # Trap Wars Funding Pitch
 
-## Positioning
+## What Is Trap Wars?
 
-Trap Wars turns financial literacy into a playable street-economy strategy game: players read the market, make a move, live with the consequence, and learn the financial principle through progression rather than a lecture.
+Trap Wars is a playable 3D street-economy strategy game where players read information, make market decisions, live with consequences, and learn practical financial concepts through gameplay.
 
-## The Pitch
+## Problem
 
-Trap Wars is a playable 3D strategy game designed for people who may never open a financial course or DeFi dashboard. The current vertical slice already connects a deterministic 30-day economy, an authoritative TypeScript API, PostgreSQL persistence, a Unity client, the Trap Phone information layer, character-led market guidance, trade consequences, and behavior-based financial reveals. Base is the natural infrastructure layer because it can let players begin with the game and optionally progress into low-friction onchain identity and achievement experiences only after value is clear. We are seeking funding to turn a technically substantial vertical slice into a consumer-ready proof through professional art, animation, audio, player testing, security, and measured Base Sepolia onboarding.
+Financial education is often abstract, intimidating, and disconnected from real decisions. Crypto and DeFi onboarding adds more friction by asking people to understand wallets, networks, and signatures before they have a reason to care.
 
-## Product Story
+## Why Game-Based Financial Education?
 
-The player wakes in a safehouse with limited cash and three actions. Word on the Street offers incomplete information. Ray helps translate the signal without making the decision. At the market, the player reviews price, inventory, liquidity, and risk, then buys, sells, waits, or walks away. The world resolves the choice. Only after the consequence does Trap Wars name the underlying idea: liquidity, diversification, reserves, volatility, information quality, or opportunity cost.
+Trap Wars teaches through consequence. The player hears Word on the Street, talks to Ray, reviews a live quote, makes an authoritative trade, then sees the outcome. Only after the result does the game name the financial principle, such as liquidity, risk, price movement, or capital allocation.
 
-## Why It Wins
+## Why Base?
 
-- The game fantasy and the educational model are the same system.
-- The player feels the lesson before seeing the terminology.
-- The backend and economy are built for credible persistence and replay, not a pitch-only prototype.
-- Optional Base onboarding follows product value and does not interrupt the opening game loop.
-- The cultural voice creates a distinct category position without reducing the product to crypto branding.
+Base fits because Trap Wars can put gameplay first and make onchain identity optional after the lesson. The current public demo includes a Base Sepolia (`84532`) proof panel after gameplay with valueless identity-proof language. No token transfer, value transfer, private-key collection, or seed-phrase handling is part of the demo.
 
-## Funding Unlock
+## What Is Already Built?
 
-The next capital converts engineering depth into player-visible quality: production character and environment art, animation, facial performance, audio, onboarding research, analytics, security review, compliant Base integration, and a broader closed alpha. It does not fund a token launch or unaudited financial contract.
+- Public WebGL demo: `https://trap-war.com/play`
+- Unity `6000.3.20f1` 3D vertical slice with safehouse, street, Ray, Hub market, Trap Phone, Day 1 completion, and Day 2 hook.
+- Authoritative TypeScript API, PostgreSQL persistence, save/resume, idempotency, and conflict-handling foundations.
+- Deterministic economy engine and simulation history.
+- Chrome and Edge public-route acceptance, refresh/resume, independent guest verification, and final screenshot evidence in `docs/evidence/public_demo/final/`.
+- Current-build trailer: `docs/funding/TRAP_WARS_BASE_INVESTOR_TRAILER_V2.mp4`.
+
+## What $100K Unlocks
+
+$100K turns the working public slice into a stronger fundable product: production character and environment art, better animation and audio, external playtesting, analytics-backed learning validation, backend-verified Base Sepolia wallet linking, security review, legal/compliance review, and release hardening.
+
+## Next 12 Months
+
+Over the next year Trap Wars should move from vertical slice to closed alpha: improve the world and characters, expand replayable market content, measure player comprehension and completion, validate optional Base onboarding, complete security and compliance review, and prepare a wider public demo without claiming users, revenue, retention, wallets, or traction before they exist.

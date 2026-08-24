@@ -1,8 +1,8 @@
 TRAP WARS PUBLIC WEBGL DEMO
-Generated UTC: 2026-08-23T16:33:30.6535551Z
+Generated UTC: 2026-08-24T03:46:21.0632731Z
 Unity: 6000.3.20f1
-Commit: ffaacd9287fb2384fedf25872f04eb66113a611b
+Commit: 9edc396b54bf1aa3ef2516165eb9db4b06c72ef5
 Result: Succeeded
-Size bytes: 45329932
-Duration: 00:11:54.1141069
+Size bytes: 45336527
+Duration: 00:24:15.1300509
 Output: C:\Users\rjfle\OneDrive\Documents\New project\trap-war\public/play/game

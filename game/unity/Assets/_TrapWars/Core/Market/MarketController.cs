@@ -8,6 +8,7 @@ using TrapWars.Services;
 using TrapWars.State;
 using TrapWars.UI;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace TrapWars.Market
@@ -99,6 +100,25 @@ namespace TrapWars.Market
             feedbackPanel.gameObject.SetActive(false);
             motor.InputEnabled = true;
             cameraRig?.SetContext(CameraContext.Exploration);
+        }
+
+        private void Update()
+        {
+            if (!IsOpen) return;
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
+            if (keyboard.escapeKey.wasPressedThisFrame)
+            {
+                Close();
+                return;
+            }
+            if ((keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame) && review.gameObject.activeSelf)
+            {
+                ReviewOpportunity();
+                return;
+            }
+            if (keyboard.bKey.wasPressedThisFrame && buy.interactable)
+                Trade(true);
         }
 
         private void ReviewOpportunity()

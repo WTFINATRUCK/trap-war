@@ -10,6 +10,7 @@ using TrapWars.State;
 using TrapWars.Time;
 using TrapWars.UI;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace TrapWars.Phone
@@ -104,6 +105,18 @@ namespace TrapWars.Phone
             if (!IsOpen && !motor.InputEnabled) return;
             if (input.PhonePressed) { if (IsOpen) Close(); else Open(); }
             else if (IsOpen && input.BackPressed) Close();
+            else if (IsOpen) HandleKeyboardShortcuts();
+        }
+
+        private void HandleKeyboardShortcuts()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
+            if (keyboard.digit1Key.wasPressedThisFrame || keyboard.numpad1Key.wasPressedThisFrame) SelectTab("HOME");
+            else if (keyboard.digit2Key.wasPressedThisFrame || keyboard.numpad2Key.wasPressedThisFrame || keyboard.wKey.wasPressedThisFrame) SelectTab("WORD");
+            else if (keyboard.digit3Key.wasPressedThisFrame || keyboard.numpad3Key.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame) SelectTab("STASH");
+            else if (keyboard.digit4Key.wasPressedThisFrame || keyboard.numpad4Key.wasPressedThisFrame || keyboard.cKey.wasPressedThisFrame) SelectTab("CONTACTS");
+            else if ((keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame) && endDayButton.interactable) EndDay();
         }
 
         public void Open()

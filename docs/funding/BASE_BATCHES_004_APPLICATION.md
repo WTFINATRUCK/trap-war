@@ -3,20 +3,22 @@
 ## Links
 
 - **PUBLIC PLAYABLE DEMO:** https://trap-war.com/play
-- **TRAILER:** `docs/funding/TRAP_WARS_BASE_INVESTOR_TRAILER.mp4` (replacement V2 pending final capture validation)
+- **TRAILER:** `docs/funding/TRAP_WARS_BASE_INVESTOR_TRAILER_V2.mp4`
 - **GITHUB:** https://github.com/WTFINATRUCK/trap-war
+- **PUBLIC EVIDENCE:** `docs/evidence/public_demo/final/`
+- **ACCEPTANCE:** Chrome PASS, Edge PASS, refresh/resume PASS, independent guest PASS.
 
 ### Working Now
 
-Public Unity WebGL client, pseudonymous guest sessions, authoritative Fastify runs, hosted PostgreSQL persistence, Trap Phone, market route, save/resume architecture, and the investor website.
+Public Unity WebGL client at `https://trap-war.com/play`, pseudonymous guest sessions, authoritative Fastify runs, hosted PostgreSQL persistence, Trap Phone, Word on the Street, safehouse-to-street traversal, Ray dialogue, Hub market review, authoritative buy/sell command, consequence reveal, End Day, Day 2 hook, save/resume, independent guest isolation, V2 gameplay trailer, and the investor website.
 
 ### Demo / Testnet
 
-Optional Base Sepolia (`84532`) wallet, network, and valueless signature proof. No token, value transfer, private-key storage, or seed-phrase handling.
+Optional Base Sepolia (`84532`) identity proof panel after gameplay. The public demo copy states that the proof is valueless and optional, sends no token or value transfer, and collects no private key or seed phrase. Human wallet-signature validation remains owner-controlled.
 
 ### Planned
 
-Backend-verified wallet linking, wider external playtesting, production content expansion, security review, and value-bearing features only after legal and security approval.
+Backend-verified wallet linking, wider external playtesting, production content expansion, production art/audio polish, security review, legal/compliance review, and value-bearing features only after approval.
 
 ## One-Liner
 
@@ -30,7 +32,7 @@ Trap Wars is an independent game venture building a culturally fluent strategy g
 
 Trap Wars is a 3D street-economy strategy game. The player starts with limited cash, incomplete information, and three actions per day. Through the Trap Phone, characters such as Ray, and a changing market, the player reads opportunities, reviews risk, buys or sells, experiences the result, and then unlocks the financial concept behind the decision.
 
-The current vertical slice covers the safehouse, Word on the Street, neighborhood traversal, Ray, market review, trade resolution, an educational reveal, End Day, and a Day 2 hook. The target investor route is 8-12 minutes.
+The current public vertical slice covers the safehouse, Word on the Street, neighborhood traversal, Ray, market review, authoritative trade resolution, an educational liquidity reveal, End Day, a Day 2 hook, and an optional Base Sepolia identity-proof panel. The latest evidence set is captured from the deployed WebGL build at `docs/evidence/public_demo/final/`.
 
 ## Problem
 
@@ -80,7 +82,7 @@ The current web proof can connect a compatible wallet, switch or add Base Sepoli
 - Unity EditMode and PlayMode test infrastructure.
 - Movement acceptance evidence and continuous runtime captures.
 - API regression and performance baseline infrastructure.
-- Existing 9:20 paced vertical-slice capture and 75-second scripted runtime capture.
+- Fresh current-build public route capture and `TRAP_WARS_BASE_INVESTOR_TRAILER_V2.mp4`.
 
 These are engineering and product validation signals. They are not claims of users, retention, revenue, wallets, or transaction volume.
 

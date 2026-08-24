@@ -46,6 +46,15 @@ namespace TrapWars.Player
 
         public void SetContext(CameraContext value) => context = value;
 
+        public void SnapToYaw(float targetYaw, float targetPitch = 7f)
+        {
+            yaw = targetYaw;
+            pitch = Mathf.Clamp(targetPitch, -8f, 68f);
+            timeSinceLook = 0f;
+            if (target != null)
+                smoothedPivot = target.position + Vector3.up * currentHeight;
+        }
+
         private void LateUpdate()
         {
             if (target == null || input == null) return;

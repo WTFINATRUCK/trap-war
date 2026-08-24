@@ -55,15 +55,16 @@ namespace TrapWars.World
                 Sun = sun,
                 Quality = activeQuality,
                 Phone = CreateInteractable<PhoneInteractable>("phone_access_01", root.transform, new Vector3(-3.9f, 1.05f, 1.8f), new Vector3(0.38f, 0.7f, 0.16f), Color.black),
-                Exit = CreateInteractable<SafehouseExitInteractable>("safehouse_exit_01", root.transform, new Vector3(4.35f, 1.5f, 9.7f), new Vector3(2.2f, 3f, 0.22f), new Color(0.12f, 0.28f, 0.21f)),
+                Exit = CreateInteractable<SafehouseExitInteractable>("safehouse_exit_01", root.transform, new Vector3(4.35f, 1.5f, 7.55f), new Vector3(3f, 3f, 4.8f), new Color(0.12f, 0.28f, 0.21f)),
                 Contact = CreateNpc(root.transform, new Vector3(-2.4f, 0f, 42f)),
-                Market = CreateInteractable<MarketInteractable>("market_hub_01", root.transform, new Vector3(0f, 1.2f, 64f), new Vector3(4.5f, 2.4f, 1.1f), new Color(0.14f, 0.42f, 0.3f)),
+                Market = CreateInteractable<MarketInteractable>("market_hub_01", root.transform, new Vector3(0f, 1.2f, 60.2f), new Vector3(8.8f, 2.4f, 12.5f), new Color(0.14f, 0.42f, 0.3f)),
                 Stash = CreateInteractable<StashInteractable>("stash_01", root.transform, new Vector3(4.1f, 0.7f, 5.4f), new Vector3(1.6f, 1.4f, 0.8f), new Color(0.31f, 0.25f, 0.11f))
             };
             world.Clues.Add(CreateInteractable<WorldClueInteractable>("clue_delivery_board", root.transform, new Vector3(-7.15f, 1.05f, 24f), new Vector3(0.18f, 1.7f, 1.25f), new Color(0.74f, 0.58f, 0.2f)));
             world.Clues.Add(CreateInteractable<WorldClueInteractable>("clue_empty_crates", root.transform, new Vector3(7.25f, 0.55f, 33f), new Vector3(1.2f, 1.1f, 1.1f), new Color(0.25f, 0.18f, 0.11f)));
             world.Clues.Add(CreateInteractable<WorldClueInteractable>("clue_corner_activity", root.transform, new Vector3(-7.2f, 0.9f, 37f), new Vector3(0.2f, 1.5f, 1.5f), new Color(0.18f, 0.36f, 0.3f)));
             HideInteractionProxy(world.Exit.gameObject);
+            world.Exit.GetComponent<Collider>().isTrigger = true;
             HideInteractionProxy(world.Market.gameObject);
             world.TeleportPoints["Safehouse"] = Marker("dev_safehouse", new Vector3(0f, 0.1f, 1f), root.transform);
             world.TeleportPoints["Contact"] = Marker("dev_contact", new Vector3(0f, 0.1f, 38f), root.transform);
@@ -85,7 +86,7 @@ namespace TrapWars.World
                 new DialogueLine("Ray", "I would check the quote, size the risk, and make my own call. This one is yours."));
             world.Contact.Configure(dialogue, sequence, objectives, analytics, audio, hud);
             world.Market.Configure(market, objectives);
-            world.Stash.Configure(stash);
+            world.Stash.Configure(stash, objectives);
             world.Clues[0].Configure("delivery_board", "Inspect delivery board", "Three rush pickups were added this morning. Demand is real, but late.", objectives, analytics, audio, hud);
             world.Clues[1].Configure("empty_crates", "Inspect empty crates", "Fresh labels, empty crates. Inventory already moved through here.", objectives, analytics, audio, hud);
             world.Clues[2].Configure("corner_activity", "Watch the corner", "Buyers keep checking the hub, then checking who is watching them.", objectives, analytics, audio, hud);

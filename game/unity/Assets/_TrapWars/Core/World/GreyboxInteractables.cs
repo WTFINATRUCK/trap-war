@@ -31,7 +31,9 @@ namespace TrapWars.World
     public sealed class StashInteractable : InteractableBehaviour
     {
         private StashController stash = null!;
-        public void Configure(StashController controller) { stash = controller; SetPrompt("Check Stash"); }
+        private ObjectiveDirector objectives = null!;
+        public override bool CanInteract => base.CanInteract && objectives != null && objectives.Current >= GreyboxObjective.EndTheDay;
+        public void Configure(StashController controller, ObjectiveDirector director) { stash = controller; objectives = director; SetPrompt("Check Stash"); }
         public override void Interact(InteractionContext context) => stash.Open();
     }
 
@@ -53,8 +55,19 @@ namespace TrapWars.World
             audioService.PlayCue(GameFeelAudioCue.Door);
             audioService.SetStreetAmbience(true);
             hud.Toast("Street noise rolls in. Read the block before you move.", UiFactory.Gold);
+            PlacePlayerOutside(context.Player);
             StartCoroutine(OpenDoor());
         }
+
+        private static void PlacePlayerOutside(GameObject player)
+        {
+            var controller = player.GetComponent<CharacterController>();
+            if (controller != null) controller.enabled = false;
+            player.transform.SetPositionAndRotation(new Vector3(0f, 0.1f, 14.5f), Quaternion.identity);
+            if (controller != null) controller.enabled = true;
+            Object.FindFirstObjectByType<ThirdPersonCameraRig>()?.SnapToYaw(0f);
+        }
+
         private IEnumerator OpenDoor()
         {
             var start = transform.rotation;

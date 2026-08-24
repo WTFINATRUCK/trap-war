@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using TrapWars.Dialogue;
 using TrapWars.Services;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace TrapWars.UI
@@ -90,6 +91,15 @@ namespace TrapWars.UI
             sequence = null;
             completed = null;
             revealing = false;
+        }
+
+        private void Update()
+        {
+            if (!IsOpen) return;
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
+            if (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame)
+                Advance();
         }
 
         private void ShowLine()
