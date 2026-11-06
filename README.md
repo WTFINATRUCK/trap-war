@@ -25,7 +25,7 @@ buy or sell → see the consequence and the lesson → end the day → Day 2 hoo
 
 ## Develop the website and API
 
-Requirements: Node.js 20+ and Docker (for PostgreSQL).
+Requirements: Node.js 24 and Docker (for PostgreSQL).
 
 ```bash
 npm install
