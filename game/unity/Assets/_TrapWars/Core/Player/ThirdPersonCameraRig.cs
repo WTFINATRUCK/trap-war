@@ -29,6 +29,8 @@ namespace TrapWars.Player
         private float currentShoulder;
         private float currentHeight;
         private float timeSinceLook;
+        private float? focusYaw;
+        private readonly RaycastHit[] collisionHits = new RaycastHit[12];
 
         public CameraContext Context => context;
 
@@ -44,7 +46,14 @@ namespace TrapWars.Player
             currentHeight = targetHeight;
         }
 
-        public void SetContext(CameraContext value) => context = value;
+        public void SetContext(CameraContext value)
+        {
+            context = value;
+            if (value == CameraContext.Exploration) focusYaw = null;
+        }
+
+        /// <summary>Turns the camera toward a heading while a non-exploration context (dialogue, market) is active.</summary>
+        public void FocusYaw(float targetYaw) => focusYaw = targetYaw;
 
         public void SnapToYaw(float targetYaw, float targetPitch = 7f)
         {
@@ -72,6 +81,9 @@ namespace TrapWars.Player
                 yaw = Mathf.LerpAngle(yaw, targetYaw, 1f - Mathf.Exp(-2.4f * UnityEngine.Time.deltaTime));
             }
 
+            if (focusYaw.HasValue && context != CameraContext.Exploration)
+                yaw = Mathf.LerpAngle(yaw, focusYaw.Value, 1f - Mathf.Exp(-6f * UnityEngine.Time.deltaTime));
+
             ContextValues(out var targetDistance, out var targetShoulder, out var height, out var fov);
             var contextBlend = 1f - Mathf.Exp(-7.5f * UnityEngine.Time.deltaTime);
             currentDistance = Mathf.Lerp(currentDistance, targetDistance, contextBlend);
@@ -84,8 +96,16 @@ namespace TrapWars.Player
             var shoulder = rotation * Vector3.right * currentShoulder;
             var direction = rotation * Vector3.back;
             var allowedDistance = currentDistance;
-            if (Physics.SphereCast(smoothedPivot + shoulder, collisionRadius, direction, out var hit, currentDistance, ~0, QueryTriggerInteraction.Ignore))
-                allowedDistance = Mathf.Max(0.35f, hit.distance - collisionRadius);
+            var hitCount = Physics.SphereCastNonAlloc(smoothedPivot + shoulder, collisionRadius, direction, collisionHits, currentDistance, ~0, QueryTriggerInteraction.Ignore);
+            for (var index = 0; index < hitCount; index++)
+            {
+                var hit = collisionHits[index];
+                // Ignore colliders the sweep starts inside, the player, and interaction volumes such as NPC capsules;
+                // only real geometry should push the camera in.
+                if (hit.distance <= 0f || hit.collider.transform.IsChildOf(target)) continue;
+                if (hit.collider.GetComponentInParent<TrapWars.Interaction.InteractableBehaviour>() != null) continue;
+                allowedDistance = Mathf.Min(allowedDistance, Mathf.Max(0.35f, hit.distance - collisionRadius));
+            }
             transform.SetPositionAndRotation(smoothedPivot + shoulder + direction * allowedDistance, rotation);
         }
 

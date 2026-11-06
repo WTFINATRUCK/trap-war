@@ -1,47 +1,34 @@
 # Dependencies
 node_modules/
-jspm_packages/
 
-# Build
+# Web build output
 dist/
-.output/
 .vite/
+vite.config.ts.timestamp-*
+*.tsbuildinfo
 
-# Bot local data
-data/
+# Generated serverless bundle (rebuilt by `npm run build`)
+api/v1/api-v1-bundle.cjs
 
-# Env
+# Economy simulation output
+packages/economy-engine/simulation/calibration-results/
+packages/economy-engine/simulation/*-report.json
+
+# Environment
 .env
 .env.*
 !.env.example
-*.local
+.vercel
 
-# Logs
-logs
+# Logs and coverage
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+coverage/
 
-# OS / IDE
+# OS / editors
 .DS_Store
-.vscode-test
-
-# TypeScript / caches
-*.tsbuildinfo
-.eslintcache
-.npm
-.cache
-.parcel-cache
-
-# Coverage
-coverage
-*.lcov
-.nyc_output
-
-# Vite timestamps
-vite.config.js.timestamp-*
-vite.config.ts.timestamp-*
+Thumbs.db
+.idea/
+.vscode/
 
 # Unity generated state
 game/unity/[Ll]ibrary/
@@ -55,18 +42,9 @@ game/unity/MemoryCaptures/
 game/unity/Recordings/
 game/unity/*.csproj
 game/unity/*.sln
+game/unity/*.slnx
 game/unity/*.user
 
-# Generated serverless bundle (rebuilt by npm run build)
-api/v1/api-v1-bundle.cjs
-
-# Local player builds and editable high-resolution art sources
+# Local player builds and source art
 /Builds/
 /SourceArt/
-/artifacts/
-/docs/evidence/dev_environment/MOVEMENT_ACCEPTANCE_UNINTERRUPTED.mp4
-
-.vercel
-.env*
-!.env.example
-

@@ -65,7 +65,10 @@ namespace TrapWars.World
             world.Clues.Add(CreateInteractable<WorldClueInteractable>("clue_corner_activity", root.transform, new Vector3(-7.2f, 0.9f, 37f), new Vector3(0.2f, 1.5f, 1.5f), new Color(0.18f, 0.36f, 0.3f)));
             HideInteractionProxy(world.Exit.gameObject);
             world.Exit.GetComponent<Collider>().isTrigger = true;
+            world.Exit.SetDoorway(InvisibleWall("safehouse_doorway_blocker", root.transform, new Vector3(4.25f, 2.2f, 10f), new Vector3(2.3f, 4.4f, 0.35f)));
             HideInteractionProxy(world.Market.gameObject);
+            world.Market.GetComponent<Collider>().isTrigger = true;
+            BuildPlayableBounds(root.transform);
             world.TeleportPoints["Safehouse"] = Marker("dev_safehouse", new Vector3(0f, 0.1f, 1f), root.transform);
             world.TeleportPoints["Contact"] = Marker("dev_contact", new Vector3(0f, 0.1f, 38f), root.transform);
             world.TeleportPoints["Market"] = Marker("dev_market", new Vector3(0f, 0.1f, 59f), root.transform);
@@ -84,7 +87,15 @@ namespace TrapWars.World
                 new DialogueLine("Ray", "Exactly. Folks are paying up because they think the window is closing. That can help you, or trap you."),
                 new DialogueLine("Ray", "Keep enough cash free to move if the price turns. Confidence is useful. An exit is better.", "What would you do?"),
                 new DialogueLine("Ray", "I would check the quote, size the risk, and make my own call. This one is yours."));
+            var uninformedSequence = ScriptableObject.CreateInstance<DialogueSequence>();
+            uninformedSequence.Configure("ray.market_hub_intro_uninformed",
+                new DialogueLine("Ray", "You came straight to me without reading the block. Slow down."),
+                new DialogueLine("You", "Word on the Street says the hub is moving. What am I missing?"),
+                new DialogueLine("Ray", "Delivery board is slammed, but the crates out back are already empty. Demand showed up late. Supply already moved."),
+                new DialogueLine("Ray", "Keep enough cash free to move if the price turns. Confidence is useful. An exit is better.", "What would you do?"),
+                new DialogueLine("Ray", "I would check the quote, size the risk, and make my own call. This one is yours."));
             world.Contact.Configure(dialogue, sequence, objectives, analytics, audio, hud);
+            world.Contact.SetUninformedSequence(uninformedSequence);
             world.Market.Configure(market, objectives);
             world.Stash.Configure(stash, objectives);
             world.Clues[0].Configure("delivery_board", "Inspect delivery board", "Three rush pickups were added this morning. Demand is real, but late.", objectives, analytics, audio, hud);
@@ -179,9 +190,9 @@ namespace TrapWars.World
             safetyFloor.transform.SetParent(district);
             safetyFloor.transform.localPosition = new Vector3(0f, -0.62f, 42f);
             safetyFloor.GetComponent<BoxCollider>().size = new Vector3(80f, 0.8f, 120f);
-            Primitive("street", PrimitiveType.Cube, district, new Vector3(0f, -0.22f, 42f), new Vector3(13f, 0.4f, 66f), M8AssetRuntime.TexturedMaterial("StreetAsphaltM82B", "M8/Environment/Textures/TX_URB_asphalt", new Color(0.38f, 0.375f, 0.35f), new Vector2(3f, 15f), 0.08f));
-            Primitive("walk_left", PrimitiveType.Cube, district, new Vector3(-8f, 0f, 42f), new Vector3(3f, 0.34f, 66f), M8AssetRuntime.TexturedMaterial("SidewalkConcrete", "M8/Environment/Textures/TX_URB_concrete", new Color(0.55f, 0.54f, 0.5f), new Vector2(2f, 16f), 0.1f));
-            Primitive("walk_right", PrimitiveType.Cube, district, new Vector3(8f, 0f, 42f), new Vector3(3f, 0.34f, 66f), M8AssetRuntime.TexturedMaterial("SidewalkConcrete", "M8/Environment/Textures/TX_URB_concrete", new Color(0.55f, 0.54f, 0.5f), new Vector2(2f, 16f), 0.1f));
+            Primitive("street", PrimitiveType.Cube, district, new Vector3(0f, -0.22f, 42f), new Vector3(13f, 0.4f, 66f), M8AssetRuntime.TexturedMaterial("StreetAsphaltM82B", "M8/Environment/Textures/TX_URB_asphalt", new Color(0.62f, 0.61f, 0.58f), new Vector2(3f, 15f), 0.08f));
+            Primitive("walk_left", PrimitiveType.Cube, district, new Vector3(-8f, 0f, 42f), new Vector3(3f, 0.34f, 66f), M8AssetRuntime.TexturedMaterial("SidewalkConcrete", "M8/Environment/Textures/TX_URB_concrete", new Color(0.7f, 0.69f, 0.65f), new Vector2(2f, 16f), 0.1f));
+            Primitive("walk_right", PrimitiveType.Cube, district, new Vector3(8f, 0f, 42f), new Vector3(3f, 0.34f, 66f), M8AssetRuntime.TexturedMaterial("SidewalkConcrete", "M8/Environment/Textures/TX_URB_concrete", new Color(0.7f, 0.69f, 0.65f), new Vector2(2f, 16f), 0.1f));
             for (var index = 0; index < 8; index++)
             {
                 var z = 16f + index * 8f;
@@ -502,6 +513,31 @@ namespace TrapWars.World
             foreach (var x in new[] { -0.9f, 0.9f }) foreach (var z in new[] { -1.25f, 1.25f })
                 Primitive($"wheel_{x}_{z}", PrimitiveType.Cylinder, root.transform, new Vector3(x, -0.22f, z), new Vector3(0.27f, 0.13f, 0.27f), Mat("rubber", new Color(0.025f, 0.025f, 0.025f)), Quaternion.Euler(0f, 0f, 90f));
             return root;
+        }
+
+        /// <summary>
+        /// Closes every route off the playable block: the alleys between buildings, both street ends and the gaps
+        /// beside the safehouse. Without these the player can walk out of the level into empty space.
+        /// </summary>
+        private static void BuildPlayableBounds(Transform root)
+        {
+            var bounds = new GameObject("playable_bounds").transform;
+            bounds.SetParent(root);
+            InvisibleWall("bound_west", bounds, new Vector3(-8.75f, 3f, 39.5f), new Vector3(0.4f, 6f, 59f));
+            InvisibleWall("bound_east", bounds, new Vector3(8.75f, 3f, 39.5f), new Vector3(0.4f, 6f, 59f));
+            InvisibleWall("bound_north", bounds, new Vector3(0f, 3f, 68.8f), new Vector3(18f, 6f, 0.4f));
+            InvisibleWall("bound_south_west", bounds, new Vector3(-7.4f, 3f, 10.1f), new Vector3(2.8f, 6f, 0.4f));
+            InvisibleWall("bound_south_east", bounds, new Vector3(7.4f, 3f, 10.1f), new Vector3(2.8f, 6f, 0.4f));
+        }
+
+        private static Collider InvisibleWall(string name, Transform parent, Vector3 position, Vector3 size)
+        {
+            var wall = new GameObject(name, typeof(BoxCollider));
+            wall.transform.SetParent(parent);
+            wall.transform.localPosition = position;
+            var collider = wall.GetComponent<BoxCollider>();
+            collider.size = size;
+            return collider;
         }
 
         private static void HideInteractionProxy(GameObject proxy)

@@ -43,13 +43,18 @@ namespace TrapWars.World
         private IAnalyticsService analytics = null!;
         private IAudioService audioService = null!;
         private GreyboxHud hud = null!;
+        private Collider? doorway;
         private bool opened;
         public void Configure(ObjectiveDirector director, IAnalyticsService analyticsService, IAudioService audio, GreyboxHud greyboxHud) { objectives = director; analytics = analyticsService; audioService = audio; hud = greyboxHud; SetPrompt("Step outside"); }
+
+        /// <summary>Solid blocker in the door opening; it stays closed until the player chooses to step outside.</summary>
+        public void SetDoorway(Collider blocker) => doorway = blocker;
         public override bool CanInteract => !opened && objectives != null && objectives.Current >= GreyboxObjective.LeaveSafehouse && base.CanInteract;
         public override void Interact(InteractionContext context)
         {
             if (opened) return;
             opened = true;
+            if (doorway != null) doorway.enabled = false;
             objectives.AdvanceFrom(GreyboxObjective.LeaveSafehouse);
             analytics.Track("safehouse.exited", new Dictionary<string, object> { ["exit_id"] = "safehouse_exit_01" });
             audioService.PlayCue(GameFeelAudioCue.Door);
@@ -84,6 +89,7 @@ namespace TrapWars.World
     {
         private IDialogueService dialogue = null!;
         private DialogueSequence sequence = null!;
+        private DialogueSequence? uninformedSequence;
         private ObjectiveDirector objectives = null!;
         private IAnalyticsService analytics = null!;
         private IAudioService audioService = null!;
@@ -95,6 +101,9 @@ namespace TrapWars.World
         {
             dialogue = dialogueService; sequence = content; objectives = director; analytics = analyticsService; audioService = audio; hud = greyboxHud; SetPrompt("Talk to Ray");
         }
+        /// <summary>Lines used when the player reaches Ray before inspecting the block.</summary>
+        public void SetUninformedSequence(DialogueSequence content) => uninformedSequence = content;
+
         public override void Interact(InteractionContext context)
         {
             if (talking) return;
@@ -103,20 +112,28 @@ namespace TrapWars.World
             var animation = context.Player.GetComponent<CharacterAnimationDriver>();
             var camera = Object.FindFirstObjectByType<ThirdPersonCameraRig>();
             var presentation = GetComponent<NpcPresentationController>();
+            var activeSequence = sequence;
             if (objectives.Current == GreyboxObjective.InvestigateBlock)
             {
                 analytics.Track("world.location_dwell", new Dictionary<string, object> { ["location_id"] = "home_block", ["investigation_skipped"] = true });
                 objectives.AdvanceFrom(GreyboxObjective.InvestigateBlock);
                 hud.Toast("Ray noticed what you missed. Listen close.", UiFactory.Gold);
+                if (uninformedSequence != null) activeSequence = uninformedSequence;
             }
             if (motor != null) motor.InputEnabled = false;
             animation?.SetDialogue(true);
+            var toRay = Vector3.ProjectOnPlane(transform.position - player.position, Vector3.up);
+            if (toRay.sqrMagnitude > 0.01f)
+            {
+                player.rotation = Quaternion.LookRotation(toRay.normalized, Vector3.up);
+                camera?.FocusYaw(player.eulerAngles.y);
+            }
             camera?.SetContext(CameraContext.Dialogue);
             presentation?.BeginConversation(context.Player.transform);
             audioService.PlayCue(GameFeelAudioCue.Dialogue);
             talking = true;
             analytics.Track("npc.interaction_started", new Dictionary<string, object> { ["npc_id"] = "contact_ray_01" });
-            dialogue.Present(sequence, () =>
+            dialogue.Present(activeSequence, () =>
             {
                 talking = false;
                 if (motor != null) motor.InputEnabled = true;
