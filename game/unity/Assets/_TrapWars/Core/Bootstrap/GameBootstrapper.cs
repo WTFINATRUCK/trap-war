@@ -1,9 +1,6 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using TrapWars.Analytics;
@@ -37,14 +34,6 @@ namespace TrapWars.Bootstrap
 #if UNITY_EDITOR
             if (Application.isBatchMode) return;
 #endif
-            var isM83TestBuild = Resources.Load<TextAsset>("M8BuildIdentity") != null;
-            if (isM83TestBuild && Environment.GetCommandLineArgs().Contains("-trapwars-demo-reset"))
-            {
-                PlayerPrefs.DeleteKey("trap_wars.m7.resume.v1");
-                PlayerPrefs.SetInt("trapwars.visual.quality", 2);
-                DemoPresentationPolicy.ResetLocalDemoPresentation();
-                UnityEngine.Debug.Log("[M8_3_DEMO_RESET] standalone local identity, onboarding, and quality reset");
-            }
             if (FindFirstObjectByType<GameBootstrapper>() != null) return;
             var root = new GameObject("TrapWars_Bootstrap");
             DontDestroyOnLoad(root);
@@ -76,14 +65,13 @@ namespace TrapWars.Bootstrap
         private async Task BootAsync(CancellationToken cancellationToken)
         {
             var bootTimer = Stopwatch.StartNew();
-            var capturePath = CommandLineValue("-trapwars-visual-capture");
             var config = TrapWarsRuntimeConfig.LoadOrCreate();
             var accessibility = AccessibilitySettings.Load();
             UiFactory.ConfigureTextScale(accessibility.TextScale);
             var state = new GameStateStore();
             var persistence = new DevProjectionPersistence();
             var network = new NetworkStatus();
-            ITrapWarsApi api = config.UseMockApi || !string.IsNullOrWhiteSpace(capturePath) ? new MockTrapWarsApi() : new UnityTrapWarsApi(config);
+            ITrapWarsApi api = config.UseMockApi ? new MockTrapWarsApi() : new UnityTrapWarsApi(config);
             var authentication = new GuestAuthenticationService(api, persistence);
             var runService = new GameRunService(api, authentication, persistence, state, network);
             analytics = new BufferedAnalyticsService(config, state);
@@ -124,8 +112,6 @@ namespace TrapWars.Bootstrap
             stash.Configure(world.PlayerMotor, state, runService, hud);
             GreyboxWorldBuilder.WireInteractions(world, phone, market, stash, dialogue, objectives, analytics, audio, hud);
             world.InteractionScanner.Configure(input, hud);
-            if (Array.Exists(Environment.GetCommandLineArgs(), arg => string.Equals(arg, "-trapwars-capture-phone", StringComparison.OrdinalIgnoreCase)))
-                phone.Open();
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             var devTools = uiHost.AddComponent<DevToolsOverlay>();
@@ -144,26 +130,6 @@ namespace TrapWars.Bootstrap
             analytics.Track("player.control_acquired", new Dictionary<string, object> { ["location_id"] = "safehouse_01", ["time_from_session_start_ms"] = bootTimer.ElapsedMilliseconds });
             UnityEngine.Debug.Log($"[TRAP_WARS_BUILD] {DemoPresentationPolicy.BuildIdentity()}");
             UnityEngine.Debug.Log($"[TRAP_WARS_DISPLAY] width={Screen.width} height={Screen.height} fullscreen={Screen.fullScreenMode} quality={QualitySettings.names[QualitySettings.GetQualityLevel()]}");
-            if (!string.IsNullOrWhiteSpace(capturePath)) StartCoroutine(CaptureAndQuit(capturePath));
-        }
-
-        private static string? CommandLineValue(string name)
-        {
-            var args = Environment.GetCommandLineArgs();
-            for (var index = 0; index < args.Length - 1; index++)
-                if (string.Equals(args[index], name, StringComparison.OrdinalIgnoreCase)) return args[index + 1];
-            return null;
-        }
-
-        private static IEnumerator CaptureAndQuit(string path)
-        {
-            Screen.SetResolution(1536, 1024, FullScreenMode.Windowed);
-            yield return new WaitForSecondsRealtime(9f);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            UnityEngine.ScreenCapture.CaptureScreenshot(path, 1);
-            yield return new WaitForSecondsRealtime(1.2f);
-            UnityEngine.Debug.Log($"[VISUAL_REBUILD_CAPTURE] path={path} width={Screen.width} height={Screen.height}");
-            Application.Quit(0);
         }
 
         private async void OnDestroy()

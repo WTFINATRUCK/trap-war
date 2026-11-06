@@ -22,6 +22,9 @@ namespace TrapWars.Player
         private Vector3 planarVelocity;
         private float verticalVelocity;
         private float footstepDistance;
+        private Vector3 lastGroundedPosition;
+        private bool hasGroundedPosition;
+        private const float FallRecoveryHeight = -8f;
 
         public bool InputEnabled { get; set; } = true;
         public float NormalizedSpeed => planarVelocity.magnitude / sprintSpeed;
@@ -63,8 +66,28 @@ namespace TrapWars.Player
             verticalVelocity += gravity * UnityEngine.Time.deltaTime;
             var motion = planarVelocity + Vector3.up * verticalVelocity;
             controller.Move(motion * UnityEngine.Time.deltaTime);
+            if (controller.isGrounded)
+            {
+                lastGroundedPosition = transform.position;
+                hasGroundedPosition = true;
+            }
+            else if (transform.position.y < FallRecoveryHeight)
+            {
+                RecoverFromFall();
+                return;
+            }
             animationDriver.SetLocomotion(NormalizedSpeed, controller.isGrounded, input.SprintHeld);
             TickFootsteps(planarVelocity.magnitude * UnityEngine.Time.deltaTime);
+        }
+
+        /// <summary>Safety net: if the player ever drops out of the world, put them back where they last stood.</summary>
+        private void RecoverFromFall()
+        {
+            controller.enabled = false;
+            transform.position = hasGroundedPosition ? lastGroundedPosition + Vector3.up * 0.25f : new Vector3(0f, 0.1f, 1f);
+            controller.enabled = true;
+            planarVelocity = Vector3.zero;
+            verticalVelocity = 0f;
         }
 
         private void TickFootsteps(float distance)

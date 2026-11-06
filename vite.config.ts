@@ -2,11 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
-const githubPages = process.env.GITHUB_PAGES === "true";
-
 export default defineConfig({
-  // GitHub Pages: https://wtfinatruck.github.io/trap-war/
-  base: githubPages ? "/trap-war/" : "/",
   plugins: [react()],
   resolve: {
     alias: {
@@ -16,6 +12,9 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    proxy: {
+      "/api": "http://127.0.0.1:8787",
+    },
   },
   build: {
     outDir: "dist",

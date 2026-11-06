@@ -1,0 +1,25 @@
+name: Unity checkout
+description: Pulls Git LFS assets and restores the Unity Library through caches to keep CI fast and within LFS bandwidth.
+runs:
+  using: composite
+  steps:
+    - name: List LFS objects
+      shell: bash
+      run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+    - name: Restore LFS cache
+      uses: actions/cache@v4
+      with:
+        path: .git/lfs
+        key: lfs-${{ hashFiles('.lfs-assets-id') }}
+    - name: Pull LFS objects
+      shell: bash
+      run: |
+        git lfs pull
+        git add .
+        git reset --hard
+    - name: Restore Unity Library cache
+      uses: actions/cache@v4
+      with:
+        path: game/unity/Library
+        key: library-${{ hashFiles('game/unity/Assets/**', 'game/unity/Packages/**', 'game/unity/ProjectSettings/**') }}
+        restore-keys: library-

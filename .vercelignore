@@ -1,12 +1,6 @@
-.git/
-.agents/
-.codex/
 .env*
 /Builds/
-/SourceArt/
-/artifacts/
 /docs/
 /game/
-/Tools/
-/coverage/
+/scripts/unity.ps1
 *.log
