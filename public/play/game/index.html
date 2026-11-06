@@ -1,3 +1,98 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Trap Wars | Play</title><link rel="stylesheet" href="TemplateData/style.css"></head><body><main id="shell"><canvas id="unity-canvas" tabindex="-1"></canvas><section id="loader" aria-live="polite"><div class="mark">TRAP WARS</div><p id="status">Loading the safehouse</p><div class="track"><div id="progress"></div></div><strong id="percent">0%</strong></section><aside id="error" hidden><strong>THE CONNECTION DROPPED</strong><p id="error-copy">Reload the demo and try again.</p><button onclick="location.reload()">RELOAD</button></aside><button id="fullscreen" hidden>FULLSCREEN</button></main><script>
-const canvas=document.querySelector('#unity-canvas'),loader=document.querySelector('#loader'),progress=document.querySelector('#progress'),percent=document.querySelector('#percent'),status=document.querySelector('#status'),error=document.querySelector('#error'),errorCopy=document.querySelector('#error-copy'),fullscreen=document.querySelector('#fullscreen');const buildUrl='Build';const config={dataUrl:buildUrl+'/game.data.unityweb',frameworkUrl:buildUrl+'/game.framework.js.unityweb',codeUrl:buildUrl+'/game.wasm.unityweb',streamingAssetsUrl:'StreamingAssets',autoSyncPersistentDataPath:true,companyName:"Trap Wars Studio",productName:"Trap Wars",productVersion:"0.8.4",showBanner:(message,type)=>{if(type==='error')fail(message)}};const fail=message=>{loader.hidden=true;error.hidden=false;errorCopy.textContent=message||'Reload the demo and try again.'};const script=document.createElement('script');script.src=buildUrl+'/game.loader.js';script.onload=()=>createUnityInstance(canvas,config,value=>{const amount=Math.round(value*100);progress.style.width=amount+'%';percent.textContent=amount+'%';status.textContent=amount<35?'Loading the safehouse':amount<75?'Connecting the streets':'Getting your first move ready'}).then(instance=>{loader.hidden=true;fullscreen.hidden=false;fullscreen.onclick=()=>instance.SetFullscreen(1)}).catch(value=>fail(value.message));script.onerror=()=>fail('The game files could not be loaded. Reload and try again.');document.body.appendChild(script);
-</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Trap Wars | Play</title>
+  <link rel="preload" as="image" href="TemplateData/wtf-labz.webp">
+  <link rel="stylesheet" href="TemplateData/style.css">
+</head>
+<body>
+<main id="shell">
+  <canvas id="unity-canvas" tabindex="-1"></canvas>
+
+  <section id="loader" class="stage-studio" aria-live="polite">
+    <div class="studio" aria-label="WTF-LABZ presents">
+      <img class="studio-logo" src="TemplateData/wtf-labz.webp" alt="WTF-LABZ" width="731" height="328">
+      <p class="studio-presents">PRESENTS</p>
+    </div>
+    <div class="title">
+      <div class="mark">TRAP WARS</div>
+      <p id="status">Loading the safehouse</p>
+      <div class="track"><div id="progress"></div></div>
+      <strong id="percent">0%</strong>
+    </div>
+    <div class="edge-progress"><div id="edge-progress"></div></div>
+  </section>
+
+  <aside id="error" hidden>
+    <strong>THE CONNECTION DROPPED</strong>
+    <p id="error-copy">Reload the demo and try again.</p>
+    <button onclick="location.reload()">RELOAD</button>
+  </aside>
+  <button id="fullscreen" hidden>FULLSCREEN</button>
+</main>
+<script>
+(() => {
+  const $ = selector => document.querySelector(selector);
+  const canvas = $('#unity-canvas'), loader = $('#loader'), progress = $('#progress'), edge = $('#edge-progress');
+  const percent = $('#percent'), status = $('#status'), error = $('#error'), errorCopy = $('#error-copy'), fullscreen = $('#fullscreen');
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const STUDIO_MS = reducedMotion ? 1400 : 2900;
+
+  let studioDone = false, gameReady = false, finished = false;
+
+  // The studio card always plays in full, then hands over to the title card until the game is ready.
+  const endStudio = () => {
+    if (studioDone) return;
+    studioDone = true;
+    if (gameReady) return reveal();
+    loader.className = 'stage-title';
+  };
+  const reveal = () => {
+    if (finished) return;
+    finished = true;
+    loader.classList.add('leaving');
+    setTimeout(() => { loader.hidden = true; }, 600);
+    fullscreen.hidden = false;
+  };
+  const fail = message => {
+    loader.hidden = true;
+    error.hidden = false;
+    errorCopy.textContent = message || 'Reload the demo and try again.';
+  };
+
+  setTimeout(endStudio, STUDIO_MS);
+  loader.addEventListener('click', () => { if (!studioDone) endStudio(); });
+
+  const buildUrl = 'Build';
+  const config = {
+    dataUrl: buildUrl + '/game.data.unityweb',
+    frameworkUrl: buildUrl + '/game.framework.js.unityweb',
+    codeUrl: buildUrl + '/game.wasm.unityweb',
+    streamingAssetsUrl: 'StreamingAssets',
+    autoSyncPersistentDataPath: true,
+    companyName: "Trap Wars Studio",
+    productName: "Trap Wars",
+    productVersion: "0.8.4",
+    showBanner: (message, type) => { if (type === 'error') fail(message); }
+  };
+
+  const script = document.createElement('script');
+  script.src = buildUrl + '/game.loader.js';
+  script.onload = () => createUnityInstance(canvas, config, value => {
+    const amount = Math.round(value * 100);
+    progress.style.width = edge.style.width = amount + '%';
+    percent.textContent = amount + '%';
+    status.textContent = amount < 35 ? 'Loading the safehouse' : amount < 75 ? 'Connecting the streets' : 'Getting your first move ready';
+  }).then(instance => {
+    fullscreen.onclick = () => instance.SetFullscreen(1);
+    gameReady = true;
+    if (studioDone) reveal();
+  }).catch(value => fail(value.message));
+  script.onerror = () => fail('The game files could not be loaded. Reload and try again.');
+  document.body.appendChild(script);
+})();
+</script>
+</body>
+</html>
