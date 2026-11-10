@@ -387,12 +387,12 @@ class Game {
 
   private openPhone(tab: "home" | "word" = "home"): void {
     if (ui.phoneOpen) return;
-    audio.play("phone_open", 0.6);
+    audio.play("phone_open", 1);
     ui.openPhone(tab);
   }
 
   private openMarket(): void {
-    audio.play("ui_select", 0.6);
+    audio.play("ui_select", 0.9);
     this.player.setFocus(this.world.anchors.hub.clone().setZ(18.5));
     ui.openMarket();
     if (this.step === Step.Review) this.setStep(Step.MakeMove);
@@ -401,9 +401,9 @@ class Game {
   private wireUi(): void {
     ui.onAction = () => this.interact();
     ui.onPhoneButton = () => (ui.phoneOpen ? ui.closePhone() : this.openPhone());
-    ui.onPhoneClosed = () => audio.play("phone_close", 0.5);
+    ui.onPhoneClosed = () => audio.play("phone_close", 0.9);
     ui.onPhoneTab = (tab) => {
-      audio.play("ui_select", 0.35);
+      audio.play("ui_select", 0.8);
       if (tab !== "word") return;
       ui.setWordBadge(false);
       this.world.setPhoneHighlight(false);
@@ -416,7 +416,7 @@ class Game {
     };
     ui.onMarketClosed = () => {
       this.player.setFocus(null);
-      audio.play("ui_select", 0.4);
+      audio.play("ui_select", 0.8);
     };
     ui.onTrade = (request) => this.trade(request);
     ui.onEndDay = () => void this.endDay();

@@ -1,6 +1,6 @@
-const CUES = ["dialogue", "door", "footstep_00", "footstep_01", "footstep_02", "footstep_03", "investigation", "invalid", "phone_close", "phone_open", "trade", "ui_select"] as const;
+const CUES = ["dialogue", "door", "footstep_00", "footstep_01", "footstep_02", "footstep_03", "investigation", "invalid", "trade"] as const;
 /** Cues scored in code rather than sampled: the end-of-day moments need to sound musical, not like UI clicks. */
-type ScoredCue = "nightfall" | "reveal";
+type ScoredCue = "nightfall" | "reveal" | "phone_open" | "phone_close" | "ui_select";
 export type Cue = (typeof CUES)[number] | ScoredCue | "footstep";
 
 /** Kenney CC0 sound effects plus a generated night-city ambience. Starts after the first user gesture. */
@@ -35,6 +35,9 @@ export class Audio {
     if (!this.context || !this.master) return;
     if (cue === "nightfall") return this.nightfall(volume);
     if (cue === "reveal") return this.reveal(volume);
+    if (cue === "phone_open") return this.phone(true, volume);
+    if (cue === "phone_close") return this.phone(false, volume);
+    if (cue === "ui_select") return this.tap(volume);
     const name = cue === "footstep" ? `footstep_0${this.step++ % 4}` : cue;
     const buffer = this.buffers.get(name);
     if (!buffer) return;
@@ -138,6 +141,59 @@ export class Audio {
       this.voice(frequency * 2, now + offset, 0.004, 0.0, 0.35, 0.03, "sine", bus);
     }
     this.voice(329.63, now, 0.02, 0.05, 0.9, 0.08, "triangle", bus);
+  }
+
+  /** Phone wake and sleep: a quiet haptic thump and two short glassy notes, rising to open and falling to close. */
+  private phone(open: boolean, volume: number): void {
+    const context = this.context!;
+    const now = context.currentTime + 0.01;
+    const bus = context.createGain();
+    bus.gain.value = volume;
+    const soft = context.createBiquadFilter();
+    soft.type = "lowpass";
+    soft.frequency.value = 4200;
+    bus.connect(soft).connect(this.master!);
+
+    const thump = context.createOscillator();
+    thump.type = "sine";
+    thump.frequency.setValueAtTime(open ? 150 : 120, now);
+    thump.frequency.exponentialRampToValueAtTime(70, now + 0.08);
+    const thumpGain = context.createGain();
+    thumpGain.gain.setValueAtTime(0.0001, now);
+    thumpGain.gain.exponentialRampToValueAtTime(0.18, now + 0.006);
+    thumpGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+    thump.connect(thumpGain).connect(bus);
+    thump.start(now);
+    thump.stop(now + 0.12);
+
+    // Open: B5 then E6. Close: E6 then B5, quieter.
+    const notes = open ? [987.77, 1318.51] : [1318.51, 987.77];
+    const level = open ? 0.12 : 0.09;
+    notes.forEach((frequency, index) => {
+      const start = now + 0.015 + index * 0.06;
+      this.voice(frequency, start, 0.004, 0.0, 0.16, level, "sine", bus);
+      this.voice(frequency * 2, start, 0.003, 0.0, 0.05, level * 0.18, "sine", bus);
+    });
+  }
+
+  /** Tab and button tap: a very short, soft tick. */
+  private tap(volume: number): void {
+    const context = this.context!;
+    const now = context.currentTime + 0.005;
+    const bus = context.createGain();
+    bus.gain.value = volume;
+    bus.connect(this.master!);
+    const osc = context.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(1900, now);
+    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.03);
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.09, now + 0.002);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+    osc.connect(gain).connect(bus);
+    osc.start(now);
+    osc.stop(now + 0.06);
   }
 
   /** Low city rumble: filtered brown noise with a slow swell, plus a soft distant bass pulse. */
