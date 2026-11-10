@@ -1,0 +1,91 @@
+name: Unity
+
+# Builds and tests the Unity client in the cloud so nothing has to be compiled on a local machine.
+# Requires repository secrets UNITY_LICENSE, UNITY_EMAIL and UNITY_PASSWORD (see README).
+on:
+  pull_request:
+    paths: ["game/unity/**", ".github/workflows/unity.yml"]
+  push:
+    branches: [main]
+    paths: ["game/unity/**", ".github/workflows/unity.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: unity-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  checks: write
+
+env:
+  UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+  UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+  UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+
+jobs:
+  license:
+    name: Check Unity license
+    runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.check.outputs.available }}
+    steps:
+      - id: check
+        run: |
+          if [ -n "$UNITY_LICENSE" ] && [ -n "$UNITY_EMAIL" ] && [ -n "$UNITY_PASSWORD" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Unity license secrets are not configured, so Unity tests and builds were skipped. See README."
+          fi
+
+  test:
+    name: Edit and play mode tests
+    needs: license
+    if: needs.license.outputs.available == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/unity-checkout
+      - uses: game-ci/unity-test-runner@v4
+        with:
+          projectPath: game/unity
+          testMode: all
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Unity test results
+
+  build:
+    name: WebGL build
+    needs: [license, test]
+    if: needs.license.outputs.available == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/unity-checkout
+      - uses: game-ci/unity-builder@v4
+        with:
+          projectPath: game/unity
+          targetPlatform: WebGL
+          buildMethod: TrapWars.EditorTools.TrapWarsBuild.BuildWebGL
+          allowDirtyBuild: true
+      - name: Take ownership of build output
+        run: sudo chown -R "$(id -u):$(id -g)" public/play/game
+      - uses: actions/upload-artifact@v4
+        with:
+          name: webgl-${{ github.sha }}
+          path: public/play/game
+          retention-days: 14
+      - name: Publish build to the website
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          rm -f .lfs-assets-id
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/play/game
+          if git diff --cached --quiet; then
+            echo "WebGL output unchanged."
+            exit 0
+          fi
+          git commit -m "build(webgl): rebuild game from ${GITHUB_SHA::12}"
+          git pull --rebase origin main
+          git push origin HEAD:main

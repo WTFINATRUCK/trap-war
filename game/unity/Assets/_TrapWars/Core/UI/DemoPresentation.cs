@@ -7,7 +7,6 @@ namespace TrapWars.UI
 {
     public static class DemoPresentationPolicy
     {
-        public const string Milestone = "M8.4";
         public const string ConnectionUnavailable = "Connection unavailable. Try again.";
         public const string ControlsSeenKey = "trapwars.m8_3.controls_seen";
 
@@ -16,9 +15,9 @@ namespace TrapWars.UI
 
         public static string BuildIdentity()
         {
-            var identity = Resources.Load<TextAsset>("M8BuildIdentity");
+            var identity = Resources.Load<TextAsset>("BuildIdentity");
             return identity == null
-                ? $"milestone={Milestone} version={Application.version} commit=editor"
+                ? $"version={Application.version} commit=local"
                 : identity.text.Trim();
         }
 
@@ -41,7 +40,7 @@ namespace TrapWars.UI
             rail.GetComponent<Image>().raycastTarget = false;
             var heading = UiFactory.Text("ControlHeading", root, "TAKE THE BLOCK", 17, TextAnchor.MiddleLeft, UiFactory.Gold, FontStyle.Bold);
             UiFactory.SetRect(heading.rectTransform, new Vector2(0.035f, 0.54f), new Vector2(0.24f, 0.9f), Vector2.zero, Vector2.zero);
-            var keyboard = UiFactory.Text("KeyboardControls", root, "WASD  MOVE     MOUSE  LOOK     E  INTERACT     SHIFT  SPRINT     TAB  PHONE", 17, TextAnchor.MiddleLeft, UiFactory.Paper, FontStyle.Bold);
+            var keyboard = UiFactory.Text("KeyboardControls", root, "WASD  MOVE     MOUSE  LOOK     E  INTERACT     SHIFT  SPRINT     TAB  PHONE     G  GRAPHICS", 17, TextAnchor.MiddleLeft, UiFactory.Paper, FontStyle.Bold);
             UiFactory.SetRect(keyboard.rectTransform, new Vector2(0.24f, 0.52f), new Vector2(0.97f, 0.92f), Vector2.zero, Vector2.zero);
             var gamepad = UiFactory.Text("GamepadControls", root, "GAMEPAD  STICKS MOVE / LOOK     A  INTERACT     L3  SPRINT     Y  PHONE     B  BACK", 15, TextAnchor.MiddleLeft, new Color(0.68f, 0.71f, 0.69f));
             UiFactory.SetRect(gamepad.rectTransform, new Vector2(0.24f, 0.1f), new Vector2(0.97f, 0.5f), Vector2.zero, Vector2.zero);

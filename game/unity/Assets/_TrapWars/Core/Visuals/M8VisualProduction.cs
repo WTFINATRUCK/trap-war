@@ -413,10 +413,24 @@ namespace TrapWars.Visuals
 
     public sealed class M8QualityController : MonoBehaviour
     {
+        private const string TierPreferenceKey = "trapwars.visual.quality";
+        private const string ManualPreferenceKey = "trapwars.visual.quality.manual";
+        private const float WarmupSeconds = 3f;
+        private const float SampleSeconds = 6f;
+        private const float MinimumAcceptableFps = 26f;
+
         private readonly List<(GameObject Item, M8QualityTier Minimum)> scalableItems = new();
         private readonly List<Light> practicalLights = new();
+        private bool manualTier;
+        private float warmupRemaining = WarmupSeconds;
+        private float sampleElapsed;
+        private int sampleFrames;
 
         public M8QualityTier Tier { get; private set; } = M8QualityTier.High;
+
+        /// <summary>Browsers and phones start on Medium; desktop players start on High.</summary>
+        public static M8QualityTier PlatformDefaultTier =>
+            Application.platform == RuntimePlatform.WebGLPlayer || Application.isMobilePlatform ? M8QualityTier.Medium : M8QualityTier.High;
 
         public void Register(GameObject item, M8QualityTier minimum) => scalableItems.Add((item, minimum));
         public void RegisterPractical(Light light) => practicalLights.Add(light);
@@ -427,6 +441,7 @@ namespace TrapWars.Visuals
             QualitySettings.lodBias = tier switch { M8QualityTier.Low => 0.65f, M8QualityTier.Medium => 1f, _ => 1.5f };
             QualitySettings.shadowDistance = tier switch { M8QualityTier.Low => 22f, M8QualityTier.Medium => 36f, _ => 50f };
             QualitySettings.shadowCascades = tier == M8QualityTier.Low ? 1 : tier == M8QualityTier.Medium ? 2 : 4;
+            ApplyRendering(tier);
             foreach (var (item, minimum) in scalableItems)
                 if (item != null) item.SetActive((int)tier >= (int)minimum);
             for (var index = 0; index < practicalLights.Count; index++)
@@ -434,13 +449,71 @@ namespace TrapWars.Visuals
                 var light = practicalLights[index];
                 if (light != null) light.shadows = tier == M8QualityTier.High && index < 2 && light.type != LightType.Point ? LightShadows.Soft : LightShadows.None;
             }
-            Debug.Log($"[M8_QUALITY] tier={tier} population={scalableItems.Count(value => value.Item.activeSelf)} lod_bias={QualitySettings.lodBias:F2} shadow_distance={QualitySettings.shadowDistance:F0}");
+            warmupRemaining = WarmupSeconds;
+            sampleElapsed = 0f;
+            sampleFrames = 0;
+            Debug.Log($"[QUALITY] tier={tier} population={scalableItems.Count(value => value.Item != null && value.Item.activeSelf)} lod_bias={QualitySettings.lodBias:F2}");
+        }
+
+        /// <summary>Applies a tier the player chose and stops automatic adjustment.</summary>
+        public void SetPlayerTier(M8QualityTier tier)
+        {
+            manualTier = true;
+            PlayerPrefs.SetInt(TierPreferenceKey, (int)tier);
+            PlayerPrefs.SetInt(ManualPreferenceKey, 1);
+            PlayerPrefs.Save();
+            Apply(tier);
+        }
+
+        private static void ApplyRendering(M8QualityTier tier)
+        {
+            var sun = RenderSettings.sun;
+            if (sun != null) sun.shadows = tier == M8QualityTier.Low ? LightShadows.None : LightShadows.Soft;
+            // Keep tonemapping and exposure on every tier (the scene is graded through them); drop the costly bloom pass on Low.
+            foreach (var volume in FindObjectsByType<Volume>(FindObjectsSortMode.None))
+                if (volume.profile != null && volume.profile.TryGet<Bloom>(out var bloom)) bloom.active = tier != M8QualityTier.Low;
+
+            // Changing the pipeline asset inside the Editor would rewrite project settings on disk.
+            if (Application.isEditor || GraphicsSettings.currentRenderPipeline is not UniversalRenderPipelineAsset pipeline) return;
+            pipeline.renderScale = tier switch { M8QualityTier.Low => 0.7f, M8QualityTier.Medium => 0.85f, _ => 1f };
+            pipeline.shadowDistance = tier switch { M8QualityTier.Low => 18f, M8QualityTier.Medium => 32f, _ => 50f };
         }
 
         private void Awake()
         {
-            var saved = PlayerPrefs.GetInt("trapwars.visual.quality", 2);
+            manualTier = PlayerPrefs.GetInt(ManualPreferenceKey, 0) == 1;
+            var saved = manualTier ? PlayerPrefs.GetInt(TierPreferenceKey, (int)PlatformDefaultTier) : (int)PlatformDefaultTier;
             Tier = (M8QualityTier)Mathf.Clamp(saved, 0, 2);
+        }
+
+        private void Update()
+        {
+            var keyboard = UnityEngine.InputSystem.Keyboard.current;
+            if (keyboard != null && keyboard.gKey.wasPressedThisFrame)
+            {
+                var next = Tier == M8QualityTier.High ? M8QualityTier.Low : Tier + 1;
+                SetPlayerTier(next);
+                FindFirstObjectByType<TrapWars.UI.GreyboxHud>()?.Toast($"Graphics: {next.ToString().ToUpperInvariant()}", TrapWars.UI.UiFactory.Gold);
+                return;
+            }
+
+            // Automatic downgrade only: step down one tier whenever a sample window misses the frame-rate floor.
+            if (manualTier || Tier == M8QualityTier.Low) return;
+            var delta = UnityEngine.Time.unscaledDeltaTime;
+            if (warmupRemaining > 0f)
+            {
+                warmupRemaining -= delta;
+                return;
+            }
+            sampleElapsed += delta;
+            sampleFrames++;
+            if (sampleElapsed < SampleSeconds) return;
+            var fps = sampleFrames / sampleElapsed;
+            sampleElapsed = 0f;
+            sampleFrames = 0;
+            if (fps >= MinimumAcceptableFps) return;
+            Debug.Log($"[QUALITY] auto_downgrade fps={fps:F1} from={Tier}");
+            Apply(Tier - 1);
         }
     }
 
@@ -491,6 +564,7 @@ namespace TrapWars.Visuals
                         material = new Material(shader) { name = $"M8_{source?.name ?? "Default"}" };
                         var color = source != null && source.HasProperty("_Color") ? source.color : new Color(0.55f, 0.55f, 0.52f);
                         var texture = source != null && source.HasProperty("_MainTex") ? source.mainTexture : null;
+                        if (texture == null) texture = EnvironmentKitTexture(source?.name);
                         material.color = color;
                         if (material.HasProperty("_BaseMap")) material.SetTexture("_BaseMap", texture);
                         if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.28f);
@@ -500,6 +574,17 @@ namespace TrapWars.Visuals
                 }
                 renderer.sharedMaterials = upgraded;
             }
+        }
+
+        /// <summary>
+        /// Kit models reference their textures by relative path, which Unity cannot resolve once the textures
+        /// are renamed into Resources. Materials are named after their texture, so resolve them by name.
+        /// </summary>
+        private static Texture? EnvironmentKitTexture(string? materialName)
+        {
+            if (string.IsNullOrWhiteSpace(materialName)) return null;
+            var key = materialName.Replace("(Instance)", string.Empty).Trim().ToLowerInvariant();
+            return Resources.Load<Texture2D>($"M8/Environment/Textures/TX_URB_{key}");
         }
 
         public static void TuneCharacterMaterials(GameObject root, CharacterPresentationRole role)

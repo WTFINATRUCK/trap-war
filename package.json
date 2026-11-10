@@ -1,5 +1,5 @@
 {
-  "name": "trap-war-telegram",
+  "name": "trap-wars",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,48 +9,41 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build && node scripts/bundle-bot.mjs",
+    "build": "tsc --noEmit && vite build && node scripts/bundle-api.mjs",
     "preview": "vite preview",
-    "bot": "tsx bot/index.ts",
-    "bot:community": "tsx bot/communityBot.ts",
-    "bot:guard": "tsx bot/guardBot.ts",
-    "bot:all": "tsx bot/run-all.ts",
-    "bot:setup": "tsx bot/setup-menu.ts",
-    "bot:personas": "tsx bot/setup-personas.ts",
+    "typecheck": "tsc --noEmit && npm --workspace @trap-wars/api run typecheck && npm --workspace @trap-wars/economy-engine run typecheck",
+    "test": "npm --workspace @trap-wars/economy-engine test && npm --workspace @trap-wars/api test",
     "api:dev": "npm --workspace @trap-wars/api run dev",
     "api:start": "npm --workspace @trap-wars/api run start",
-    "api:typecheck": "npm --workspace @trap-wars/api run typecheck",
-    "api:test": "npm --workspace @trap-wars/api test",
     "api:benchmark": "npm --workspace @trap-wars/api run benchmark",
     "db:migrate": "npm --workspace @trap-wars/api run db:migrate",
     "outbox:poll": "npm --workspace @trap-wars/api run outbox:poll"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.4",
-    "@twa-dev/sdk": "^8.0.2",
+    "@noble/hashes": "^2.4.0",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.11.3",
     "pg": "^8.23.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "telegraf": "^4.16.3",
+    "three": "^0.187.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
     "@types/node": "^26.1.1",
     "@types/pg": "^8.20.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@vercel/node": "^5.3.6",
+    "@types/three": "^0.187.0",
     "@vitejs/plugin-react": "^4.3.4",
-    "autoprefixer": "^10.4.20",
     "esbuild": "^0.28.1",
-    "playwright-core": "^1.62.0",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.15",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vite": "^6.0.3"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }
