@@ -467,7 +467,7 @@ class Game {
     const exposure = held * trade.price;
     const share = exposure / Math.max(1, exposure + this.run.cash);
     const swing = Math.round(exposure * 0.15);
-    audio.play("consequence", 0.6);
+    audio.play("reveal", 0.9);
     await ui.card({
       kicker: "YOUR MOVE",
       title: trade.side === "buy" ? `You're holding ${held} ${name}` : `You sold ${trade.quantity} ${name}`,
@@ -494,8 +494,8 @@ class Game {
       this.busy = false;
       return;
     }
-    ui.closePhone();
-    audio.play("transition", 0.7);
+    ui.closePhone(true);
+    audio.play("nightfall", 0.9);
     this.run = outcome.run;
     await ui.nightfall(this.run.day);
     ui.setRun(this.run);
@@ -533,7 +533,7 @@ class Game {
         ? `${name} moved from ${money(trade.price)} to ${money(after)}. Your ${held} units are now worth ${money(after * held)} — that's <b class="${change >= 0 ? "up" : "down"}">${change >= 0 ? "+" : "-"}${money(Math.abs(change * held))}</b> on paper.`
         : `You sold ${name} at ${money(trade.price)}. Tonight it's ${money(after)}. ${after > trade.price ? "You left some upside on the table — and kept your cash safe." : "Selling before the drop kept that money safe."}`;
     }
-    audio.play("consequence", 0.6);
+    audio.play("reveal", 0.9);
     await ui.card({
       kicker: "WHAT JUST HAPPENED",
       title: "Liquidity",

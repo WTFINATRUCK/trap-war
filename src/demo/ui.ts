@@ -222,11 +222,11 @@ export class GameUi {
     this.showPhoneTab(tab);
   }
 
-  closePhone(): void {
+  closePhone(silent = false): void {
     if (!this.phoneOpen) return;
     blurFocus();
     $("#phone").classList.remove("open");
-    this.onPhoneClosed?.();
+    if (!silent) this.onPhoneClosed?.();
   }
 
   showPhoneTab(tab: PhoneTab): void {
