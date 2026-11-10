@@ -1,5 +1,7 @@
-const CUES = ["consequence", "dialogue", "door", "footstep_00", "footstep_01", "footstep_02", "footstep_03", "investigation", "invalid", "phone_close", "phone_open", "trade", "transition", "ui_select"] as const;
-export type Cue = (typeof CUES)[number] | "footstep";
+const CUES = ["dialogue", "door", "footstep_00", "footstep_01", "footstep_02", "footstep_03", "investigation", "invalid", "phone_close", "phone_open", "trade", "ui_select"] as const;
+/** Cues scored in code rather than sampled: the end-of-day moments need to sound musical, not like UI clicks. */
+type ScoredCue = "nightfall" | "reveal";
+export type Cue = (typeof CUES)[number] | ScoredCue | "footstep";
 
 /** Kenney CC0 sound effects plus a generated night-city ambience. Starts after the first user gesture. */
 export class Audio {
@@ -8,6 +10,7 @@ export class Audio {
   private readonly buffers = new Map<string, AudioBuffer>();
   private muted = false;
   private step = 0;
+  private echoBus?: AudioNode;
 
   async unlock(): Promise<void> {
     if (this.context) return;
@@ -30,6 +33,8 @@ export class Audio {
 
   play(cue: Cue, volume = 0.7): void {
     if (!this.context || !this.master) return;
+    if (cue === "nightfall") return this.nightfall(volume);
+    if (cue === "reveal") return this.reveal(volume);
     const name = cue === "footstep" ? `footstep_0${this.step++ % 4}` : cue;
     const buffer = this.buffers.get(name);
     if (!buffer) return;
@@ -46,6 +51,93 @@ export class Audio {
     this.muted = !this.muted;
     if (this.master) this.master.gain.value = this.muted ? 0 : 0.8;
     return !this.muted;
+  }
+
+  /** Short echo bus so the scored cues sit in a space instead of sounding dry. */
+  private echo(): AudioNode {
+    const context = this.context!;
+    if (this.echoBus) return this.echoBus;
+    const input = context.createGain();
+    const delay = context.createDelay(1);
+    delay.delayTime.value = 0.32;
+    const feedback = context.createGain();
+    feedback.gain.value = 0.32;
+    const tone = context.createBiquadFilter();
+    tone.type = "lowpass";
+    tone.frequency.value = 1800;
+    const wet = context.createGain();
+    wet.gain.value = 0.35;
+    input.connect(delay).connect(tone).connect(feedback).connect(delay);
+    tone.connect(wet).connect(this.master!);
+    this.echoBus = input;
+    return input;
+  }
+
+  /** One soft voice: a tone with a gentle attack and a long exponential tail. */
+  private voice(frequency: number, start: number, attack: number, hold: number, release: number, level: number, type: OscillatorType, out: AudioNode): void {
+    const context = this.context!;
+    const osc = context.createOscillator();
+    osc.type = type;
+    osc.frequency.value = frequency;
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(level, start + attack);
+    gain.gain.setValueAtTime(level, start + attack + hold);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + attack + hold + release);
+    osc.connect(gain).connect(out);
+    osc.start(start);
+    osc.stop(start + attack + hold + release + 0.05);
+  }
+
+  /** End of day: a low 808 drop under a dark minor pad that swells and fades with the curtain. */
+  private nightfall(volume: number): void {
+    const context = this.context!;
+    const now = context.currentTime + 0.02;
+    const bus = context.createGain();
+    bus.gain.value = volume;
+    const warm = context.createBiquadFilter();
+    warm.type = "lowpass";
+    warm.frequency.setValueAtTime(1400, now);
+    warm.frequency.exponentialRampToValueAtTime(380, now + 3.2);
+    bus.connect(warm).connect(this.master!);
+    warm.connect(this.echo());
+
+    // A minor add 9: A2, E3, C4, B4. Two slightly detuned layers keep it wide and soft.
+    for (const [frequency, level] of [[110, 0.13], [164.81, 0.095], [261.63, 0.075], [493.88, 0.04]] as const) {
+      this.voice(frequency, now, 0.6, 0.9, 2.2, level, "triangle", bus);
+      this.voice(frequency * 1.004, now + 0.05, 0.7, 0.8, 2.2, level * 0.6, "sine", bus);
+    }
+
+    // 808 drop: sine pitch falls from A1 to E1 with a slow decay.
+    const sub = context.createOscillator();
+    sub.type = "sine";
+    sub.frequency.setValueAtTime(55, now);
+    sub.frequency.exponentialRampToValueAtTime(41.2, now + 1.4);
+    const subGain = context.createGain();
+    subGain.gain.setValueAtTime(0.0001, now);
+    subGain.gain.exponentialRampToValueAtTime(0.55 * volume, now + 0.03);
+    subGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.2);
+    sub.connect(subGain).connect(this.master!);
+    sub.start(now);
+    sub.stop(now + 2.3);
+  }
+
+  /** Card reveal: two soft bell notes (E5 then B5) with an echo tail. */
+  private reveal(volume: number): void {
+    const context = this.context!;
+    const now = context.currentTime + 0.02;
+    const bus = context.createGain();
+    bus.gain.value = volume;
+    const soft = context.createBiquadFilter();
+    soft.type = "lowpass";
+    soft.frequency.value = 3200;
+    bus.connect(soft).connect(this.master!);
+    soft.connect(this.echo());
+    for (const [frequency, offset] of [[659.25, 0], [987.77, 0.12]] as const) {
+      this.voice(frequency, now + offset, 0.008, 0.02, 1.1, 0.15, "sine", bus);
+      this.voice(frequency * 2, now + offset, 0.004, 0.0, 0.35, 0.03, "sine", bus);
+    }
+    this.voice(329.63, now, 0.02, 0.05, 0.9, 0.08, "triangle", bus);
   }
 
   /** Low city rumble: filtered brown noise with a slow swell, plus a soft distant bass pulse. */
