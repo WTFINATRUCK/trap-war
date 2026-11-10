@@ -3,7 +3,7 @@
 A 3D street-economy strategy game. Every market move has consequences, and the consequences teach real financial
 concepts: liquidity, risk sizing, supply and demand.
 
-**Play the browser demo:** https://trap-war.com/play (desktop Chrome or Edge recommended)
+**Play the browser demo:** https://trap-war.com/play (desktop and phones)
 
 ## Repository layout
 
@@ -12,8 +12,10 @@ concepts: liquidity, risk sizing, supply and demand.
 | `game/unity/` | Unity 6 (6000.3.20f1, URP) game client. Builds to WebGL and Windows. |
 | `apps/api/` | Authoritative game API (Fastify + PostgreSQL). Owns every run, trade and day transition. |
 | `packages/economy-engine/` | Deterministic TypeScript economy engine shared by the API and its simulations. |
-| `src/` | Website (React + Vite): landing page at `/`, playable demo at `/play`. |
-| `public/play/game/` | WebGL build of the Unity client, served by the website. Produced by CI, not edited by hand. |
+| `src/` | Website (React + Vite): landing page at `/`, demo page at `/play`. |
+| `src/demo/`, `demo/` | Browser demo (Three.js) served at `/demo/`: the full Day 1 loop, playable on desktop and touch. |
+| `public/demo/assets/` | Demo models (GLB), textures and sound effects. |
+| `public/play/game/` | WebGL build of the Unity client. Produced by CI, not edited by hand. |
 | `api/v1/`, `serverless/` | Vercel function entry points that host the API. |
 | `scripts/` | API bundling for Vercel and a Windows helper for Unity batch tasks. |
 | `docs/` | Game design, architecture, economy and art documentation. |
@@ -42,7 +44,23 @@ npm test                      # economy engine and API tests
 npm run build                 # production website + bundled API
 ```
 
-## Develop the game
+## Browser demo
+
+`/demo/` is a Three.js build of the Day 1 vertical slice: safehouse, the block at night, the Trap Phone, the three
+clues, Ray, The Hub market, the consequence card, ending the day and the liquidity lesson. It runs on desktop and
+phones (on-screen joystick and buttons) and picks a graphics tier automatically (`G` or the GFX button to change).
+
+Trades go through the live API when it is reachable. When it is not (for example on Vercel preview deployments), the
+same economy engine runs in the browser, so the demo always plays. `?quality=low|medium|high` forces a tier.
+
+Character and prop models are converted from the Unity source assets with Blender:
+
+```bash
+pip install bpy                          # Blender as a Python module
+python3 scripts/build_demo_assets.py     # writes public/demo/assets/models/*.glb
+```
+
+## Develop the Unity client
 
 Open `game/unity` in Unity **6000.3.20f1** with WebGL Build Support. Git LFS is required (`git lfs install` before
 cloning) because character models are stored in LFS.

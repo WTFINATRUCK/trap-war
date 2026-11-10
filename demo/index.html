@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Trap Wars | Play the Day 1 demo</title>
+  <meta name="description" content="Trap Wars Day 1: read the block, meet Ray, make your move at The Hub." />
+  <meta name="theme-color" content="#060608" />
+  <link rel="icon" href="/trapwar-imagine-og.jpg" />
+  <link rel="preload" as="image" href="/play/game/TemplateData/wtf-labz.webp" />
+</head>
+<body>
+  <canvas id="view"></canvas>
+
+  <section id="boot">
+    <div class="boot-studio">
+      <img src="/play/game/TemplateData/wtf-labz.webp" alt="WTF-LABZ" width="731" height="328" />
+      <p>PRESENTS</p>
+    </div>
+    <div class="boot-title">
+      <h1>TRAP WARS</h1>
+      <p class="boot-tag">Learn money by making moves.</p>
+      <div class="boot-bar"><div id="boot-progress"></div></div>
+      <p id="boot-status">Loading the block…</p>
+      <button id="boot-start" hidden>PLAY DAY 1</button>
+      <p class="boot-controls" id="boot-controls"></p>
+    </div>
+    <div class="boot-edge"><div id="boot-edge"></div></div>
+  </section>
+
+  <div id="hud">
+    <div id="topbar">
+      <div><small>CASH</small><b id="hud-cash">$0</b></div>
+      <div><small>TIME</small><b id="hud-day">DAY 1</b></div>
+      <div><small>TODAY</small><b id="hud-actions">3 MOVES</b></div>
+    </div>
+    <div id="objective"><small>OBJECTIVE</small><b id="objective-title"></b><span id="objective-detail"></span></div>
+    <div id="corner-buttons">
+      <span id="mode-badge"></span>
+      <button id="btn-quality" title="Graphics quality (G)">GFX</button>
+      <button id="btn-sound" title="Sound">SOUND</button>
+      <button id="btn-full" title="Fullscreen">⛶</button>
+    </div>
+    <div id="prompt" hidden><kbd id="prompt-key">E</kbd><span id="prompt-text"></span></div>
+    <div id="toast"></div>
+    <div id="phone-hint"><kbd>TAB</kbd> PHONE <i id="phone-badge"></i></div>
+    <div id="stick"><div id="knob"></div></div>
+    <button id="touch-action"></button>
+    <button id="touch-phone" aria-label="Phone">☎</button>
+  </div>
+
+  <aside id="phone" aria-label="Trap Phone">
+    <div class="ph-frame">
+      <div class="ph-status"><span>TRAP PHONE</span><button id="phone-close" aria-label="Close phone">✕</button></div>
+      <div id="phone-screen"></div>
+      <nav class="ph-tabs">
+        <button data-tab="home">HOME</button>
+        <button data-tab="word">WORD</button>
+        <button data-tab="stash">STASH</button>
+        <button data-tab="contacts">CONTACTS</button>
+      </nav>
+    </div>
+  </aside>
+
+  <div id="dialogue" hidden>
+    <b id="dialogue-speaker"></b>
+    <p id="dialogue-text"></p>
+    <div id="dialogue-choices" hidden></div>
+    <small>CLICK / E TO CONTINUE</small>
+  </div>
+
+  <div id="clue" hidden>
+    <small>WHAT YOU SEE</small>
+    <b id="clue-title"></b>
+    <p id="clue-body"></p>
+    <span>CLICK / E</span>
+  </div>
+
+  <section id="market" hidden>
+    <header><div><small>BUY · SELL · MOVE</small><h2>THE HUB</h2></div><button id="market-close" aria-label="Leave the market">LEAVE ✕</button></header>
+    <div id="market-body"></div>
+  </section>
+
+  <section id="story-card" hidden>
+    <small id="story-kicker"></small>
+    <h2 id="story-title"></h2>
+    <div id="story-body"></div>
+    <button id="story-button"></button>
+  </section>
+
+  <section id="curtain" hidden><h2 id="curtain-text"></h2><p id="curtain-sub"></p></section>
+
+  <script type="module" src="/src/demo/main.ts"></script>
+</body>
+</html>

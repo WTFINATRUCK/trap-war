@@ -7,6 +7,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // The economy engine uses node:crypto for seeded randomness; the browser demo swaps in a pure-JS equivalent.
+      "node:crypto": path.resolve(__dirname, "./src/demo/economy/crypto-shim.ts"),
     },
   },
   server: {
@@ -18,5 +20,11 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        demo: path.resolve(__dirname, "demo/index.html"),
+      },
+    },
   },
 });
