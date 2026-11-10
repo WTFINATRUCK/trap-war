@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { Reflector } from "three/addons/objects/Reflector.js";
-import { Collision } from "./collision";
+import { Collision, type Box2 } from "./collision";
 import {
   asphaltTextures,
   coneTexture,
@@ -183,7 +183,7 @@ export function buildWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer, pr
 
   // ---------- Sky, fog, lighting ----------
   scene.background = new THREE.Color("#05060c");
-  scene.fog = new THREE.FogExp2("#120f1c", 0.0125);
+  scene.fog = new THREE.FogExp2("#1a1726", 0.0085);
   const sky = new THREE.Mesh(new THREE.SphereGeometry(420, 32, 16), new THREE.MeshBasicMaterial({ map: skyTexture(), side: THREE.BackSide, fog: false, depthWrite: false }));
   sky.rotation.y = Math.PI * 0.5;
   scene.add(sky);
@@ -192,8 +192,8 @@ export function buildWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer, pr
   moon.lookAt(0, 0, 0);
   scene.add(moon);
 
-  scene.add(new THREE.HemisphereLight("#4a5a8c", "#1a1210", 0.55));
-  const moonLight = new THREE.DirectionalLight("#9fb4ff", 0.85);
+  scene.add(new THREE.HemisphereLight("#8496cc", "#3d2c24", 1.5));
+  const moonLight = new THREE.DirectionalLight("#a9bcff", 1.5);
   moonLight.position.set(-30, 60, -40);
   moonLight.target.position.set(0, 0, 9);
   moonLight.castShadow = highQuality;
@@ -221,7 +221,7 @@ export function buildWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer, pr
   envGlow("#7a5cff", -25, 4, -5, 3);
   envGlow("#ffcc66", 0, 20, 0, 6);
   scene.environment = pmrem.fromScene(envScene, 0.04).texture;
-  scene.environmentIntensity = 0.55;
+  scene.environmentIntensity = 0.85;
 
   // ---------- Ground: road, markings, sidewalks ----------
   const roadLength = 200;
@@ -627,17 +627,26 @@ export function buildWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer, pr
   }
   // Real point lights only near the playable block; the rest of the street is carried by emissive pools.
   for (const position of lampPositions.filter((_, index) => index % 2 === 0)) {
-    const light = new THREE.PointLight("#ffa955", 26, 15, 1.7);
+    const light = new THREE.PointLight("#ffb062", 42, 19, 1.6);
     light.position.copy(position);
     scene.add(light);
     practicalLights.push(light);
   }
 
   // ---------- Props ----------
-  const addProp = (name: string, scale: number, x: number, z: number, yaw = 0, solid?: [number, number]) => {
+  /**
+   * solid: a fixed [width, depth] footprint, or "fit" to use the model's real bounds. "tall" also stops the camera,
+   * for anything big enough to hide the player (trucks).
+   */
+  const addProp = (name: string, scale: number, x: number, z: number, yaw = 0, solid?: [number, number] | "fit" | "tall") => {
     const prop = placeProp(props, name, scale, x, collision.groundHeight(x, z), z, yaw);
     if (prop) scene.add(prop);
-    if (solid) collision.addCentered(x, z, solid[0], solid[1]);
+    if (Array.isArray(solid)) collision.addCentered(x, z, solid[0], solid[1]);
+    else if (solid && prop) {
+      prop.updateMatrixWorld(true);
+      const bounds = new THREE.Box3().setFromObject(prop);
+      collision.add(bounds.min.x + 0.05, bounds.max.x - 0.05, bounds.min.z + 0.05, bounds.max.z - 0.05, undefined, solid === "tall");
+    }
     return prop;
   };
   addProp("detail_dumpster_closed", 2.6, -18.5, 1.2, Math.PI, [2.1, 1.6]);
@@ -661,8 +670,8 @@ export function buildWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer, pr
     scene.add(crate);
   }
   // Parked box trucks
-  addProp("truck_grey", 3.3, -8, 12.6, Math.PI / 2, [5.4, 2.8]);
-  addProp("truck_flat", 3.3, 33, 5.4, -Math.PI / 2, [5.4, 2.8]);
+  addProp("truck_grey", 3.3, -8, 12.6, Math.PI / 2, "tall");
+  addProp("truck_flat", 3.3, 33, 5.4, -Math.PI / 2, "tall");
   // Road-work barriers close the block at both ends
   for (const x of [L.playableMinX - 0.8, L.playableMaxX + 0.8]) {
     for (let z = -0.2; z < 18.5; z += 2.1) addProp("detail_barrier_strong_damaged", 3, x, z, Math.PI / 2);
@@ -734,7 +743,7 @@ export function buildWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer, pr
   scene.add(skyline);
 
   // ---------- Traffic ----------
-  const cars: Array<{ group: THREE.Group; speed: number; lane: number; direction: number; base: number }> = [];
+  const cars: Array<{ group: THREE.Group; speed: number; lane: number; direction: number; base: number; box: Box2 }> = [];
   const carColors = ["#7a0f16", "#1d2a44", "#cfcfcf", "#0f0f12", "#5a4a20", "#2c4a2e"];
   const tailMaterial = new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 0.15, 0.15), toneMapped: false });
   const headMaterial = new THREE.MeshBasicMaterial({ color: new THREE.Color(4, 3.8, 3.2), toneMapped: false });
@@ -774,7 +783,9 @@ export function buildWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer, pr
     group.position.set(-90 + index * 47, 0, lane);
     group.rotation.y = direction === 1 ? 0 : Math.PI;
     scene.add(group);
-    cars.push({ group, speed: 9 + random() * 4, lane, direction, base: 9 + random() * 4 });
+    // Solid footprint that follows the car, so the player can't walk through it.
+    const box = collision.add(0, 0, lane - 1.0, lane + 1.0, `car-${index}`);
+    cars.push({ group, speed: 9 + random() * 4, lane, direction, base: 9 + random() * 4, box });
   }
   animated.push((delta, _t, player) => {
     for (const car of cars) {
@@ -786,6 +797,8 @@ export function buildWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer, pr
       car.group.position.x += car.speed * car.direction * delta;
       if (car.group.position.x > 100) car.group.position.x = -100;
       if (car.group.position.x < -100) car.group.position.x = 100;
+      car.box.minX = car.group.position.x - 2.3;
+      car.box.maxX = car.group.position.x + 2.3;
     }
   });
 

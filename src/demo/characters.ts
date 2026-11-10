@@ -87,6 +87,21 @@ export async function loadCharacters(onProgress: (done: number, total: number) =
 export async function loadProps(): Promise<Map<string, THREE.Object3D>> {
   const gltf = await loadGltf("/demo/assets/models/props.glb");
   const props = new Map<string, THREE.Object3D>();
+  // The kit ships tiny pixel-art atlases with nearest filtering; scaled up to street size that reads as blocky
+  // pixels. Smooth filtering with mipmaps keeps the colours and loses the stair-stepping.
+  gltf.scene.traverse((object) => {
+    const mesh = object as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+      const map = (material as THREE.MeshStandardMaterial).map;
+      if (!map) continue;
+      map.magFilter = THREE.LinearFilter;
+      map.minFilter = THREE.LinearMipmapLinearFilter;
+      map.generateMipmaps = true;
+      map.anisotropy = 4;
+      map.needsUpdate = true;
+    }
+  });
   for (const child of gltf.scene.children) props.set(child.name.replace(/\.?\d{3}$/, ""), child);
   return props;
 }

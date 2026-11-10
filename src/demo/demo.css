@@ -23,7 +23,7 @@ kbd { display: inline-grid; place-items: center; min-width: 1.9em; padding: 0.15
 .boot-studio, .boot-title { grid-area: 1 / 1; display: grid; justify-items: center; text-align: center; padding: 2rem; transition: opacity 0.6s ease, transform 0.6s ease; }
 #boot.title .boot-studio { opacity: 0; transform: scale(1.04); pointer-events: none; }
 #boot:not(.title) .boot-title { opacity: 0; transform: scale(0.98); pointer-events: none; }
-.boot-studio img { width: min(560px, 78vw); height: auto; filter: blur(0) drop-shadow(0 18px 40px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 28px rgba(214, 24, 36, 0.28)); animation: logo-in 0.95s cubic-bezier(0.18, 0.8, 0.2, 1) both; }
+.boot-studio img { width: min(560px, 78vw); height: auto; animation: logo-in 0.95s cubic-bezier(0.18, 0.8, 0.2, 1) both; }
 .boot-studio p { margin: 1.1rem 0 0; color: #d9d4ca; font-weight: 700; letter-spacing: 0.62em; text-indent: 0.62em; animation: fade-in 0.7s ease 0.85s both; }
 .boot-title h1 { margin: 0; font: 900 clamp(3rem, 11vw, 7.5rem)/0.9 var(--display); letter-spacing: 0.01em; text-shadow: 0 0 40px rgba(255, 52, 69, 0.35); }
 .boot-tag { margin: 0.8rem 0 1.6rem; color: var(--gold); font-weight: 700; letter-spacing: 0.08em; }
@@ -188,7 +188,7 @@ body.talking #prompt, body.talking #touch-action { visibility: hidden; }
 #curtain h2 { margin: 0; font: 900 clamp(2rem, 7vw, 4rem) var(--display); }
 #curtain p { color: var(--muted); }
 
-@keyframes logo-in { from { opacity: 0; transform: scale(1.12); filter: blur(10px) drop-shadow(0 18px 40px rgba(0, 0, 0, 0)) drop-shadow(0 0 28px rgba(214, 24, 36, 0)); } to { opacity: 1; transform: none; } }
+@keyframes logo-in { from { opacity: 0; transform: scale(1.12); } to { opacity: 1; transform: none; } }
 @keyframes fade-in { from { opacity: 0; letter-spacing: 1em; } to { opacity: 1; } }
 @keyframes breathe { 50% { transform: scale(1.04); } }
 @keyframes pulse { 0% { transform: translateX(-8px); opacity: 0.4; } 100% { transform: none; opacity: 1; } }
