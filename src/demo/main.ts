@@ -32,7 +32,7 @@ if (isTouch) document.body.classList.add("touch");
 const canvas = document.querySelector<HTMLCanvasElement>("#view")!;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
+renderer.toneMappingExposure = 1.6;
 renderer.shadowMap.enabled = tier === "high";
 renderer.shadowMap.type = THREE.PCFShadowMap;
 const scene = new THREE.Scene();
@@ -47,7 +47,7 @@ composer.addPass(fxaa);
 
 function applyTier(next: Tier, world?: World): void {
   tier = next;
-  const ratio = next === "high" ? Math.min(devicePixelRatio, 1.75) : next === "medium" ? Math.min(devicePixelRatio, 1) : 0.7;
+  const ratio = next === "high" ? Math.min(devicePixelRatio, 1.75) : next === "medium" ? Math.min(devicePixelRatio, 1.5) : 0.75;
   renderer.setPixelRatio(ratio);
   composer.setPixelRatio(ratio);
   resize();
@@ -186,7 +186,7 @@ class Game {
     this.player = new Player(hero, camera, world.collision, () => audio.play("footstep", 0.22));
     this.player.place(A.spawn, A.spawnYaw);
     // Soft cool fill that follows the hero so the dark hoodie still reads against night backgrounds.
-    this.heroFill = new THREE.PointLight("#9fb6ff", 2.2, 5, 1.5);
+    this.heroFill = new THREE.PointLight("#c4d2ff", 5, 7, 1.4);
     scene.add(this.heroFill);
 
     this.ray = new Character(characters.get("ray"), undefined, 1.84);

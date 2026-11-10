@@ -18,7 +18,7 @@ Add a row before importing anything new. License texts that ship with an asset l
 | Browser demo sound effects (`*.mp3`) | `public/demo/assets/audio/` | Kenney Impact, Interface and RPG audio packs | CC0 1.0 |
 | Browser demo safehouse textures (`cityview.jpg`, `plaster.jpg`, `fabric.jpg`) | `public/demo/assets/` | Compressed copies of the `TX_M84_*` textures | Project-owned |
 | Browser demo facades, signs, road and sky | Generated at runtime by `src/demo/textures.ts` | Trap Wars code | Project-owned |
-| WTF-LABZ studio mark (`wtf-labz.webp`) | `Assets/WebGLTemplates/TrapWars/TemplateData/`, `public/play/game/TemplateData/` | WTF-LABZ | Project-owned |
+| WTF-LABZ studio mark (`wtf-labz.png`) | `Assets/WebGLTemplates/TrapWars/TemplateData/`, `public/play/game/TemplateData/` | WTF-LABZ | Project-owned |
 
 ## Hero model integrity
 

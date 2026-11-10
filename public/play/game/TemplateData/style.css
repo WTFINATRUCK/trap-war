@@ -48,7 +48,6 @@ html, body, #shell {
 .studio-logo {
   width: min(560px, 78vw);
   height: auto;
-  filter: blur(0) drop-shadow(0 18px 40px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 28px rgba(214, 24, 36, 0.28));
   animation: logo-in 0.95s cubic-bezier(0.18, 0.8, 0.2, 1) both;
 }
 
@@ -107,7 +106,7 @@ html, body, #shell {
 .stage-title .edge-progress { opacity: 0; }
 
 @keyframes logo-in {
-  from { opacity: 0; transform: scale(1.12); filter: blur(10px) drop-shadow(0 18px 40px rgba(0, 0, 0, 0)) drop-shadow(0 0 28px rgba(214, 24, 36, 0)); }
+  from { opacity: 0; transform: scale(1.12); }
   to   { opacity: 1; transform: none; }
 }
 
